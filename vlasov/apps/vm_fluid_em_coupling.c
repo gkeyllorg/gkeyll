@@ -54,10 +54,11 @@ fluid_em_coupling_dt_kinetic(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
   return omega_p_sq_global > 0.0 ? app->cfl / sqrt(omega_p_sq_global) : DBL_MAX;
 }
 
-// The solve of a source step. It advances the momentum of the fluids and the electric field, and
-// the energy of a fluid that has one by the change of the bulk kinetic energy (the work of the
-// field): the density is unchanged, and so is the internal energy at the nodes of the solve. It
-// acts on the physical fluids and field (without the position-map Jacobian).
+// The solve of a source step. It advances the momentum of the fluids and the electric field (with
+// the resistive layer, if any), and the energy of a fluid that has one by the change of the bulk
+// kinetic energy (the work of the field): the density is unchanged, and so is the internal energy
+// at the nodes of the solve. It acts on the physical fluids and field (without the position-map
+// Jacobian).
 static void
 fluid_em_coupling_advance(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
@@ -65,7 +66,8 @@ fluid_em_coupling_advance(
 )
 {
   gkyl_dg_calc_fluid_em_coupling_advance(
-    fl_em->slvr, dt, app_accels, app->field->ext_em, fl_em->curl_current, fluids, fl_em->em_solve
+    fl_em->slvr, dt, app_accels, app->field->ext_em, fl_em->curl_current, fl_em->sigma, fluids,
+    fl_em->em_solve
   );
 }
 
@@ -183,6 +185,8 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
     fl_em->em_solve = app->field->em_no_J;
     fl_em->curl_rhs_no_J = mkarr(app->use_gpu, 8 * num_basis, num_cells);
   }
+  // The resistive layer damps E in the solve; a static field has none.
+  fl_em->sigma = app->field->has_sigma && !app->field->info.is_static ? app->field->sigma : 0;
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     const struct gkyl_array *fluid = fl_em->species[i]->fluid->fluid;
     fl_em->fluid_stag[i] = mkarr(app->use_gpu, fluid->ncomp, fluid->size);

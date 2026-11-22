@@ -11,7 +11,13 @@
 //     exact weak projection of dt (q/m)(rho Ebar + Mbar x B) with Ebar, Mbar the modal
 //     half-step fields (products of two p=1 fields are integrated exactly by the 2-point
 //     rule: no aliasing), Ampere's law holds mode by mode, and the kinetic plus field energy
-//     is conserved node by node.
+//     is conserved node by node;
+//   * resistive layer: the coefficients g2, phi, phi2 are correctly rounded on both sides of the
+//     series threshold and exact at sigma dt = 0; with a neutral species E alone is damped by
+//     exp(-sigma dt) at each node, also for sigma dt >> 1 (no sign change), and E = -J_app/(eps0 sigma)
+//     is steady; with the varying state (two species, 1x, 2x, 3x) the nodal energy changes by the
+//     external work minus eps0 sigma int |E|^2 dt; sigma = 0 gives bitwise the result without a
+//     layer, and sigma dt = 1e-13 agrees with it to round-off.
 #include <math.h>
 #include <string.h>
 
@@ -20,6 +26,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
+#include <gkyl_fluid_em_coupling_kernels.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -121,7 +128,7 @@ test_static_E_push(int cdim)
     });
   const struct gkyl_array *aa[1] = {s.app_accel[0]};
   struct gkyl_array *ff[1] = {s.fluid[0]};
-  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, ff, s.em);
+  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, NULL, ff, s.em);
 
   double Mxn = Mx + dt * qbym[0] * rho * Ex, Myn = My + dt * qbym[0] * rho * Ey,
          Mzn = Mz + dt * qbym[0] * rho * Ez;
@@ -177,7 +184,7 @@ plasma_oscillation(double dt, double t_end)
   double inv0 = 0.5 * eps0 * E0 * E0, wnum = 2.0 / dt * atan(0.5 * wp * dt);
   int nsteps = (int)round(t_end / dt);
   for (int n = 1; n <= nsteps; ++n) {
-    gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, ff, s.em);
+    gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, NULL, ff, s.em);
     double Mx = avg(s.fluid[0], loc, 1, nb, 1), Ex = avg(s.em, loc, 0, nb, 1),
            Ef = avg(s.fluid[0], loc, 4, nb, 1);
     double inv = 0.5 * Mx * Mx / rho + 0.5 * eps0 * Ex * Ex;
@@ -234,7 +241,7 @@ test_cyclotron()
   long loc = gkyl_range_idx(&s.local_ext, s.local.lower);
   double omega = qbym[0] * Bz, dphi = 2.0 * atan(0.5 * omega * dt);
   for (int n = 1; n <= 20; ++n) {
-    gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, ff, s.em);
+    gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, NULL, ff, s.em);
     double Mx = avg(s.fluid[0], loc, 1, nb, cdim), My = avg(s.fluid[0], loc, 2, nb, cdim);
     TEST_CHECK(gkyl_compare(sqrt(Mx * Mx + My * My), M0, 1e-13));
     TEST_CHECK(fabs(avg(s.fluid[0], loc, 4, nb, cdim)) < 1e-13); // no work: |M| is conserved
@@ -367,7 +374,7 @@ test_varying(int cdim)
     });
   const struct gkyl_array *aa[2] = {s.app_accel[0], s.app_accel[1]};
   struct gkyl_array *ff[2] = {s.fluid[0], s.fluid[1]};
-  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, ff, s.em);
+  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, NULL, ff, s.em);
 
   int nq = 1;
   for (int d = 0; d < cdim; ++d) {
@@ -548,12 +555,12 @@ test_no_energy(int cdim)
   const struct gkyl_array *aa_ref[2] = {s_ref.app_accel[0], s_ref.app_accel[1]};
   struct gkyl_array *ff_ref[2] = {s_ref.fluid[0], s_ref.fluid[1]};
   gkyl_dg_calc_fluid_em_coupling_advance(
-    up_ref, dt, aa_ref, s_ref.ext_em, s_ref.app_current, ff_ref, s_ref.em
+    up_ref, dt, aa_ref, s_ref.ext_em, s_ref.app_current, NULL, ff_ref, s_ref.em
   );
   const struct gkyl_array *aa_iso[2] = {s_iso.app_accel[0], s_iso.app_accel[1]};
   struct gkyl_array *ff_iso[2] = {s_iso.fluid[0], s_iso.fluid[1]};
   gkyl_dg_calc_fluid_em_coupling_advance(
-    up_iso, dt, aa_iso, s_iso.ext_em, s_iso.app_current, ff_iso, s_iso.em
+    up_iso, dt, aa_iso, s_iso.ext_em, s_iso.app_current, NULL, ff_iso, s_iso.em
   );
 
   double max_diff = 0.0, max_sentinel = 0.0, max_change = 0.0;
@@ -638,6 +645,404 @@ test_no_energy_3x()
   test_no_energy(3);
 }
 
+// Resistive layer, 1x: a neutral species (q/m = 0) decouples the fluid, so E alone is damped by
+// exp(-sigma dt) at each node; sigma varies linearly in each cell, so the two nodes have different
+// factors. B and the fluid are unchanged.
+static void
+test_resistive_layer(double dt)
+{
+  struct setup s;
+  setup_init(&s, 1, 1);
+  int nb = s.nc;
+  double qbym[1] = {0.0}, eps0 = 1.0;
+  double rho = 3.0, Mx = 1.0, E0 = 7.0, Ex = 2.0, Ey = -0.5, Ez = 1.0, Bz = 0.8;
+  double s0 = 1.5, s1 = 0.6; // sigma = s0 + s1 eta in every cell, eta in [-1, 1]
+  set_const_block(s.fluid[0], 0, nb, rho, 1);
+  set_const_block(s.fluid[0], 1, nb, Mx, 1);
+  set_const_block(s.fluid[0], 4, nb, E0, 1);
+  set_const_block(s.em, 0, nb, Ex, 1);
+  set_const_block(s.em, 1, nb, Ey, 1);
+  set_const_block(s.em, 2, nb, Ez, 1);
+  set_const_block(s.em, 5, nb, Bz, 1);
+  struct gkyl_array *sigma = mkarr(2, s.local_ext.volume); // values at the 2 nodes
+  gkyl_array_clear(sigma, 0.0);
+  gkyl_array_shiftc(sigma, s0 - s1 / sqrt(3.0), 0);
+  gkyl_array_shiftc(sigma, s0 + s1 / sqrt(3.0), 1);
+
+  struct gkyl_dg_calc_fluid_em_coupling *up =
+    gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 1,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .is_field_static = false,
+      .use_gpu = false,
+    });
+  const struct gkyl_array *aa[1] = {s.app_accel[0]};
+  struct gkyl_array *ff[1] = {s.fluid[0]};
+  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, sigma, ff, s.em);
+
+  double E_in[3] = {Ex, Ey, Ez};
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.local_ext, iter.idx);
+    const double *em = gkyl_array_cfetch(s.em, loc);
+    for (int nd = 0; nd < 2; ++nd) {
+      double sgn = nd == 0 ? -1.0 : 1.0;
+      double sig = s0 + sgn * s1 / sqrt(3.0);
+      double g = exp(-sig * dt);
+      for (int c = 0; c < 3; ++c) {
+        // value of the p=1 expansion at the node eta = sgn/sqrt(3)
+        double v = (em[c * nb] + sgn * em[c * nb + 1]) / sqrt(2.0);
+        TEST_CHECK(gkyl_compare(v, g * E_in[c], 1e-14));
+      }
+    }
+    TEST_CHECK(gkyl_compare(avg(s.em, loc, 5, nb, 1), Bz, 1e-15));
+    TEST_CHECK(gkyl_compare(avg(s.fluid[0], loc, 1, nb, 1), Mx, 1e-15));
+    TEST_CHECK(gkyl_compare(avg(s.fluid[0], loc, 4, nb, 1), E0, 1e-15));
+  }
+  gkyl_array_release(sigma);
+  gkyl_dg_calc_fluid_em_coupling_release(up);
+  setup_release(&s, 1);
+}
+
+// Resistive layer coefficients against references computed with 80-digit decimal arithmetic
+// (series for x < 1): g2 = exp(-x), phi = (1 - g2)/x, phi2 = (1 - phi)/x.
+static void
+test_layer_coeffs(void)
+{
+  const double ref[][4] = {
+    {1e-300, 1, 1, 0.5},
+    {1e-12, 0.99999999999900002, 0.99999999999949996, 0.49999999999983336},
+    {1e-06, 0.99999900000050002, 0.99999950000016669, 0.499999833333375},
+    {0.01, 0.99004983374916811, 0.99501662508319466, 0.49833749168053576},
+    {0.5, 0.60653065971263342, 0.78693868057473315, 0.4261226388505337},
+    {0.999999999999, 0.36787944117181021, 0.6321205588288219, 0.36787944117154597},
+    {1.0, 0.36787944117144233, 0.63212055882855767, 0.36787944117144233},
+    {1.000000000001, 0.36787944117107441, 0.63212055882829343, 0.36787944117133869},
+    {3.0, 0.049787068367863944, 0.31673764387737868, 0.22775411870754045},
+    {40.0, 4.2483542552915889e-18, 0.025000000000000001, 0.024375000000000001},
+    {800.0, 0, 0.00125, 0.0012484375}
+  };
+  for (int i = 0; i < (int)(sizeof ref / sizeof ref[0]); ++i) {
+    double g2, phi, phi2;
+    fluid_em_coupling_layer_coeffs(ref[i][0], &g2, &phi, &phi2);
+    TEST_CHECK(gkyl_compare(g2, ref[i][1], 1e-15));
+    TEST_CHECK(gkyl_compare(phi, ref[i][2], 1e-15));
+    TEST_CHECK(gkyl_compare(phi2, ref[i][3], 1e-15));
+    TEST_MSG("x = %g: g2 %.17g phi %.17g phi2 %.17g", ref[i][0], g2, phi, phi2);
+  }
+  double g2, phi, phi2;
+  fluid_em_coupling_layer_coeffs(0.0, &g2, &phi, &phi2);
+  TEST_CHECK(g2 == 1.0 && phi == 1.0 && phi2 == 0.5);
+}
+
+// Resistive layer balance, 1x: a neutral species and an applied current J leave E = -J/(eps0 sigma)
+// steady (sigma uniform), for sigma dt below and well above 1.
+static void
+test_resistive_balance(double dt)
+{
+  struct setup s;
+  setup_init(&s, 1, 1);
+  int nb = s.nc;
+  double qbym[1] = {0.0}, eps0 = 1.3, sig = 2.5;
+  double J[3] = {0.7, -1.1, 0.4};
+  set_const_block(s.fluid[0], 0, nb, 1.0, 1);
+  for (int c = 0; c < 3; ++c) {
+    set_const_block(s.app_current, c, nb, J[c], 1);
+    set_const_block(s.em, c, nb, -J[c] / (eps0 * sig), 1);
+  }
+  struct gkyl_array *sigma = mkarr(nb, s.local_ext.volume); // values at the nb = 2 nodes
+  gkyl_array_clear(sigma, 0.0);
+  for (int n = 0; n < nb; ++n) {
+    gkyl_array_shiftc(sigma, sig, n);
+  }
+
+  struct gkyl_dg_calc_fluid_em_coupling *up =
+    gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 1,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .is_field_static = false,
+      .use_gpu = false,
+    });
+  const struct gkyl_array *aa[1] = {s.app_accel[0]};
+  struct gkyl_array *ff[1] = {s.fluid[0]};
+  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, sigma, ff, s.em);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.local_ext, iter.idx);
+    for (int c = 0; c < 3; ++c) {
+      TEST_CHECK(gkyl_compare(avg(s.em, loc, c, nb, 1), -J[c] / (eps0 * sig), 1e-14));
+    }
+  }
+  gkyl_array_release(sigma);
+  gkyl_dg_calc_fluid_em_coupling_release(up);
+  setup_release(&s, 1);
+}
+
+static void
+eval_sigma(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  const double *c = ctx; // {cdim, scale}
+  double y = c[0] > 1 ? xn[1] : 0.3, z = c[0] > 2 ? xn[2] : -0.2;
+  fout[0] = c[1] * (2.0 + sin(3.0 * xn[0]) + 0.5 * cos(2.0 * y) * cos(z));
+}
+
+// Values of f at the 2^cdim Gauss-Legendre nodes of each cell (row-major, the last direction
+// fastest), the form in which the source solve takes sigma.
+static void
+sample_at_nodes(const struct setup *s, evalf_t f, void *ctx, struct gkyl_array *out)
+{
+  int cdim = s->cdim, node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s->local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    double xc[3], x[3];
+    gkyl_rect_grid_cell_center(&s->grid, iter.idx, xc);
+    double *o = gkyl_array_fetch(out, gkyl_range_idx(&s->local_ext, iter.idx));
+    struct gkyl_range_iter node_iter;
+    gkyl_range_iter_init(&node_iter, &node_range);
+    while (gkyl_range_iter_next(&node_iter)) {
+      for (int d = 0; d < cdim; ++d) {
+        x[d] = xc[d] + 0.5 * s->grid.dx[d] * gkyl_gauss_ordinates_2[node_iter.idx[d]];
+      }
+      f(0.0, x, &o[gkyl_range_idx(&node_range, node_iter.idx)], ctx);
+    }
+  }
+}
+
+static double
+layer_phi(double x)
+{
+  return x > 0.0 ? -expm1(-x) / x : 1.0;
+}
+
+// Resistive layer with the varying state (two species, E, B, external fields, applied
+// acceleration and current) and a varying sigma: at each node the change of
+// sum_s |M_s|^2/(2 rho_s) + eps0 |E|^2/2 equals dt sum_s Mbar_s.(qbym_s E_ext + a_s) - dt J_app.Ebar
+// - eps0 sigma int |E|^2 dt, with E(t) = E^n exp(-sigma t) + S (1 - exp(-sigma t))/sigma the exact
+// solution for the midpoint current S, and Ebar its time average.
+static void
+test_resistive_energy(int cdim, double scale)
+{
+  struct setup s;
+  setup_init(&s, cdim, 2);
+  int nb = s.nc;
+  double qbym[2] = {-1.0, 0.5}, eps0 = 1.3, dt = 0.21;
+  set_varying_state(&s, cdim);
+  struct gkyl_array *sigma = mkarr(nb, s.local_ext.volume); // values at the nb = 2^cdim nodes
+  double sig_ctx[2] = {cdim, scale};
+  sample_at_nodes(&s, eval_sigma, sig_ctx, sigma);
+  struct gkyl_array *M_old[2] = {
+    mkarr(5 * nb, s.local_ext.volume), mkarr(5 * nb, s.local_ext.volume)
+  };
+  struct gkyl_array *em_old = mkarr(8 * nb, s.local_ext.volume);
+  gkyl_array_copy(M_old[0], s.fluid[0]);
+  gkyl_array_copy(M_old[1], s.fluid[1]);
+  gkyl_array_copy(em_old, s.em);
+
+  struct gkyl_dg_calc_fluid_em_coupling *up =
+    gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 2,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .is_field_static = false,
+      .use_gpu = false,
+    });
+  const struct gkyl_array *aa[2] = {s.app_accel[0], s.app_accel[1]};
+  struct gkyl_array *ff[2] = {s.fluid[0], s.fluid[1]};
+  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, sigma, ff, s.em);
+
+  double max_eerr = 0.0, max_loss = 0.0, min_x = 1e300, max_x = 0.0;
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.local_ext, iter.idx);
+    const double *em_n = gkyl_array_cfetch(s.em, loc), *em_o = gkyl_array_cfetch(em_old, loc);
+    const double *ext = gkyl_array_cfetch(s.ext_em, loc);
+    const double *Ja = gkyl_array_cfetch(s.app_current, loc);
+    const double *sg = gkyl_array_cfetch(sigma, loc);
+    struct gkyl_range_iter node_iter;
+    gkyl_range_iter_init(&node_iter, &node_range);
+    while (gkyl_range_iter_next(&node_iter)) {
+      double z[3];
+      for (int d = 0; d < cdim; ++d) {
+        z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
+      }
+      double sig = sg[gkyl_range_idx(&node_range, node_iter.idx)], x = sig * dt;
+      min_x = fmin(min_x, x);
+      max_x = fmax(max_x, x);
+      double g2 = exp(-x), phi = layer_phi(x), phi2x = layer_phi(2.0 * x);
+      double I1 = dt * phi2x, I2 = dt * dt * (phi - phi2x) / x,
+             I3 = dt * dt * dt * (1.0 - 2.0 * phi + phi2x) / (x * x);
+      double de = 0.0, work = 0.0, intE2 = 0.0;
+      for (int c = 0; c < 3; ++c) {
+        double En = s.basis.eval_expand(z, &em_n[c * nb]),
+               Eo = s.basis.eval_expand(z, &em_o[c * nb]);
+        double S = (En - g2 * Eo) / (dt * phi); // midpoint current of the exact solution
+        double Ebar = phi * Eo + (1.0 - phi) / x * dt * S;
+        de += 0.5 * eps0 * (En * En - Eo * Eo);
+        work -= dt * Ebar * s.basis.eval_expand(z, &Ja[c * nb]);
+        intE2 += Eo * Eo * I1 + 2.0 * Eo * S * I2 + S * S * I3;
+      }
+      for (int sp = 0; sp < 2; ++sp) {
+        const double *Mn = gkyl_array_cfetch(s.fluid[sp], loc),
+                     *Mo = gkyl_array_cfetch(M_old[sp], loc);
+        const double *acc = gkyl_array_cfetch(s.app_accel[sp], loc);
+        double rq = s.basis.eval_expand(z, Mn);
+        for (int c = 0; c < 3; ++c) {
+          double a = s.basis.eval_expand(z, &Mn[(1 + c) * nb]),
+                 b = s.basis.eval_expand(z, &Mo[(1 + c) * nb]);
+          de += 0.5 * (a * a - b * b) / rq;
+          work += dt * 0.5 * (a + b) *
+                  (qbym[sp] * s.basis.eval_expand(z, &ext[c * nb]) +
+                   s.basis.eval_expand(z, &acc[c * nb]));
+        }
+      }
+      double loss = eps0 * sig * intE2;
+      max_loss = fmax(max_loss, loss);
+      max_eerr = fmax(max_eerr, fabs(de - (work - loss)));
+    }
+  }
+  TEST_CHECK(max_loss > 1e-3);
+  TEST_CHECK(max_eerr < 1e-12);
+  TEST_MSG(
+    "cdim=%d, sigma dt in [%g, %g]: nodal energy residual %g (largest loss %g)", cdim, min_x, max_x,
+    max_eerr, max_loss
+  );
+  gkyl_array_release(sigma);
+  gkyl_array_release(em_old);
+  gkyl_array_release(M_old[0]);
+  gkyl_array_release(M_old[1]);
+  gkyl_dg_calc_fluid_em_coupling_release(up);
+  setup_release(&s, 2);
+}
+
+// Resistive layer and no layer, 2x varying state: sigma = 0 gives bitwise the result of
+// sigma = NULL, and sigma dt = 1e-13 agrees with it to round-off.
+static void
+test_resistive_null(void)
+{
+  int cdim = 2;
+  double qbym[2] = {-1.0, 0.5}, eps0 = 1.3, dt = 0.21;
+  double sig_vals[2] = {0.0, 1e-13 / 0.21};
+  struct setup s0;
+  setup_init(&s0, cdim, 2);
+  set_varying_state(&s0, cdim);
+  int nb = s0.nc;
+  struct gkyl_dg_calc_fluid_em_coupling *up =
+    gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+      .conf_basis = &s0.basis,
+      .mem_range = &s0.local,
+      .num_species = 2,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .is_field_static = false,
+      .use_gpu = false,
+    });
+  const struct gkyl_array *aa0[2] = {s0.app_accel[0], s0.app_accel[1]};
+  struct gkyl_array *ff0[2] = {s0.fluid[0], s0.fluid[1]};
+  gkyl_dg_calc_fluid_em_coupling_advance(up, dt, aa0, s0.ext_em, s0.app_current, NULL, ff0, s0.em);
+
+  for (int k = 0; k < 2; ++k) {
+    struct setup s1;
+    setup_init(&s1, cdim, 2);
+    set_varying_state(&s1, cdim);
+    struct gkyl_array *sigma = mkarr(nb, s1.local_ext.volume); // values at the nb = 4 nodes
+    gkyl_array_clear(sigma, 0.0);
+    for (int n = 0; n < nb; ++n) {
+      gkyl_array_shiftc(sigma, sig_vals[k], n);
+    }
+    const struct gkyl_array *aa1[2] = {s1.app_accel[0], s1.app_accel[1]};
+    struct gkyl_array *ff1[2] = {s1.fluid[0], s1.fluid[1]};
+    gkyl_dg_calc_fluid_em_coupling_advance(
+      up, dt, aa1, s1.ext_em, s1.app_current, sigma, ff1, s1.em
+    );
+    long n_em = s0.em->size * s0.em->ncomp, n_fl = s0.fluid[0]->size * s0.fluid[0]->ncomp;
+    if (k == 0) {
+      TEST_CHECK(memcmp(s0.em->data, s1.em->data, n_em * sizeof(double)) == 0);
+      for (int sp = 0; sp < 2; ++sp) {
+        TEST_CHECK(memcmp(s0.fluid[sp]->data, s1.fluid[sp]->data, n_fl * sizeof(double)) == 0);
+      }
+    } else {
+      double max_diff = 0.0;
+      const double *a = s0.em->data, *b = s1.em->data;
+      for (long i = 0; i < n_em; ++i) {
+        max_diff = fmax(max_diff, fabs(a[i] - b[i]));
+      }
+      for (int sp = 0; sp < 2; ++sp) {
+        a = s0.fluid[sp]->data;
+        b = s1.fluid[sp]->data;
+        for (long i = 0; i < n_fl; ++i) {
+          max_diff = fmax(max_diff, fabs(a[i] - b[i]));
+        }
+      }
+      TEST_CHECK(max_diff < 1e-12);
+      TEST_MSG("sigma dt = 1e-13: largest difference to no layer %g", max_diff);
+    }
+    gkyl_array_release(sigma);
+    setup_release(&s1, 2);
+  }
+  gkyl_dg_calc_fluid_em_coupling_release(up);
+  setup_release(&s0, 2);
+}
+
+void
+test_resistive_layer_1x()
+{
+  test_resistive_layer(0.37);
+}
+void
+test_resistive_layer_stiff()
+{
+  test_resistive_layer(4.0);
+}
+
+void
+test_resistive_balance_1x()
+{
+  test_resistive_balance(0.3);
+}
+void
+test_resistive_balance_stiff()
+{
+  test_resistive_balance(7.0);
+}
+void
+test_resistive_energy_1x()
+{
+  test_resistive_energy(1, 1.0);
+}
+void
+test_resistive_energy_2x()
+{
+  test_resistive_energy(2, 1.0);
+}
+void
+test_resistive_energy_3x()
+{
+  test_resistive_energy(3, 1.0);
+}
+void
+test_resistive_energy_stiff()
+{
+  test_resistive_energy(2, 20.0);
+}
+
 TEST_LIST = {
   {"static_E_push_1x", test_static_E_push_1x},
   {"static_E_push_2x", test_static_E_push_2x},
@@ -649,5 +1054,15 @@ TEST_LIST = {
   {"no_energy_1x", test_no_energy_1x},
   {"no_energy_2x", test_no_energy_2x},
   {"no_energy_3x", test_no_energy_3x},
+  {"resistive_layer_1x", test_resistive_layer_1x},
+  {"resistive_layer_stiff", test_resistive_layer_stiff},
+  {"layer_coeffs", test_layer_coeffs},
+  {"resistive_balance_1x", test_resistive_balance_1x},
+  {"resistive_balance_stiff", test_resistive_balance_stiff},
+  {"resistive_energy_1x", test_resistive_energy_1x},
+  {"resistive_energy_2x", test_resistive_energy_2x},
+  {"resistive_energy_3x", test_resistive_energy_3x},
+  {"resistive_energy_stiff", test_resistive_energy_stiff},
+  {"resistive_null", test_resistive_null},
   {NULL, NULL}
 };

@@ -532,8 +532,10 @@ struct gkyl_vlasov_field {
   // Vlasov-Poisson boundary conditions.
   struct gkyl_poisson_bc poisson_bcs;
 
-  void *sigma_ctx; // context for resistive layer to damp EM fields
-  // pointer to resistive layer function to damp EM fields
+  void *sigma_ctx; // context for the resistive layer
+  // Resistive layer sigma(x) >= 0: E is damped at this rate (B is not). sigma is sampled at the
+  // Gauss-Legendre points of each cell; the damping is a quadrature projection on the stage
+  // right-hand side, or exact at each node of the source solve with the fluid-EM coupling.
   void (*sigma)(double t, const double *xn, double *fout, void *ctx);
 
   void *ext_em_ctx; // Context for external electromagnetic fields function (E,B).

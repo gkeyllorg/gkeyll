@@ -19,6 +19,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
+#include <gkyl_dg_calc_resistive_layer.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dynvec.h>
@@ -110,6 +111,9 @@ struct vm_fluid_em_coupling {
     *curl_current; // physical applied current - eps0 * (E rows of the physical curl_rhs)
   struct gkyl_array
     *em_solve; // field the solve advances: em_no_J of a J-weighted field, em otherwise
+  // Resistive layer of the solve, the damping rate of E at the nodes (the field's; NULL without a
+  // layer and for a static field).
+  const struct gkyl_array *sigma;
 
   // Staggered states (fluids, field): those at the start of an update while it runs (for a
   // transport step that takes less than planned), and those kept while the app holds the
@@ -430,7 +434,8 @@ struct vm_fluid_em_coupling *vm_fluid_em_coupling_new(struct gkyl_vlasov_app *ap
 bool vm_fluid_em_coupling_supported(const struct vlasov_species *sp);
 
 /**
- * Implicit source step of the fluid-EM coupling (implicit midpoint at the nodes): advances the
+ * Implicit source step of the fluid-EM coupling (implicit midpoint at the nodes, with the resistive
+ * layer integrated exactly): advances the
  * fluid momenta and energies and the electric field in place, on the physical state (the
  * position-map Jacobian of a PKPM fluid and of a field with PKPM species is divided out before
  * and restored after). E advances only here, with

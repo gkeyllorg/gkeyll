@@ -123,8 +123,8 @@ struct vm_field {
       struct gkyl_array *em_host; // host copy for use IO and initialization
 
       bool has_sigma; // flag to indicate there is a resistive layer
-      struct gkyl_array *sigma; // resistive layer for damping EM fields
-      struct gkyl_array *sigmaEM; // resistivity*E/B for incrementing onto RHS
+      struct gkyl_array *sigma; // resistive layer, the damping rate of E at the quadrature points
+      struct gkyl_dg_calc_resistive_layer *sigma_slvr; // explicit increment of the resistive layer
 
       gkyl_hyper_dg *slvr; // Maxwell solver
 

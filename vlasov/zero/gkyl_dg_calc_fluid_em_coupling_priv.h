@@ -14,19 +14,19 @@
 typedef void (*fluid_em_coupling_set_t)(
   int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool is_field_static,
   double dt, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *app_accel[GKYL_MAX_SPECIES],
-  const double *ext_em, const double *app_current, const double *fluid[GKYL_MAX_SPECIES],
-  const double *em
+  const double *ext_em, const double *app_current, const double *sigma,
+  const double *fluid[GKYL_MAX_SPECIES], const double *em
 );
 typedef void (*fluid_em_coupling_copy_t)(
   int count, int num_species, double qbym[GKYL_MAX_SPECIES], bool has_energy[GKYL_MAX_SPECIES],
-  double epsilon0, struct gkyl_nmat *x, double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
-  double *GKYL_RESTRICT em
+  double epsilon0, double dt, const double *sigma, struct gkyl_nmat *x,
+  double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double *GKYL_RESTRICT em
 );
 
 struct gkyl_dg_calc_fluid_em_coupling {
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
-  struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
+  struct gkyl_nmat *As, *xs; // LHS and RHS of the linear system of each node of each cell
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
 
   fluid_em_coupling_set_t fluid_em_coupling_set; // kernel for setting matrices for linear solve

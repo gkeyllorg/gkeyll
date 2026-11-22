@@ -14,7 +14,7 @@
 -- density per species); k = 0.5 grows at 0.085 and k >= 2 is stable. The theory applies to the ky =
 -- 0 modes; the total field energy also contains the oblique modes.
 -- Figures of merit (tensor p1 (hybrid), 16 x 16 x 64 cells): the field energy grows at gamma =
--- 0.048 over t = 34-64 and saturates at t = 80; at t = 85 the electron momentum is 0.999 of its
+-- 0.046 over t = 34-64 and saturates at t = 80; at t = 85 the electron momentum is 0.998 of its
 -- initial value and the electron energy 1.04 (instability heating); number conserved to 4e-14.
 
 local Vlasov = G0.Vlasov

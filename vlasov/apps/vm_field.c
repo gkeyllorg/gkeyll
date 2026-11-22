@@ -126,33 +126,31 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
-  // Initialize resistive layer for damping EM fields
-  f->sigma = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->sigmaEM = mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume);
+  // Resistive layer: E is damped at the rate sigma(x), sampled at the (p+1)^cdim Gauss-Legendre
+  // points of each cell, explicitly on the stage right-hand side (vm_field_complete_update) or
+  // exactly at each node of the source solve of the split (vm_fluid_em_coupling). B is not damped.
+  // sigma multiplies the evolved (J-weighted on a mapped mesh) field, so it is sampled at physical
+  // coordinates.
+  int num_quad_tot = 1;
+  for (int d = 0; d < app->cdim; ++d) {
+    num_quad_tot *= app->poly_order + 1;
+  }
+  f->sigma = mkarr(app->use_gpu, num_quad_tot, app->local_ext.volume);
   gkyl_array_clear(f->sigma, 0.0);
-  gkyl_array_clear(f->sigmaEM, 0.0);
   f->has_sigma = false;
-  // Setup resistive layer.
   if (f->info.sigma) {
     f->has_sigma = true;
-    struct gkyl_array *sigma_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    // Evaluate resistive layer function at nodes to insure positivite-definiteness of resistivity.
-    // sigma multiplies the evolved (J-weighted on a mapped mesh) field, so it only needs to be
-    // sampled at physical coordinates.
-    struct gkyl_eval_on_nodes *sigma_proj =
-      gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
-        .grid = &app->grid,
-        .basis = &app->basis,
-        .num_ret_vals = 1,
-        .eval = f->info.sigma,
-        .ctx = f->info.sigma_ctx,
-        .c2p_func = vm_pos_c2p,
-        .c2p_func_ctx = app->pos_map,
-      });
-    gkyl_eval_on_nodes_advance(sigma_proj, 0.0, &app->local_ext, sigma_host);
-    gkyl_array_copy(f->sigma, sigma_host);
-    gkyl_eval_on_nodes_release(sigma_proj);
-    gkyl_array_release(sigma_host);
+    f->sigma_slvr = gkyl_dg_calc_resistive_layer_inew(&(struct gkyl_dg_calc_resistive_layer_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .range = &app->local_ext,
+      .eval = f->info.sigma,
+      .ctx = f->info.sigma_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+      .sigma = f->sigma,
+      .use_gpu = app->use_gpu,
+    });
   }
 
   // Initialize external EM fields (always used by implicit fluid sources, so always initialize)
@@ -855,13 +853,8 @@ vm_field_accumulate_ghost_current(
 void
 vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
 {
-  // The split advances E in the source step only: terms of the E rows other than the curl
-  // (resistive layer) would be dropped, and the correction potential of div(E) would be driven
-  // by an E the transport step does not advance.
-  if (field->has_sigma) {
-    gkyl_exit("vm_field: a resistive layer is not supported with the implicit fluid-EM coupling "
-              "(use use_explicit_sources).");
-  }
+  // The split advances E in the source step only (with the resistive layer): the correction
+  // potential of div(E) would be driven by an E the transport step does not advance.
   if (field->info.elcErrorSpeedFactor != 0.0) {
     gkyl_exit(
       "vm_field: divergence cleaning of the electric field is not supported with the implicit "
@@ -885,8 +878,12 @@ vm_field_complete_update(
 
   // (can't accumulate current when field is static)
   if (!app->field->info.is_static) {
-    // Accumulate the species and applied currents onto the E rows.
+    // Accumulate the species and applied currents onto the E rows, and the damping of E by the
+    // resistive layer.
     vm_field_accumulate_current(app, fin, fluidin, emout);
+    if (app->field->has_sigma && app->field->field_id != GKYL_FIELD_GR_D_B) {
+      gkyl_dg_calc_resistive_layer_advance(app->field->sigma_slvr, &app->local, emin, emout);
+    }
     app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   }
 
@@ -935,16 +932,6 @@ vm_field_rhs(
 
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
-
-    // Accumulate resistive layer to EM fields if present.
-    if (app->field->has_sigma && field->field_id != GKYL_FIELD_GR_D_B) {
-      for (int i = 0; i < 6; ++i) {
-        gkyl_dg_mul_op_range(
-          &app->basis, i, field->sigmaEM, 0, app->field->sigma, i, em, &app->local
-        );
-      }
-      gkyl_array_accumulate_range(rhs, -1.0, field->sigmaEM, &app->local);
-    }
 
     gkyl_array_reduce_range(field->omega_cfl, field->cflrate, GKYL_MAX, &app->local);
 
@@ -1282,7 +1269,9 @@ vm_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
   gkyl_dynvec_release(f->integ_energy);
 
   gkyl_array_release(f->sigma);
-  gkyl_array_release(f->sigmaEM);
+  if (f->has_sigma) {
+    gkyl_dg_calc_resistive_layer_release(f->sigma_slvr);
+  }
 
   gkyl_array_release(f->ext_em);
   if (f->has_ext_em) {

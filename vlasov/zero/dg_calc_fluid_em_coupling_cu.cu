@@ -18,8 +18,8 @@ gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(
   gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, double dt, const struct gkyl_array *app_accel0,
   const struct gkyl_array *app_accel1, const struct gkyl_array *ext_em,
-  const struct gkyl_array *app_current, const struct gkyl_array *fluid0,
-  const struct gkyl_array *fluid1, const struct gkyl_array *em
+  const struct gkyl_array *app_current, const struct gkyl_array *sigma,
+  const struct gkyl_array *fluid0, const struct gkyl_array *fluid1, const struct gkyl_array *em
 )
 {
   const double *app_accels[GKYL_MAX_SPECIES];
@@ -38,7 +38,8 @@ gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(
     up->fluid_em_coupling_set(
       linc1, up->num_species, up->qbym, up->epsilon0, up->is_field_static, dt, As, xs, app_accels,
       (const double *)gkyl_array_cfetch(ext_em, loc),
-      (const double *)gkyl_array_cfetch(app_current, loc), fluids,
+      (const double *)gkyl_array_cfetch(app_current, loc),
+      sigma ? (const double *)gkyl_array_cfetch(sigma, loc) : 0, fluids,
       (const double *)gkyl_array_cfetch(em, loc)
     );
   }
@@ -46,8 +47,9 @@ gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(
 
 __global__ static void
 gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(
-  gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  struct gkyl_array *fluid0, struct gkyl_array *fluid1, struct gkyl_array *em
+  gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *xs, struct gkyl_range conf_range, double dt,
+  const struct gkyl_array *sigma, struct gkyl_array *fluid0, struct gkyl_array *fluid1,
+  struct gkyl_array *em
 )
 {
   double *fluids[GKYL_MAX_SPECIES];
@@ -61,7 +63,8 @@ gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(
       fluids[1] = (double *)gkyl_array_fetch(fluid1, loc);
     }
     up->fluid_em_coupling_copy(
-      linc1, up->num_species, up->qbym, up->has_energy, up->epsilon0, xs, fluids,
+      linc1, up->num_species, up->qbym, up->has_energy, up->epsilon0, dt,
+      sigma ? (const double *)gkyl_array_cfetch(sigma, loc) : 0, xs, fluids,
       (double *)gkyl_array_fetch(em, loc)
     );
   }
@@ -72,8 +75,8 @@ void
 gkyl_dg_calc_fluid_em_coupling_advance_cu(
   struct gkyl_dg_calc_fluid_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
-  const struct gkyl_array *app_current, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  struct gkyl_array *em
+  const struct gkyl_array *app_current, const struct gkyl_array *sigma,
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], struct gkyl_array *em
 )
 {
   struct gkyl_range conf_range = up->mem_range;
@@ -82,13 +85,14 @@ gkyl_dg_calc_fluid_em_coupling_advance_cu(
   int s1 = ns == 2 ? 1 : 0;
   gkyl_dg_calc_fluid_em_coupling_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt, app_accel[0]->on_dev,
-    app_accel[s1]->on_dev, ext_em->on_dev, app_current->on_dev, fluid[0]->on_dev, fluid[s1]->on_dev,
-    em->on_dev
+    app_accel[s1]->on_dev, ext_em->on_dev, app_current->on_dev, sigma ? sigma->on_dev : 0,
+    fluid[0]->on_dev, fluid[s1]->on_dev, em->on_dev
   );
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
   assert(status);
   gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
-    up->on_dev, up->xs->on_dev, conf_range, fluid[0]->on_dev, fluid[s1]->on_dev, em->on_dev
+    up->on_dev, up->xs->on_dev, conf_range, dt, sigma ? sigma->on_dev : 0, fluid[0]->on_dev,
+    fluid[s1]->on_dev, em->on_dev
   );
 }
 
@@ -113,12 +117,11 @@ gkyl_dg_calc_fluid_em_coupling_cu_dev_inew(const struct gkyl_dg_calc_fluid_em_co
   enum gkyl_basis_type b_type = inp->conf_basis->b_type;
   up->mem_range = *inp->mem_range;
 
-  // Linear system size is nc*(3*num_species + 3)
+  // One linear system of size 3*num_species + 3 per node (nc Gauss-Legendre nodes per cell).
   up->num_species = inp->num_species;
-  up->As = gkyl_nmat_cu_dev_new(
-    inp->mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3)
-  );
-  up->xs = gkyl_nmat_cu_dev_new(inp->mem_range->volume, nc * (3 * up->num_species + 3), 1);
+  int nsys = 3 * up->num_species + 3;
+  up->As = gkyl_nmat_cu_dev_new(nc * inp->mem_range->volume, nsys, nsys);
+  up->xs = gkyl_nmat_cu_dev_new(nc * inp->mem_range->volume, nsys, 1);
   up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
 
   // Boolean for whether or not self-consistent EM fields are static

@@ -13,7 +13,7 @@
 -- density per species); k = 0.5 grows at 0.085 and k >= 2 is stable. The theory applies to the ky =
 -- 0 modes; the total field energy also contains the oblique modes.
 -- Figures of merit (serendipity p2, 16 x 16 x 64 cells): the field energy grows at gamma = 0.086
--- over t = 34-64 and saturates at t = 78; at t = 85 the electron momentum is 1.000 of its initial
+-- over t = 34-64 and saturates at t = 78; at t = 85 the electron momentum is 1.001 of its initial
 -- value and the electron energy 1.03 (instability heating); number conserved to 7e-14.
 
 local Vlasov = G0.Vlasov

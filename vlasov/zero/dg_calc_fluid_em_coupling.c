@@ -27,12 +27,11 @@ gkyl_dg_calc_fluid_em_coupling_inew(const struct gkyl_dg_calc_fluid_em_coupling_
   up->fluid_em_coupling_set = choose_fluid_em_coupling_set_kern(b_type, cdim, poly_order);
   up->fluid_em_coupling_copy = choose_fluid_em_coupling_copy_kern(b_type, cdim, poly_order);
 
-  // Linear system size is nc*(3*num_species + 3)
+  // One linear system of size 3*num_species + 3 per node (nc Gauss-Legendre nodes per cell).
   up->num_species = inp->num_species;
-  up->As = gkyl_nmat_new(
-    inp->mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3)
-  );
-  up->xs = gkyl_nmat_new(inp->mem_range->volume, nc * (3 * up->num_species + 3), 1);
+  int nsys = 3 * up->num_species + 3;
+  up->As = gkyl_nmat_new(nc * inp->mem_range->volume, nsys, nsys);
+  up->xs = gkyl_nmat_new(nc * inp->mem_range->volume, nsys, 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
 
   // Boolean for whether or not self-consistent EM fields are static
@@ -56,14 +55,14 @@ void
 gkyl_dg_calc_fluid_em_coupling_advance(
   struct gkyl_dg_calc_fluid_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
-  const struct gkyl_array *app_current, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  struct gkyl_array *em
+  const struct gkyl_array *app_current, const struct gkyl_array *sigma,
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], struct gkyl_array *em
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(em)) {
     return gkyl_dg_calc_fluid_em_coupling_advance_cu(
-      up, dt, app_accel, ext_em, app_current, fluid, em
+      up, dt, app_accel, ext_em, app_current, sigma, fluid, em
     );
   }
 #endif
@@ -72,7 +71,7 @@ gkyl_dg_calc_fluid_em_coupling_advance(
   const double *fluids_c[GKYL_MAX_SPECIES];
   const double *app_accels[GKYL_MAX_SPECIES];
 
-  // Set the block-diagonal (nodal) systems of every cell, solve them in a batch, copy back.
+  // Set the systems of the nodes of every cell, solve them in a batch, copy back.
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->mem_range);
   long count = 0;
@@ -84,8 +83,8 @@ gkyl_dg_calc_fluid_em_coupling_advance(
     }
     up->fluid_em_coupling_set(
       count, up->num_species, up->qbym, up->epsilon0, up->is_field_static, dt, up->As, up->xs,
-      app_accels, gkyl_array_cfetch(ext_em, loc), gkyl_array_cfetch(app_current, loc), fluids_c,
-      gkyl_array_cfetch(em, loc)
+      app_accels, gkyl_array_cfetch(ext_em, loc), gkyl_array_cfetch(app_current, loc),
+      sigma ? gkyl_array_cfetch(sigma, loc) : 0, fluids_c, gkyl_array_cfetch(em, loc)
     );
     count += 1;
   }
@@ -101,8 +100,8 @@ gkyl_dg_calc_fluid_em_coupling_advance(
       fluids[n] = gkyl_array_fetch(fluid[n], loc);
     }
     up->fluid_em_coupling_copy(
-      count, up->num_species, up->qbym, up->has_energy, up->epsilon0, up->xs, fluids,
-      gkyl_array_fetch(em, loc)
+      count, up->num_species, up->qbym, up->has_energy, up->epsilon0, dt,
+      sigma ? gkyl_array_cfetch(sigma, loc) : 0, up->xs, fluids, gkyl_array_fetch(em, loc)
     );
     count += 1;
   }
