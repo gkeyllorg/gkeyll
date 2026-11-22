@@ -100,7 +100,7 @@ vm_pkpm_species_lbo_rhs(
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // accumulate update due to collisions onto rhs
+  // accumulate the increment onto the nodal right-hand side, kin->pkpm.rhs_nodal
   lbo->kinetic_rhs(app, kin, lbo, fin, rhs);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);

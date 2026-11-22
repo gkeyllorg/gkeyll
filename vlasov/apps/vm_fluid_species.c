@@ -1088,6 +1088,11 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->app_accel_evolve = false;
   // setup applied acceleration
   if (f->info.app_accel) {
+    if (f->eqn_type != GKYL_EQN_EULER && f->eqn_type != GKYL_EQN_ISO_EULER) {
+      gkyl_exit(
+        "vm_fluid_species: an applied acceleration needs an Euler or isothermal Euler fluid."
+      );
+    }
     f->has_app_accel = true;
     if (f->info.app_accel_evolve) {
       f->app_accel_evolve = f->info.app_accel_evolve;

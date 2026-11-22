@@ -54,8 +54,7 @@ pkpm_harm_dot(const double *a, const double *b)
  *   J(X) = a X + T(X),  a = {u_d} + {xi} b_d w,
  *   T_F = {xi} M0_d,  T_G = {xi} N_d,  T_M0 = {xi} G (e_d - b b_d),  T_N = {xi} H (e_d - b b_d),
  * H = 4 {theta} G - 2 {theta}^2 F; a coefficient jump then enters the face only through the
- * average, which the central-trace weak gradients of the coefficients (the frame sources) pair
- * with. The coupled speeds are vn -+ c with c = xi |b x e_d| sqrt((2 + sqrt 2) theta) (the fastest
+ * average. The coupled speeds are vn -+ c with c = xi |b x e_d| sqrt((2 + sqrt 2) theta) (the fastest
  * of vn +- xi h sqrt((2 +- sqrt 2) theta)); the per-side speeds are kept for the time step.
  * Written as fc[q*nn], q = PKPM_FC_*.
  */

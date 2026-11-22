@@ -11,7 +11,7 @@ GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *vlasov_pkpm_moms, const d
   // grad_u:           Gradient of u of the sources (in-cell, plus the blended face lift), [d_i ux, d_i uy, d_i uz] per direction i. 
   // theta:            T_perp/T = M0(G). 
   // alpha_0:          Pressure force a_P/xi closing the first moment. 
-  // xi:               Thermal speed [xi, xi^2]. 
+  // xi:               Thermal speed and pressure [xi, xi^2, p]. 
   // c_h:              Heating rate closing the scalar second moment. 
   // pkpm_prim_io:     Output [P_xx, P_xy, P_xz, P_yy, P_yz, P_zz, q_x, q_y, q_z] (9 components): the pressure 
   //                   tensor and the heat flux of the fluid equations. 

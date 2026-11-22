@@ -4,8 +4,8 @@
 // f1 buffer) once the explicit part of the stage, its boundary conditions and
 // the stage combination are done.
 
-// Implicit BGK collisions and implicit temperature sources, one backward-Euler
-// step of both per species, in three phases over all species: moments of the
+// Kinetic species: implicit BGK collisions and implicit temperature sources, one
+// backward-Euler step of both per species, in three phases over all species: moments of the
 // stage state, the implicit update (which forms cross moments, so it needs all
 // species' moments first), then BCs and the copy back into the stage state.
 static void

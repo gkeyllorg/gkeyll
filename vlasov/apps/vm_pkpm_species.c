@@ -49,6 +49,14 @@ vm_pkpm_species_reflect_new(
   });
 }
 
+// The boundary conditions of a PKPM species, in either block.
+static bool
+vm_pkpm_species_bc_is_supported(enum gkyl_species_bc_type bc_type)
+{
+  return bc_type == GKYL_SPECIES_COPY || bc_type == GKYL_SPECIES_ABSORB ||
+         bc_type == GKYL_SPECIES_REFLECT || bc_type == GKYL_SPECIES_FIXED_FUNC;
+}
+
 // The basic boundary condition of the distributions for a kinetic BC type. A reflecting wall
 // uses the field-aligned reflection updater instead; the basic updater is not applied there.
 static enum gkyl_bc_basic_type
@@ -814,12 +822,23 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
     }
   }
 
-  // Absorbing boundaries: the distribution functions vanish in the ghost cells; the
-  // fluid state is the mirror image of the skin cell (even in the wall direction), so the
-  // ghost trace at the wall is the skin trace and the primitive variables, their weak
-  // gradients and the face averages of the flux coefficients are one-sided at the wall. The
-  // fluid fluxes through the wall are the moments of the kinetic flux against the zero ghost
-  // distributions (vm_pkpm_species_face_flux), not the fluid flux of the ghost state.
+  for (int d = 0; d < cdim; ++d) {
+    bool is_periodic = false;
+    for (int p = 0; p < app->num_periodic_dir; ++p) {
+      is_periodic = is_periodic || app->periodic_dirs[p] == d;
+    }
+    if (!is_periodic && (!vm_pkpm_species_bc_is_supported(s->kinetic->lower_bc[d].type) ||
+                         !vm_pkpm_species_bc_is_supported(s->kinetic->upper_bc[d].type) ||
+                         !vm_pkpm_species_bc_is_supported(s->fluid->lower_bc[d]) ||
+                         !vm_pkpm_species_bc_is_supported(s->fluid->upper_bc[d]))) {
+      gkyl_exit(
+        "vm_pkpm_species: a PKPM species supports copy, absorbing, reflecting and fixed-function boundary conditions."
+      );
+    }
+  }
+
+  // Absorbing boundaries: empty ghost distributions and a mirrored fluid ghost (see
+  // gkyl_vlasov.h); the wall flux is the kinetic flux against the empty ghost.
   s->kinetic->pkpm.bc_is_absorb = false;
   for (int d = 0; d < cdim; ++d) {
     s->kinetic->pkpm.bc_lo_reflect[d] = 0;
@@ -1022,8 +1041,8 @@ vm_pkpm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl
 // Kinetic coupling moments [p_par, p_perp, q_par, q_perp, s, r] = [p M2, p M0_G, p xi M3, p xi M1_G,
 // p m1, p xi (m2/2 + n0)] from the raw normalized moments, the nodal scalar pressure p = rho xi^2
 // and the thermal speed xi (weak products projected onto p=1): the pressures, first-harmonic stress
-// and heat fluxes the fluid system needs. The constraints
-// [M0, M1, (M2 + 2 M0_G)/3] are copied out for the diagnostics.
+// and heat fluxes the fluid system needs. The six constraints [M0(F), M1(F),
+// (M2(F) + 2 M0(G))/3, int M0_perp dw] are copied out for the diagnostics.
 static void
 vm_pkpm_species_coupling_moms(gkyl_vlasov_app *app, struct vlasov_species *species)
 {
@@ -1077,14 +1096,9 @@ vm_pkpm_species_calc_pkpm_vars(
   struct timespec tm = gkyl_wall_clock();
   int nc = app->basis.num_basis;
 
-  // Raw normalized moments of [F, G] over the extended range (ghost cells hold valid data
-  // after the boundary conditions, the fluid state is mirrored into the ghost cells of
-  // absorbing boundaries), the nodal primitive variables u and [xi, xi^2, p] of the fluid
-  // state, then the coupling moments. theta = T_perp/T is the zeroth moment of G directly.
-  // The evolved fluid and distributions carry the position-map Jacobian J. The primitive
-  // variables, the flow and grad(ln n) need the PHYSICAL fluid (a weak gradient of J rho
-  // across cells of different J is not J grad rho); the moments of J [F, G] carry J and
-  // the coupling moments p (physical) x M_k(J F) are the J-weighted ones the fluid needs.
+  // Raw normalized moments of the blocks over the extended range, the primitive variables of
+  // the physical fluid state (position-map Jacobian divided out), then the coupling moments,
+  // which carry J through the moments of J [F, G]. theta = T_perp/T is M0(G).
   gkyl_vlasov_position_map_divide_jacobpos_conf(
     app->pos_map, &app->local_ext, fluidin->ncomp, fluidin, species->fluid->pkpm.fluid_no_J
   );
@@ -1092,9 +1106,7 @@ vm_pkpm_species_calc_pkpm_vars(
     &species->kinetic->pkpm.nmoms, species->kinetic->pkpm.local_ext_conf, app->local_ext, fin
   );
   gkyl_array_set_offset(species->fluid->pkpm.rho, 1.0, species->fluid->pkpm.fluid_no_J, 0);
-  // The flow u = M/rho and xi by nodal quotients: for p=1 the weak division, rho u = M weakly,
-  // which the implicit field coupling needs to conserve momentum (it forms the new momentum
-  // as rho (2 u_half - u)).
+  // u = M/rho and [xi, xi^2, p] by nodal quotients (the weak division at p=1).
   gkyl_dg_calc_pkpm_vars_prim(
     species->fluid->pkpm.calc_pkpm_vars, &app->local_ext, species->fluid->pkpm.fluid_no_J,
     species->fluid->pkpm.u, species->fluid->pkpm.xi
@@ -1171,14 +1183,9 @@ vm_pkpm_species_apply_positivity(
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-// Configuration-space face fluxes of the stage: the kinetic flux each side of a face receives,
-// the fluid flux, as moments of the same face flux, and both rates. The walls need no special
-// case: an absorbing ghost (F = 0, fluid and theta mirrored) gives the interior side's
-// contribution with the interior wall coefficients, and a reflecting ghost cancels the mass and
-// energy fluxes.
-//
-// The face maps the jumps of the frame exactly, so its gradients in the volume terms are in-cell
-// except for the share of each jump the label-paired flux leaves unmapped: they follow the flux.
+// Configuration-space face fluxes of the stage (the kinetic flux each side of a face receives,
+// the fluid flux as moments of the same face flux, and both rates), then the in-cell gradients
+// of u, rho and xi with the blend-weighted lift of the face jumps.
 void
 vm_pkpm_species_face_flux(
   gkyl_vlasov_app *app, struct vlasov_species *species, const struct gkyl_array *fin
@@ -1207,8 +1214,8 @@ vm_pkpm_species_face_flux(
     species->fluid->pkpm.calc_pkpm_vars, &app->local, species->fluid->pkpm.rho,
     species->fluid->pkpm.grad_rho, species->kinetic->pkpm.grad_ln_n
   );
-  // The gradient of xi for the forces -w^2 b.grad xi and -2 w b.grad xi G (the second block of
-  // xi3 receives xi^2 and is never read).
+  // The gradient of xi for the forces -w^2 b.grad xi and -2 w b.grad xi G (computed for all of
+  // [xi, xi^2, p]; only the xi component is read).
   gkyl_array_set_offset(species->fluid->pkpm.xi3, 1.0, species->fluid->pkpm.xi, 0);
   gkyl_dg_calc_pkpm_vars_in_cell_grad(
     species->fluid->pkpm.calc_pkpm_vars, &app->local, species->kinetic->pkpm.flux_blend,
@@ -1216,10 +1223,10 @@ vm_pkpm_species_face_flux(
   );
 }
 
-// Collisionless configuration-space pass of the kinetic update into rhs (cleared here):
-// the HLL streaming fluxes, the exact volume terms and the explicit sources. The closures
-// are computed from the moments of this partial right-hand side, after the sources and
-// collision operators have been accumulated into it.
+// Collisionless configuration-space pass of the kinetic update into rhs (cleared here): the
+// streaming terms with the stored face fluxes, then the first-harmonic w fluxes and sources.
+// The closures are computed from the moments of this partial right-hand side, after the
+// sources and collision operators have been accumulated into it.
 static void
 vm_pkpm_species_kinetic_conf_pass(
   gkyl_vlasov_app *app, struct vm_species *kin, const struct gkyl_array *fin, struct gkyl_array *rhs
@@ -1397,7 +1404,7 @@ vm_pkpm_kinetic_species_rhs(
   if (kin->pkpm.collision_id == GKYL_LBO_COLLISIONS) {
     vm_pkpm_species_lbo_rhs(app, kin, &kin->pkpm.lbo, fin, rhs);
   }
-  // The operators at the nodes accumulated into the nodal right-hand side.
+  // The nodal increment of the LBO, converted and added to rhs.
   vm_pkpm_species_nodal_accumulate(app, kin, rhs);
   int num_null = vm_pkpm_species_kinetic_closure(app, kin, fin, rhs, kin->pkpm.closure_from_step);
   vm_pkpm_species_kinetic_closure_stat(app, kin, num_null);

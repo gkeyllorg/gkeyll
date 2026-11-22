@@ -766,7 +766,7 @@ struct vm_pkpm_lbo_collisions {
   struct gkyl_array *nu; // collision frequency of the operator at the nodes
   gkyl_pkpm_lbo_moms *up_moms; // primitive moments at the nodes
   gkyl_dg_updater_lbo_pkpm_nodal *up_coll; // the operator at the nodes
-  vm_pkpm_lbo_moms_t calc_moms; // the moments (constant or Spitzer frequency)
+  vm_pkpm_lbo_moms_t calc_moms; // the primitive moments at the nodes
   vm_pkpm_lbo_kinetic_rhs_t kinetic_rhs; // the operator
 
   struct gkyl_array *prim_moms; // [u, vtsq] at the nodes
@@ -787,9 +787,8 @@ struct vm_pkpm_kinetic {
   struct gkyl_array *blk_in,
     *blk_out; // one-block (F or G) scratch for configuration x phase products
   struct gkyl_array *f_no_J_host; // host copy of f_no_J for I/O
-  // Operators that act in the velocity alone at each configuration-space node (collisions, the
-  // temperature source) share one conversion of the distributions per stage and one conversion
-  // of their summed increments back.
+  // The LBO acts on a nodal copy of the distributions: one conversion per stage, and one
+  // conversion of its increment back.
   bool has_nodal_ops; // true if the species has an operator at the nodes: the LBO (CPU runs)
   struct gkyl_array *f_nodal; // distributions in the configuration-nodal, velocity-modal form
   struct gkyl_array *rhs_nodal; // increment of the nodal operator, in the same form
@@ -887,13 +886,14 @@ struct vm_pkpm_fluid {
   // Configuration-space variables of the update (p=1).
   struct gkyl_array *u; // flow velocity [ux, uy, uz], nodal quotient M/rho (the weak division at p=1)
   struct gkyl_array *xi; // thermal speed and scalar pressure [xi, xi^2, p] of the fluid state (nodal)
-  struct gkyl_array *xi3; // copy of xi for the weak-gradient kernels (only the first block is used)
+  struct gkyl_array *xi3; // copy of [xi, xi^2, p] for the gradient (only xi is read downstream)
   struct gkyl_array *scratch; // one-expansion scratch for weak products
   struct gkyl_array *
     fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
   struct gkyl_array *fluid_no_J_host; // host copy of fluid_no_J for I/O
   struct gkyl_array *moms_no_J; // physical coupling moments (diagnostics)
-  struct gkyl_array *rho; // physical mass density (leading block of fluid_no_J)
+  struct gkyl_array *rho; // physical mass density of the stage (leading block of fluid_no_J);
+    // vm_pkpm_species_moment_diag_calc overwrites it with n = rho/m
   struct gkyl_array *rho3; // [rho, 0, 0] for the weak-gradient kernels
   struct gkyl_array
     *mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
@@ -1342,8 +1342,9 @@ struct vlasov_species {
   // Staging phases that fill the pre-RHS auxiliary arrays. calc_self_moms:
   // moments of the species' own stage state (kinetic: LBO moments and boundary
   // corrections, explicit BGK moments, target moments of the explicit temperature
-  // source; fluid: nothing). The stage distribution is passed non-const; no
-  // species modifies it. calc_coupled_vars: quantities that read other species or
+  // source; fluid: node values of the state for collision partners). The stage
+  // distribution is passed non-const because a PKPM species projects its first-harmonic
+  // blocks in place. calc_coupled_vars: quantities that read other species or
   // the fluid state, i.e. LBO cross-collision moments (kinetic) and primitive
   // variables (fluid); it runs after every species' self moments. BGK cross
   // moments are formed inside the BGK RHS.
@@ -1454,7 +1455,8 @@ void vlasov_pkpm_species_init(
 /**
  * Compute the moments of the species' own stage state needed by its RHS: LBO
  * moments and boundary corrections, explicit BGK moments, target moments of the
- * explicit temperature source (no-op for fluid species; staging phase 1).
+ * explicit temperature source; node values of a fluid state for collision partners
+ * (staging phase 1).
  *
  * @param app Vlasov app object
  * @param sp Species container
@@ -3349,13 +3351,13 @@ void vm_pkpm_species_lbo_moms(
 );
 
 /**
- * Compute RHS from LBO collisions
+ * Accumulate the LBO increment of the nodal distributions onto kin->pkpm.rhs_nodal.
  *
  * @param app Vlasov app object
  * @param kin Kinetic aspect of the species
  * @param lbo Pointer to LBO
- * @param fin Input distribution function
- * @param rhs On output, the RHS from LBO
+ * @param fin Input distribution function (unused)
+ * @param rhs RHS (unused)
  */
 void vm_pkpm_species_lbo_rhs(
   gkyl_vlasov_app *app, const struct vm_species *kin, struct vm_pkpm_lbo_collisions *lbo,
@@ -3377,7 +3379,7 @@ void vm_pkpm_species_lbo_release(
 /**
  * Initialize species.
  *
- * @param pkpm Input PKPM data
+ * @param pkpm App input
  * @param app Vlasov app object
  * @param s On output, initialized species object
  */

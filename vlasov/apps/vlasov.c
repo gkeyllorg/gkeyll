@@ -102,7 +102,6 @@ vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
     mpack_node_t bt_node = mpack_node_map_cstr(root, "basisType");
     char *basis_type = mpack_node_cstr_alloc(bt_node, 64);
     strcpy(meta.basis_type_nm, basis_type);
-    meta.basis_type = meta.basis_type_nm;
     MPACK_FREE(basis_type);
 
     mpack_node_t dtp_node = mpack_node_map_cstr_optional(root, "dt_prev");
@@ -113,6 +112,13 @@ vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
     mpack_tree_destroy(&tree);
   }
   return meta;
+}
+
+// Collisions of a PKPM species: LBO or BGK.
+static bool
+vlasov_pkpm_has_collisions(const struct gkyl_vlasov_collisions *coll)
+{
+  return coll->collision_id == GKYL_LBO_COLLISIONS || coll->collision_id == GKYL_BGK_COLLISIONS;
 }
 
 // An Euler fluid with gas_gamma = 5/3: the fluid with three velocity degrees of freedom.
@@ -128,7 +134,9 @@ vlasov_fluid_is_euler_3dof(const struct gkyl_vlasov_fluid_species *fluid)
 // PKPM species and fluid species collide with each other through the exchange of their fluid
 // states, which has three degrees of freedom, so a fluid in it is an Euler fluid with gas_gamma
 // = 5/3. A kinetic and a PKPM species collide through the LBO operator of the kinetic species,
-// which carries the exchange of the pair in the stages. The partners of an adaptive source are read through the data of the kinetic route.
+// which carries the exchange of the pair in the stages. A PKPM species in a collision pair needs
+// LBO or BGK collisions of its own. The partners of an adaptive source are read through the data
+// of the kinetic route.
 // The source species of a boundary-flux source needs wall losses (a kinetic or PKPM species); a
 // PKPM species forms its source rate before the right-hand sides, when only the losses of PKPM
 // species are known, so its source species must be a PKPM species.
@@ -151,6 +159,16 @@ vlasov_check_species_partners(const gkyl_vlasov_app *app, const struct gkyl_vm *
       if (!both_kinetic && !both_exchange && !kinetic_pkpm) {
         gkyl_exit(
           "gkyl_vlasov_app_new: a kinetic species collides with kinetic and PKPM species, a fluid species with PKPM and fluid species."
+        );
+      }
+      const struct gkyl_vlasov_species *other_inp = &vm->species[other - app->species];
+      const struct gkyl_vlasov_collisions *other_coll = other->type == GKYL_SPECIES_FLUID ?
+                                                          &other_inp->fluid.collisions :
+                                                          &other_inp->kinetic.collisions;
+      if ((inp->type == GKYL_SPECIES_PKPM && !vlasov_pkpm_has_collisions(coll)) ||
+          (other->type == GKYL_SPECIES_PKPM && !vlasov_pkpm_has_collisions(other_coll))) {
+        gkyl_exit(
+          "gkyl_vlasov_app_new: a PKPM species in a collision pair needs LBO or BGK collisions."
         );
       }
       if (kinetic_pkpm) {
@@ -358,7 +376,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   }
 
   // Configuration space geometry initialization
-  // Note: *only* uses a p=1 DG representation of the geometry (JJ: 11/24/23)
+  // The geometry has a p=1 DG representation.
   app->c2p_ctx = app->mapc2p = 0;
   app->has_mapc2p = vm->mapc2p ? true : false;
 
@@ -1119,7 +1137,6 @@ vlasov_meta_from_file(const char *fname)
         .meta = hdr.meta,
         .meta_sz = hdr.meta_size,
       });
-      meta.basis_type = 0; // names a buffer of the copy made inside vlasov_meta_from_mpack
     }
     gkyl_grid_sub_array_header_release(&hdr);
   }

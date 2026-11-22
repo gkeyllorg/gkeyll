@@ -76,7 +76,8 @@ int gkyl_dg_pkpm_harm_vol_num_wnode(const struct gkyl_dg_pkpm_harm_vol *up);
  * @param u Flow velocity [ux, uy, uz].
  * @param grad_u Gradient of u of the sources (in-cell plus the blended face lift).
  * @param xi Thermal speed [xi, xi^2, p] (the first expansion is used).
- * @param grad_xi Gradient of [xi, 0, 0] (in-cell plus the blended face lift).
+ * @param grad_xi Gradient of xi (in-cell plus the blended face lift); component 0 of each
+ *   direction block is read.
  * @param grad_ln_n grad(ln n), cdim expansions.
  * @param theta T_perp/T.
  * @param dtB_over_magB d_t B/|B| of the stage.

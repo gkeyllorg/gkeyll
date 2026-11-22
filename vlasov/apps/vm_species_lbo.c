@@ -167,7 +167,8 @@ vmlbo_other_moms_pkpm(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo, int c
 //   d M1/dt = nu u_sr M0 - nu vtsq_sr cM - nu M1,
 //   d M2/dt = nu u_sr . M1 + nu vtsq_sr (3 M0 - cE) - 2 nu M2      (M2 = int |v|^2 f / 2),
 // weak products with the boundary corrections cM, cE: the equations that define the self
-// primitive moments set both to zero. Called with nu_moms = nu [M0, M1, M2] of the partner.
+// primitive moments set both to zero. Reads lbo->nu_moms = nu [M0, M1, M2] of this species and
+// nu_cross_prim_moms = [nu u_sr, nu vtsq_sr].
 static void
 vmlbo_exch_pkpm(
   gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo, int coll_idx,

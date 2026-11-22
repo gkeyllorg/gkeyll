@@ -156,7 +156,10 @@ vm_pkpm_species_source_init(
   gkyl_array_clear(src->f_src, 0.0);
   src->n_ratio = mkarr(app->use_gpu, nc, app->local_ext.volume);
   src->n_src = mkarr(app->use_gpu, nc, app->local_ext.volume);
-  gkyl_array_set_offset(src->n_src, s->mass, src->prof_host, 0); // m n_s (physical)
+  struct gkyl_array *n_src_host = mkarr(false, nc, app->local_ext.volume);
+  gkyl_array_set_offset(n_src_host, s->mass, src->prof_host, 0); // m n_s (physical)
+  gkyl_array_copy(src->n_src, n_src_host);
+  gkyl_array_release(n_src_host);
   src->rho_host = app->use_gpu ? mkarr(false, nc, app->local_ext.volume) : 0;
   src->u_host = app->use_gpu ? mkarr(false, 3 * nc, app->local_ext.volume) : 0;
   src->xi_host = app->use_gpu ? mkarr(false, 3 * nc, app->local_ext.volume) : 0;

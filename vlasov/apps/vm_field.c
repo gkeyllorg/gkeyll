@@ -361,9 +361,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   f->use_ghost_current = false;
   if (f->info.use_ghost_current) {
-    if (app->cdim != 1 && app->num_periodic_dir != 1) {
-      // Ghost currents do not make sense with cdim > 1 or non-periodic boundary conditions.
-      assert(false);
+    if (app->cdim != 1 || app->num_periodic_dir != 1) {
+      gkyl_exit("vm_field: ghost currents need one periodic configuration-space dimension.");
     }
     f->use_ghost_current = true;
     f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);

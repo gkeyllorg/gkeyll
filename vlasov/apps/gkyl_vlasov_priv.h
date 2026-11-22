@@ -44,8 +44,8 @@ struct vlasov_output_meta {
   int frame; // frame number
   double stime; // output time
   int poly_order; // polynomial order
-  const char *basis_type; // name of basis functions
-  char basis_type_nm[64]; // used during read
+  const char *basis_type; // name of basis functions (write)
+  char basis_type_nm[64]; // name of basis functions (read)
   // Staggered operator split (0: none): the step of the last update and the step it suggested, so a
   // restart continues as the uninterrupted run. Written when nonzero (field frames only).
   double dt_prev, dt_suggested;
@@ -174,8 +174,7 @@ struct gkyl_vlasov_app {
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_wave_geom
-    *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 11/24/23)
+  struct gkyl_wave_geom *geom; // geometry for the species and field solvers (p=1 only)
 
   struct gkyl_vlasov_position_map *
     pos_map; // Configuration-space mapping object (owns all position map arrays); shared by all species.
