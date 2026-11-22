@@ -502,9 +502,10 @@ gk_species_bflux_init(
     int num_bound = 0;
     for (int d = 0; d < app->cdim; ++d) {
       for (int e = 0; e < 2; ++e) {
-        if (gk_s->bc_is_np[d] &&
-            ((e == 0 && gk_s->lower_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX) ||
-             (e == 1 && gk_s->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX))) {
+        enum gkyl_gyrokinetic_bc_type bc_type = e == 0 ? gk_s->lower_bc[d].type :
+                                                         gk_s->upper_bc[d].type;
+        if (gk_s->bc_is_np[d] && bc_type != GKYL_BC_GK_SPECIES_ZERO_FLUX &&
+            bc_type != GKYL_BC_GK_SPECIES_TWISTSHIFT) {
           bflux->boundaries_dir[num_bound] = d;
           bflux->boundaries_edge[num_bound] = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
 

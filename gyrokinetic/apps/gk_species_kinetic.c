@@ -41,6 +41,43 @@ gk_species_kinetic_omegaH_dt(
   }
 }
 
+static void
+gk_species_kinetic_bc_ts_flux_disabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs
+)
+{
+  // Do nothing.
+}
+
+static void
+gk_species_kinetic_bc_ts_flux_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs
+)
+{
+  // The skin cells of rhs carry the fluxes across processors, so this must be
+  // called while rhs is still empty (before the collisionless update).
+
+  // First compute the fluxes and copy them from ghost to skin.
+  for (int i = 0; i < species->bc_ts_num_edge; i++) {
+    int e = species->bc_ts_edge[i];
+    gkyl_boundary_flux_advance(species->bc_ts_flux_slvr[e], fin, rhs);
+    gkyl_array_copy_range_to_range(rhs, rhs, species->bc_ts_skin[e], species->bc_ts_ghost[e]);
+  }
+
+  // Now communicate the fluxes across processors.
+  int par_dir = app->cdim - 1;
+  gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext, 1, &par_dir, rhs);
+
+  // Then twist-shift the fluxes and copy them from ghost to skin.
+  for (int i = 0; i < species->bc_ts_num_edge; i++) {
+    int e = species->bc_ts_edge[i];
+    gkyl_bc_twistshift_advance(e == 0 ? species->bc_ts_lo : species->bc_ts_up, rhs, rhs);
+    gkyl_array_copy_range_to_range(rhs, rhs, species->bc_ts_skin[e], species->bc_ts_ghost[e]);
+  }
+}
+
 static double
 gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
@@ -190,9 +227,6 @@ gk_species_kinetic_apply_bc_dynamic(
             app->gk_geom->geo_surf[d].bimpactangle, f, &app->local
           );
           break;
-        case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-          gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
-          break;
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
@@ -234,9 +268,6 @@ gk_species_kinetic_apply_bc_dynamic(
             app->gk_geom->geo_surf[d].bimpactangle, f, &app->local
           );
           break;
-        case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-          gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
-          break;
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
@@ -253,10 +284,9 @@ gk_species_kinetic_apply_bc_dynamic(
     }
   }
 
-  if (app->gk_geom->has_LCFS && app->cdim == 3) {
-    // Apply twistshift.
-    gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
-    gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
+  if (species->has_bc_ts) {
+    gkyl_array_clear_range(f, 0.0, species->bc_ts_ghost[0]);
+    gkyl_array_clear_range(f, 0.0, species->bc_ts_ghost[1]);
   }
 
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
@@ -326,6 +356,10 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
     gkyl_bc_twistshift_release(gks->bc_ts_lo);
     gkyl_bc_twistshift_release(gks->bc_ts_up);
   }
+  if (gks->has_bc_ts) {
+    gkyl_boundary_flux_release(gks->bc_ts_flux_slvr[0]);
+    gkyl_boundary_flux_release(gks->bc_ts_flux_slvr[1]);
+  }
 
   gkyl_free_hodev(app->use_gpu, gks->omega_cfl);
   gkyl_free_hodev(app->use_gpu, gks->m0_max);
@@ -379,10 +413,27 @@ gk_species_kinetic_init_dynamic(
   gks->is_first_L2norm_write_call = true;
 
   int par_dir = app->cdim - 1; // Parallel direction index.
-  if (gk_app_inp->geometry.has_LCFS ||
-      (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT ||
-       gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT)) {
-    // Make the parallel direction periodic so that we sync before applying TS BC.
+  // The twist-shift BC is applied to the fluxes through the parallel boundaries.
+  bool is_ts_lcfs = gk_app_inp->geometry.has_LCFS && cdim == 3;
+  bool is_ts_lower = gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT;
+  bool is_ts_upper = gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT;
+  assert(is_ts_lower == is_ts_upper || app->is_multib);
+
+  // Multiblock simulations are not supported yet, because the twist-shift boundary of
+  // a block connects to another block. To support them:
+  //   1. Split the species rhs in two parts: (a) clear rhs, compute the collisionless
+  //      fluxes and put those leaving through the twist-shift boundaries in the skin
+  //      cells of rhs; (b) twist-shift them and compute the rest of the rhs.
+  //   2. In the multiblock forward Euler do (a) for all blocks, transfer rhs between
+  //      blocks (gkyl_multib_comm_conn_array_transfer, in place of the periodic sync
+  //      in gk_species_kinetic_bc_ts_flux_enabled), then do (b) for all blocks.
+  //   3. Allow a block to have this BC on only one of its parallel boundaries.
+  if (app->is_multib && (is_ts_lower || is_ts_upper)) {
+    gkyl_exit("Twist-shift BCs are not supported in multiblock simulations yet.");
+  }
+
+  if (gk_app_inp->geometry.has_LCFS && cdim < 3) {
+    // Make the parallel direction periodic so that the core is synced along it.
     gks->periodic_dirs[gks->num_periodic_dir] = par_dir;
     gks->num_periodic_dir += 1;
   }
@@ -642,6 +693,43 @@ gk_species_kinetic_init_dynamic(
       tsinp_up.shift_dg = app->delta_ts_x_up;
     }
     gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp_up);
+  }
+
+  gks->bc_ts_flux_func = gk_species_kinetic_bc_ts_flux_disabled;
+  gks->has_bc_ts = gks->collisionless.collisionless_id && (is_ts_lcfs || is_ts_lower);
+  if (gks->has_bc_ts) {
+    // Twist-shift boundaries this MPI rank is on.
+    gks->bc_ts_num_edge = 0;
+    if (gkyl_range_is_on_lower_edge(par_dir, &gks->local, &gks->global)) {
+      gks->bc_ts_edge[gks->bc_ts_num_edge++] = 0;
+    }
+    if (gkyl_range_is_on_upper_edge(par_dir, &gks->local, &gks->global)) {
+      gks->bc_ts_edge[gks->bc_ts_num_edge++] = 1;
+    }
+    // A rank on both boundaries needs their skin cells to be different cells.
+    assert(gks->bc_ts_num_edge < 2 || gks->local.upper[par_dir] > gks->local.lower[par_dir]);
+    gks->bc_ts_skin[0] = is_ts_lcfs ? &gks->local_lower_skin_par_core :
+                                      &gks->local_lower_skin[par_dir];
+    gks->bc_ts_skin[1] = is_ts_lcfs ? &gks->local_upper_skin_par_core :
+                                      &gks->local_upper_skin[par_dir];
+    gks->bc_ts_ghost[0] = is_ts_lcfs ? &gks->local_lower_ghost_par_core :
+                                       &gks->local_lower_ghost[par_dir];
+    gks->bc_ts_ghost[1] = is_ts_lcfs ? &gks->local_upper_ghost_par_core :
+                                       &gks->local_upper_ghost[par_dir];
+
+    const struct gkyl_dg_eqn *eqn =
+      gks->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_PASSIVE ?
+        gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(gks->collisionless.passive_slvr) :
+        gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->collisionless.slvr);
+    for (int e = 0; e < 2; e++) {
+      gks->bc_ts_flux_slvr[e] = gkyl_boundary_flux_new(
+        par_dir, e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, &gks->grid, gks->bc_ts_skin[e],
+        gks->bc_ts_ghost[e], 1, &eqn, app->use_gpu
+      );
+    }
+    gkyl_dg_eqn_release(eqn);
+
+    gks->bc_ts_flux_func = gk_species_kinetic_bc_ts_flux_enabled;
   }
 
   bool alloc_surr_aux_var = false;

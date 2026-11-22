@@ -1044,9 +1044,13 @@ gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib)
       // Sync the numerical shift.
       int par_dir = app->cdim - 1;
       struct gkyl_array *delta_ts = gkyl_array_clone(app->gk_geom->geo_surf[par_dir].deltats);
-      gkyl_array_copy_range_to_range(
-        delta_ts, delta_ts, &app->local_upper_skin[par_dir], &app->local_upper_ghost[par_dir]
-      );
+      bool is_on_lower = gkyl_range_is_on_lower_edge(par_dir, &app->local, &app->global);
+      bool is_on_upper = gkyl_range_is_on_upper_edge(par_dir, &app->local, &app->global);
+      if (is_on_upper) {
+        gkyl_array_copy_range_to_range(
+          delta_ts, delta_ts, &app->local_upper_skin[par_dir], &app->local_upper_ghost[par_dir]
+        );
+      }
       int shift_periodic_dirs[] = {par_dir};
       int shift_num_periodic_dirs = 1;
       gkyl_comm_array_per_sync(
@@ -1055,18 +1059,20 @@ gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib)
       );
 
       struct gkyl_array *buffer = mkarr(app->use_gpu, delta_ts->ncomp, delta_ts->size);
-
-      gkyl_array_copy_range_to_range(
-        buffer, delta_ts, &app->local_upper_skin[par_dir], &app->local_upper_ghost[par_dir]
-      );
-      gkyl_array_scale_range(delta_ts, -1.0, &app->local_upper_skin[par_dir]);
-      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &app->local_upper_skin[par_dir]);
-
-      gkyl_array_copy_range_to_range(
-        buffer, delta_ts, &app->local_lower_skin[par_dir], &app->local_lower_ghost[par_dir]
-      );
-      gkyl_array_scale_range(delta_ts, -1.0, &app->local_lower_skin[par_dir]);
-      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &app->local_lower_skin[par_dir]);
+      if (is_on_upper) {
+        gkyl_array_copy_range_to_range(
+          buffer, delta_ts, &app->local_upper_skin[par_dir], &app->local_upper_ghost[par_dir]
+        );
+        gkyl_array_scale_range(delta_ts, -1.0, &app->local_upper_skin[par_dir]);
+        gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &app->local_upper_skin[par_dir]);
+      }
+      if (is_on_lower) {
+        gkyl_array_copy_range_to_range(
+          buffer, delta_ts, &app->local_lower_skin[par_dir], &app->local_lower_ghost[par_dir]
+        );
+        gkyl_array_scale_range(delta_ts, -1.0, &app->local_lower_skin[par_dir]);
+        gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &app->local_lower_skin[par_dir]);
+      }
       gkyl_array_release(buffer);
 
       // Deflate delta_ts.

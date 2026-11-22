@@ -255,9 +255,12 @@ gk_species_balance_pre_init(
   gksbal->has_term[GK_SPECIES_BALANCE_TERM_SRC_BGK] = info->source_bgk.source_bgk_id != 0;
   // Boundaries with a boundary flux (same as in gk_species_bflux_init).
   for (int d = 0; d < app->cdim; ++d) {
-    if (gks->bc_is_np[d] && (gks->lower_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX ||
-                             gks->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX)) {
-      gksbal->has_term[GK_SPECIES_BALANCE_TERM_BFLUX] = true;
+    enum gkyl_gyrokinetic_bc_type bc_types[] = {gks->lower_bc[d].type, gks->upper_bc[d].type};
+    for (int e = 0; e < 2; ++e) {
+      if (gks->bc_is_np[d] && bc_types[e] != GKYL_BC_GK_SPECIES_ZERO_FLUX &&
+          bc_types[e] != GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+        gksbal->has_term[GK_SPECIES_BALANCE_TERM_BFLUX] = true;
+      }
     }
   }
 

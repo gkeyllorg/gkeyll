@@ -178,14 +178,15 @@ gkyl_gk_collisionless_passive_flux_surf(
 
         double *flux_surf_ghost_d = gkyl_array_fetch(flux_surf, loc_phase_ghost);
 
-        cflrate_ghost_d[0] = GKYL_MAX2(
-          cflrate_ghost_d[0],
-          up->flux_surf_edge_up[dir](
-            xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs_ghost, gkdgs_ghost,
-            bmag_d, jacgeo_rat_surf_skin, jacgeo_rat_surf_ghost, speeds_skin, speeds_ghost, f_skin,
-            f_ghost, flux_surf_ghost_d
-          )
+        double cflrate_edge = up->flux_surf_edge_up[dir](
+          xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs_ghost, gkdgs_ghost,
+          bmag_d, jacgeo_rat_surf_skin, jacgeo_rat_surf_ghost, speeds_skin, speeds_ghost, f_skin,
+          f_ghost, flux_surf_ghost_d
         );
+        // Include in CFL only if it's a physical edge flux.
+        if (idx[dir] == up->phase_grid.cells[dir]) {
+          cflrate_ghost_d[0] = GKYL_MAX2(cflrate_ghost_d[0], cflrate_edge);
+        }
       }
     }
     // No vpar loop: passive advection has no velocity-space component.

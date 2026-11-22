@@ -198,7 +198,10 @@ gkyl_gk_collisionless_flux_surf(
           xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
           jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d
         );
-        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], cflrate_edge);
+        // Include in CFL only if it's a physical edge flux.
+        if (idx[dir] == up->phase_grid.cells[dir]) {
+          cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], cflrate_edge);
+        }
       }
     }
   }

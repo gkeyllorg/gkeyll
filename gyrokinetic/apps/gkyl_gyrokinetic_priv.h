@@ -1384,6 +1384,14 @@ struct gk_species {
   struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
   struct gkyl_range bc_ts_local_par_ext; // Range extended in parallel direction for TS BC.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
+  struct gkyl_range *bc_ts_skin[2], *bc_ts_ghost[2]; // Twist-shift skin and ghost ranges.
+  int bc_ts_num_edge, bc_ts_edge[2]; // Twist-shift boundaries this MPI rank is on.
+  struct gkyl_boundary_flux *bc_ts_flux_slvr[2]; // Fluxes leaving through the boundaries.
+  bool has_bc_ts; // Whether there are twist-shift BCs.
+  void (*bc_ts_flux_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+    struct gkyl_array *rhs
+  );
 
   struct gk_proj proj_init; // Projector for initial conditions.
 
