@@ -162,7 +162,7 @@ calc_integrated_diagnostics_singleb(
 {
   if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr, dt);
     if (!(dt < 0.0)) {
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
     }
@@ -496,7 +496,7 @@ calc_integrated_diagnostics_multib(
 {
   if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr, dt);
     if (!(dt < 0.0)) {
       gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
     }

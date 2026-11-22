@@ -274,11 +274,11 @@ create_ctx(void)
   double temp_recycle_srcWALL = 4.0 * eV;
 
   // Grid parameters
-  int Nx = 12;
-  int Ny = 12;
+  int Nx = 9;
+  int Ny = 2;
   int Nz = 8;
-  int Nvpar = 8;
-  int Nmu = 4;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   // Velocity box dimensions
@@ -289,7 +289,7 @@ create_ctx(void)
 
   double t_end = 1.0e-7;
   int num_frames = 1;
-  double write_phase_freq = 0.01;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -522,6 +522,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // Ion core source:
@@ -652,6 +654,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // field
@@ -708,6 +712,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = ctx.num_species,
     .species = {elc, ion},

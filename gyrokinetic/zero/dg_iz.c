@@ -234,5 +234,8 @@ void
 gkyl_dg_iz_release(struct gkyl_dg_iz *up)
 {
   gkyl_array_release(up->ioniz_data);
-  free(up);
+  if (up->use_gpu) {
+    gkyl_cu_free(up->basis_on_dev);
+  }
+  gkyl_free(up);
 }

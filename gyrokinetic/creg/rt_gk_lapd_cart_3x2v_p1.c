@@ -312,7 +312,7 @@ evalSourceTempElcInit(
   double T = 0.0;
 
   if (r < 0.5 * L_perp) {
-    T = (1.0 - (1.0 / 2.5) * pow(1.0 - (r / (0.5 * L_perp)) * (r / (0.5 * L_perp)), 3.0) +
+    T = ((1.0 - (1.0 / 2.5)) * pow(1.0 - (r / (0.5 * L_perp)) * (r / (0.5 * L_perp)), 3.0) +
          (1.0 / 2.5)) *
         Te_src;
   } else {
@@ -606,6 +606,9 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = {elc, ion},
     .field = field,
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .parallelism =
       {

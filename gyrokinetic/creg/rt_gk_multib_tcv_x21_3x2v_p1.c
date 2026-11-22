@@ -231,7 +231,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         {
           // x-direction.
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
       .connections[1] =
         {
@@ -288,9 +288,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction.
+          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
         {
@@ -347,9 +348,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction.
+          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
         {
@@ -406,9 +408,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction.
+          {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
         {
@@ -467,7 +470,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         {
           // x-direction.
           {.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
       .connections[1] =
         {
@@ -522,7 +525,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         {
           // x-direction.
           {.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
       .connections[1] =
         {
@@ -1038,7 +1041,6 @@ main(int argc, char **argv)
             .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -1098,11 +1100,10 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
     .boundary_flux_diagnostics =
-      {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
-      },
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Ions.
@@ -1164,7 +1165,6 @@ main(int argc, char **argv)
             .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -1224,11 +1224,10 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
     .boundary_flux_diagnostics =
-      {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
-      },
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Field object.
@@ -1344,6 +1343,10 @@ main(int argc, char **argv)
   app_inp->use_gpu = app_args.use_gpu;
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
+  app_inp->diagnostics.num_balance_diags = 2;
+  app_inp->diagnostics.balance_diags[0] = GKYL_GK_BALANCE_PARTICLE;
+  app_inp->diagnostics.balance_diags[1] = GKYL_GK_BALANCE_ENERGY;
+
   app_inp->num_species = 2;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;

@@ -2,6 +2,13 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gk_fluid_moments.h>
 
+// Whether the moment is computed by the Maxwellian (or BiMaxwellian) moments updater.
+static bool
+gk_species_moment_uses_maxwellian_moms(const struct gk_species_moment *sm)
+{
+  return sm->type == GKYL_F_MOMENT_MAXWELLIAN || sm->type == GKYL_F_MOMENT_BIMAXWELLIAN;
+}
+
 static void
 gk_species_moment_diag_jacobgeo_div_disabled(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
@@ -47,11 +54,11 @@ gk_species_moment_calc_kinetic(
   if (sm->is_integrated) {
     gkyl_dg_updater_moment_gyrokinetic_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
   } else {
-    if (sm->is_maxwellian_moms) {
+    if (sm->type == GKYL_F_MOMENT_MAXWELLIAN) {
       gkyl_gk_maxwellian_moments_advance(
         sm->gyrokinetic_maxwellian_moms, &phase_rng, &conf_rng, fin, sm->marr
       );
-    } else if (sm->is_bimaxwellian_moms) {
+    } else if (sm->type == GKYL_F_MOMENT_BIMAXWELLIAN) {
       gkyl_gk_bimaxwellian_moments_advance(
         sm->gyrokinetic_maxwellian_moms, &phase_rng, &conf_rng, fin, sm->marr
       );
@@ -74,7 +81,7 @@ gk_species_moment_release_kinetic(
   if (sm->is_integrated) {
     gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
   } else {
-    if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
+    if (gk_species_moment_uses_maxwellian_moms(sm)) {
       gkyl_gk_maxwellian_moments_release(sm->gyrokinetic_maxwellian_moms);
     } else {
       gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
@@ -142,7 +149,7 @@ gk_species_moment_init_fluid(
     sm->mem_geo = app->use_gpu ?
                     gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
                     gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
-    sm->diag_jacobgeo_div_func = sm->is_maxwellian_moms || sm->is_bimaxwellian_moms ?
+    sm->diag_jacobgeo_div_func = gk_species_moment_uses_maxwellian_moms(sm) ?
                                    gk_species_moment_diag_jacobgeo_div_enabled_1st_comp :
                                    gk_species_moment_diag_jacobgeo_div_enabled_all_comp;
   }
@@ -177,7 +184,7 @@ gk_species_moment_init_kinetic(
     }
   } else {
     // Create moment operator.
-    if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
+    if (gk_species_moment_uses_maxwellian_moms(sm)) {
       struct gkyl_gk_maxwellian_moments_inp inp_mom = {
         .phase_grid = &gks->grid,
         .conf_basis = &app->basis,
@@ -191,7 +198,7 @@ gk_species_moment_init_kinetic(
         .use_gpu = app->use_gpu,
       };
       sm->gyrokinetic_maxwellian_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
-      if (sm->is_maxwellian_moms) {
+      if (sm->type == GKYL_F_MOMENT_MAXWELLIAN) {
         sm->num_mom = 3; // (n, u_par, T/m)
       } else {
         sm->num_mom = 4; // (n, u_par, T_par/m, T_perp/m)
@@ -230,8 +237,7 @@ gk_species_moment_init(
 )
 {
   sm->is_integrated = is_integrated;
-  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_MAXWELLIAN;
-  sm->is_bimaxwellian_moms = mom_type == GKYL_F_MOMENT_BIMAXWELLIAN;
+  sm->type = mom_type;
   sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_disabled;
 
   if (gks->is_fluid) {

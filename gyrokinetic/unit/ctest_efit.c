@@ -346,7 +346,7 @@ test_efit_tcv_ho()
   bool write_files = false;
 
   struct gkyl_efit_inp inp = {
-    .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/tcv_65402_t1.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
   };
