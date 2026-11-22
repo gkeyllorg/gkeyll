@@ -257,13 +257,15 @@ gkyl_fem_parproj_new(
   //  b) There's a spatially dependent weight. Then we solve A_i x_i=B_i
   //     where there's a different A_i for each perp cell and B_i is a single
   //     column matrix.
+  // On GPUs we always use b): the problems are solved as one batch, which is
+  // faster than solving for many RHS columns.
   struct gkyl_range prob_range;
   int nrhs;
   if (up->ndim == 1) {
     nrhs = 1;
     gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
   } else {
-    if (has_weight_lhs || up->num_bias_line) {
+    if (has_weight_lhs || up->num_bias_line || up->use_gpu) {
       nrhs = 1;
       gkyl_range_init(
         &prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper
