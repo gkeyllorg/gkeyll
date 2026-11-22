@@ -17,10 +17,12 @@ typedef struct gkyl_culinsolver_prob gkyl_culinsolver_prob;
 /**
  * Create a new cuDSS object to solve the linear problem
  *   A_i x_i = B_i
- * where i \in {0,1,...,nprob-1}. Each B_i can be a matrix (nrhs>1),
- * meaning that the result x_i is a matrix with the same number of columns.
- * This solver assumes that nrhs is the same for all nprob problems,
- * and that the sparsity pattern of all A_i's is the same.
+ * where i \in {0,1,...,nprob-1}. It can be used in two ways:
+ *   a) nprob=1 and nrhs>=1: B is a matrix with nrhs columns, and x a matrix
+ *      with the same number of columns.
+ *   b) nprob>=1 and nrhs=1: nprob problems with different A_i of the same
+ *      dimensions and sparsity pattern, solved together as a cuDSS uniform batch.
+ * The B_i (and x_i) of all problems are stored contiguously.
  */
 struct gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs);
 

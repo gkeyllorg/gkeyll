@@ -6,6 +6,7 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_culinsolver_ops.h>
 #include <assert.h>
+#include <math.h>
 }
 
 extern "C" {
@@ -14,6 +15,7 @@ void test_cudss_ops_dev();
 void test_cudss_ops_update_amat_dev();
 void test_cudss_ops_multiple_rhs_dev();
 void test_cudss_ops_update_amat_multiple_rhs_dev();
+void test_cudss_ops_multiple_prob_dev();
 }
 
 #define checkCUDSS(call, status, msg)                                                            \
@@ -722,6 +724,126 @@ test_cudss_ops_update_amat_multiple_rhs_dev()
   gkyl_mat_triples_release(tri);
   gkyl_free(tri_arr);
   gkyl_mat_triples_release(triRHS);
+  gkyl_culinsolver_prob_release(prob);
+}
+
+static double
+cudss_test_answer(double s, double u, double p, double e, double r, double l, int idx)
+{
+  // Solution of A x = [1,1,1,1,1]^T, with
+  //   A = matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]).
+  double den = e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2);
+  switch (idx) {
+    case 0:
+      return (e * l * r + e * p * r - l * p * u - e * r * u - p * r * u + p * pow(u, 2)) / den;
+    case 1:
+      return (r * (-(e * l * p) + e * p * s + e * l * u + l * p * u)) / (u * den);
+    case 2:
+      return -(-(e * pow(l, 2) * r) + e * l * r * s + pow(l, 2) * r * u - e * r * s * u +
+               pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
+             (u * den);
+    case 3:
+      return (-(pow(l, 2) * p) + pow(l, 2) * r + l * p * s + p * r * s + pow(l, 2) * u + l * p * u -
+              p * s * u - l * pow(u, 2)) /
+             den;
+    default:
+      return (e * pow(l, 2) * p - e * l * p * s - e * pow(l, 2) * u - e * l * p * u -
+              pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
+             (u * den);
+  }
+}
+
+static void
+cudss_test_coeffs(int k, int nprob, int iupdate, double *c)
+{
+  // Coefficients s, u, p, e, r, l of the k-th problem; they vary differently with k so the
+  // matrices are not multiples of each other.
+  double f = (k + 1.0) / nprob, g = 1.0 + 0.5 * iupdate;
+  c[0] = 19.0 * g;
+  c[1] = 21.0 * f;
+  c[2] = 16.0 + 3.0 * k;
+  c[3] = 5.0 * g / f;
+  c[4] = 18.0 * f * f;
+  c[5] = 12.0 - k;
+}
+
+static void
+cudss_test_set_amat_triples(struct gkyl_mat_triples **tri_arr, int nprob, int iupdate)
+{
+  for (int k = 0; k < nprob; k++) {
+    struct gkyl_mat_triples *tri = tri_arr[k];
+    double c[6];
+    cudss_test_coeffs(k, nprob, iupdate, c);
+    double s = c[0], u = c[1], p = c[2], e = c[3], r = c[4], l = c[5];
+    gkyl_mat_triples_insert(tri, 0, 0, s);
+    gkyl_mat_triples_insert(tri, 0, 2, u);
+    gkyl_mat_triples_insert(tri, 0, 3, u);
+    gkyl_mat_triples_insert(tri, 1, 0, l);
+    gkyl_mat_triples_insert(tri, 1, 1, u);
+    gkyl_mat_triples_insert(tri, 2, 1, l);
+    gkyl_mat_triples_insert(tri, 2, 2, p);
+    gkyl_mat_triples_insert(tri, 3, 3, e);
+    gkyl_mat_triples_insert(tri, 3, 4, u);
+    gkyl_mat_triples_insert(tri, 4, 0, l);
+    gkyl_mat_triples_insert(tri, 4, 1, l);
+    gkyl_mat_triples_insert(tri, 4, 4, r);
+  }
+}
+
+void
+test_cudss_ops_multiple_prob_dev()
+{
+  // Several problems with different A_i of the same sparsity (a cuDSS uniform batch),
+  // solved, then refactorized with new values and solved again.
+  int nfail = 0;
+  int m = 5, n = 5, nprob = 7;
+
+  struct gkyl_mat_triples **tri_arr =
+    (struct gkyl_mat_triples **)gkyl_malloc(nprob * sizeof(struct gkyl_mat_triples *));
+  for (int k = 0; k < nprob; k++) {
+    tri_arr[k] = gkyl_mat_triples_new(m, n);
+    gkyl_mat_triples_set_rowmaj_order(tri_arr[k]);
+  }
+
+  gkyl_culinsolver_prob *prob = gkyl_culinsolver_prob_new(nprob, m, n, 1);
+
+  for (int iupdate = 0; iupdate < 2; iupdate++) {
+    cudss_test_set_amat_triples(tri_arr, nprob, iupdate);
+    if (iupdate == 0) {
+      gkyl_culinsolver_amat_from_triples(prob, tri_arr);
+    } else {
+      gkyl_culinsolver_amat_update_from_triples(prob, tri_arr);
+    }
+
+    // Right-side vectors [1,1,1,1,1]^T, scaled by k+1 for the k-th problem.
+    gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nprob);
+    for (int k = 0; k < nprob; k++) {
+      for (int i = 0; i < m; i++) {
+        gkyl_mat_triples_insert(triRHS, i, k, k + 1.0);
+      }
+    }
+    gkyl_culinsolver_brhs_from_triples(prob, triRHS);
+    gkyl_mat_triples_release(triRHS);
+
+    gkyl_culinsolver_solve(prob);
+    gkyl_culinsolver_finish_host(prob);
+
+    for (int k = 0; k < nprob; k++) {
+      double c[6];
+      cudss_test_coeffs(k, nprob, iupdate, c);
+      for (int i = 0; i < m; i++) {
+        double ans = (k + 1.0) * cudss_test_answer(c[0], c[1], c[2], c[3], c[4], c[5], i);
+        GKYL_CU_CHECK(
+          gkyl_compare_double(ans, gkyl_culinsolver_get_sol_lin(prob, k * m + i), 1e-12), &nfail
+        );
+      }
+    }
+  }
+
+  for (int k = 0; k < nprob; k++) {
+    gkyl_mat_triples_release(tri_arr[k]);
+  }
+  gkyl_free(tri_arr);
   gkyl_culinsolver_prob_release(prob);
 }
 

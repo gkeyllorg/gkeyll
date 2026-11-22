@@ -257,13 +257,15 @@ gkyl_fem_parproj_new(
   //  b) There's a spatially dependent weight. Then we solve A_i x_i=B_i
   //     where there's a different A_i for each perp cell and B_i is a single
   //     column matrix.
+  // On GPUs we always use b): the problems are solved as one batch, which is
+  // faster than solving for many RHS columns.
   struct gkyl_range prob_range;
   int nrhs;
   if (up->ndim == 1) {
     nrhs = 1;
     gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
   } else {
-    if (has_weight_lhs || up->num_bias_line) {
+    if (has_weight_lhs || up->num_bias_line || up->use_gpu) {
       nrhs = 1;
       gkyl_range_init(
         &prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper
@@ -274,10 +276,18 @@ gkyl_fem_parproj_new(
     }
   }
 
-  if (!up->use_gpu) {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    up->prob_cu =
+      gkyl_culinsolver_prob_new(prob_range.volume, up->numnodes_global, up->numnodes_global, nrhs);
+  } else {
     up->prob =
       gkyl_superlu_prob_new(prob_range.volume, up->numnodes_global, up->numnodes_global, nrhs);
   }
+#else
+  up->prob =
+    gkyl_superlu_prob_new(prob_range.volume, up->numnodes_global, up->numnodes_global, nrhs);
+#endif
 
   // Assign non-zero elements in A.
   struct gkyl_mat_triples **tri =
@@ -381,7 +391,7 @@ gkyl_fem_parproj_new(
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    fem_parproj_set_lhs_cu(up, tri, prob_range.volume, nrhs, has_weight_lhs);
+    gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
   }
 #endif
 
@@ -513,14 +523,7 @@ gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels);
-    if (up->prob_cu) {
-      gkyl_culinsolver_prob_release(up->prob_cu);
-    } else {
-      gkyl_cu_free(up->lhs_inv_cu);
-      gkyl_cu_free(up->lhs_inv_idx_cu);
-      gkyl_cu_free(up->rhs_cu);
-      gkyl_cu_free(up->sol_cu);
-    }
+    gkyl_culinsolver_prob_release(up->prob_cu);
     if (up->num_bias_line > 0) {
       gkyl_cu_free(up->bias_lines);
     }
