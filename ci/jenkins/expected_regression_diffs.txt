@@ -105,6 +105,5 @@ gyrokinetic/creg/rt_gk_sheath_nonuniformx_2x2v_p1   # finite precision changes i
 gyrokinetic/creg/rt_gk_bgk_asdex_2x2v_p1   # finite precision changes in moments
 gyrokinetic/creg/rt_gk_helical_adapt_src_sheath_surr_2x2v_p1   # finite precision changes in moments
 
-# Boltzmann closure, 2026-11-20: measured with -s3 -x8 -u8 -v4.
-gyrokinetic/creg/rt_gk_leaky_bag_boltz_sheath_1x2v_p1   # Correct lifted-flux normalization and use instantaneous combined losses; initial phi shifts by +ln(2) in this normalized symmetric case.
-gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1   # Same Boltzmann correction: initial modal potential shifts by 1849.2006 at reduced resolution; initial distribution unchanged, final distribution differs only at roundoff in the 3-step check.
+gyrokinetic/creg/rt_gk_leaky_bag_boltz_sheath_1x2v_p1   # Correct flux normalization, use 0-currrent option
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1   # Use fluid electrons with new checks.

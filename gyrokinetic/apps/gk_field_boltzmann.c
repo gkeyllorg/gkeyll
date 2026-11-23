@@ -4,6 +4,8 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gk_field_priv.h>
 #include <gkyl_gk_particle_flux_parallel.h>
+#include <gkyl_proj_on_basis.h>
+#include <gkyl_array_dg_reduce.h>
 
 struct gk_field_boltzmann {
   struct gkyl_boltz_pot_0curr *pot_op; // Boltzmann potential updater.
@@ -241,9 +243,102 @@ gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_array_integrate_release(gkf->calc_em_energy);
 }
 
+// Use the same position mapping as species primitive-moment projection.
+static void
+gk_field_boltzmann_map_position(const double *xcomp, double *xphys, void *ctx)
+{
+  gkyl_position_map_eval_mc2nu(ctx, xcomp, xphys);
+}
+
+static void
+gk_field_boltzmann_parameters(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  // Establish one electron parameter set.
+
+  const struct gkyl_gyrokinetic_species *elc = NULL;
+  for (int i = 0; i < app->num_species; ++i) {
+    const struct gkyl_gyrokinetic_species *species = &app->species[i].info;
+    if (species->scaling.type == GKYL_GK_SPECIES_SCALING_BOLTZMANN) {
+      if (elc) {
+        gkyl_exit("The Boltzmann field requires a unique Boltzmann electron species.");
+      }
+      elc = species;
+    }
+  }
+
+  if (elc) {
+    const struct gkyl_gyrokinetic_projection *proj = &elc->projection;
+    if (proj->proj_id != GKYL_PROJ_MAXWELLIAN_PRIM || !proj->temp ||
+        proj->temp_import.type != GKYL_IC_IMPORT_NONE ||
+        proj->maxwellian_moms_import.type != GKYL_IC_IMPORT_NONE) {
+      gkyl_exit("Boltzmann electrons require a prescribed isotropic projection.temp callback.");
+    }
+
+    // Project the prescribed temperature on the host once, at initialization.
+    struct gkyl_array *temp_ho =
+      gkyl_array_new(GKYL_DOUBLE, app->basis.num_basis, app->local_ext.volume);
+
+    gkyl_proj_on_basis *temp_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = proj->temp,
+      .ctx = proj->ctx_temp,
+      .c2p_func = gk_field_boltzmann_map_position,
+      .c2p_func_ctx = app->position_map,
+    });
+    gkyl_proj_on_basis_advance(temp_proj, 0.0, &app->local, temp_ho);
+
+    // Check the DG field at quadrature nodes, excluding uninitialized ghost cells.
+    double min_temp, max_temp, sum_temp;
+    gkyl_array_dg_reducec_range(&min_temp, temp_ho, 0, GKYL_MIN, &app->basis, &app->local);
+    gkyl_array_dg_reducec_range(&max_temp, temp_ho, 0, GKYL_MAX, &app->basis, &app->local);
+    // Min/max can ignore NaNs; the sum propagates them to the validity check.
+    gkyl_array_dg_reducec_range(&sum_temp, temp_ho, 0, GKYL_SUM, &app->basis, &app->local);
+    if (!gkyl_is_dfinite(sum_temp)) {
+      min_temp = 0.0;
+    }
+    gkyl_proj_on_basis_release(temp_proj);
+    gkyl_array_release(temp_ho);
+
+    double global_min, global_max;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &min_temp, &global_min);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &max_temp, &global_max);
+    if (global_min <= 0.0 || global_max - global_min > 1e-12 * global_max) {
+      gkyl_exit("Boltzmann projection.temp must be finite, positive, and spatially uniform.");
+    }
+
+    // Nonzero legacy inputs may agree with the species, but must not override it.
+    double params_input[] = {
+      field->info.electron_mass, field->info.electron_charge, field->info.electron_temp
+    };
+    double params_species[] = {elc->mass, elc->charge, global_min};
+    for (int k = 0; k < 3; ++k) {
+      if (params_input[k] != 0.0 &&
+          (!gkyl_is_dfinite(params_input[k]) ||
+           fabs(params_input[k] - params_species[k]) > 1e-12 * fabs(params_species[k]))) {
+        gkyl_exit("Boltzmann field electron parameters conflict with the electron species.");
+      }
+    }
+    field->info.electron_mass = elc->mass;
+    field->info.electron_charge = elc->charge;
+    field->info.electron_temp = global_min;
+  }
+
+  // Preserve legacy ion-only/static inputs; validate parameters inferred from a species.
+  if (elc && (!gkyl_is_dfinite(field->info.electron_mass) || field->info.electron_mass <= 0.0 ||
+              !gkyl_is_dfinite(field->info.electron_charge) || field->info.electron_charge >= 0.0 ||
+              !gkyl_is_dfinite(field->info.electron_temp) || field->info.electron_temp <= 0.0)) {
+    gkyl_exit("Boltzmann electrons require positive mass and temperature, and negative charge.");
+  }
+}
+
 void
 gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
+  gk_field_boltzmann_parameters(app, gkf);
   gkf->boltzmann = gkyl_calloc(1, sizeof(struct gk_field_boltzmann));
   gkf->boltzmann->m0_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
