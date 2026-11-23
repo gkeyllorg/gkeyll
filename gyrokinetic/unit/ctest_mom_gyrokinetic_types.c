@@ -1,7 +1,4 @@
-// Test construction of gyrokinetic moment-type objects for every supported
-// moment name, verifying the reported num_mom and basic dimension fields.
-// Covers both the standard (gkyl_mom_gyrokinetic_new) and integrated
-// (gkyl_int_mom_gyrokinetic_new) constructors. Host only.
+// Test the number of moments reported by ordinary and integrated direct updaters.
 #include <acutest.h>
 
 #include <gkyl_array.h>
@@ -34,6 +31,7 @@ bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx
 
 // Shared fixture holding everything the moment constructor needs.
 struct fixture {
+  struct gkyl_rect_grid grid;
   struct gkyl_basis basis, confBasis;
   struct gkyl_range confLocal;
   struct gk_geometry *gk_geom;
@@ -70,6 +68,7 @@ make_fixture(struct fixture *fx, int poly_order, int vdim)
 
   struct gkyl_rect_grid grid, confGrid, velGrid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  fx->grid = grid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
   gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
@@ -131,11 +130,11 @@ free_fixture(struct fixture *fx)
   gkyl_position_map_release(fx->pmap);
 }
 
-static struct gkyl_mom_type *
+static struct gkyl_mom_gyrokinetic *
 mk_mom(struct fixture *fx, enum gkyl_distribution_moments mt)
 {
   return gkyl_mom_gyrokinetic_new(
-    &fx->confBasis, &fx->basis, &fx->confLocal, 1.0, 1.0, fx->gvm, fx->gk_geom, NULL, mt, false
+    1.0, 1.0, &fx->confBasis, &fx->basis, &fx->grid, fx->gvm, fx->gk_geom, mt, false, false
   );
 }
 
@@ -162,17 +161,12 @@ test_mom_types_1x2v()
   int ncase = sizeof(cases) / sizeof(cases[0]);
 
   for (int i = 0; i < ncase; i++) {
-    struct gkyl_mom_type *m = mk_mom(&fx, cases[i].mt);
+    struct gkyl_mom_gyrokinetic *m = mk_mom(&fx, cases[i].mt);
     TEST_CHECK(m != NULL);
     TEST_MSG("moment case index %d", i);
-    TEST_CHECK(m->cdim == 1);
-    TEST_CHECK(m->pdim == 3);
-    TEST_CHECK(m->poly_order == 1);
-    TEST_CHECK(m->num_config == fx.confBasis.num_basis);
-    TEST_CHECK(m->num_phase == fx.basis.num_basis);
-    TEST_CHECK(m->num_mom == cases[i].nm);
-    TEST_CHECK(gkyl_mom_type_num_mom(m) == cases[i].nm);
-    gkyl_mom_type_release(m);
+    TEST_CHECK(gkyl_mom_gyrokinetic_num_mom(m) == cases[i].nm);
+    TEST_CHECK(gkyl_mom_gyrokinetic_num_mom(m) == cases[i].nm);
+    gkyl_mom_gyrokinetic_release(m);
   }
 
   free_fixture(&fx);
@@ -198,16 +192,13 @@ test_int_mom_types_1x2v()
   int ncase = sizeof(cases) / sizeof(cases[0]);
 
   for (int i = 0; i < ncase; i++) {
-    struct gkyl_mom_type *m = gkyl_int_mom_gyrokinetic_new(
-      &fx.confBasis, &fx.basis, &fx.confLocal, 1.0, 1.0, fx.gvm, fx.gk_geom, NULL, cases[i].mt,
-      false
+    struct gkyl_mom_gyrokinetic *m = gkyl_mom_gyrokinetic_new(
+      1.0, 1.0, &fx.confBasis, &fx.basis, &fx.grid, fx.gvm, fx.gk_geom, cases[i].mt, true, false
     );
     TEST_CHECK(m != NULL);
     TEST_MSG("int moment case index %d", i);
-    TEST_CHECK(m->cdim == 1);
-    TEST_CHECK(m->pdim == 3);
-    TEST_CHECK(m->num_mom == cases[i].nm);
-    gkyl_mom_type_release(m);
+    TEST_CHECK(gkyl_mom_gyrokinetic_num_mom(m) == cases[i].nm);
+    gkyl_mom_gyrokinetic_release(m);
   }
 
   free_fixture(&fx);
@@ -230,13 +221,11 @@ test_mom_types_1x1v()
   int ncase = sizeof(cases) / sizeof(cases[0]);
 
   for (int i = 0; i < ncase; i++) {
-    struct gkyl_mom_type *m = mk_mom(&fx, cases[i].mt);
+    struct gkyl_mom_gyrokinetic *m = mk_mom(&fx, cases[i].mt);
     TEST_CHECK(m != NULL);
     TEST_MSG("1v moment case index %d", i);
-    TEST_CHECK(m->cdim == 1);
-    TEST_CHECK(m->pdim == 2);
-    TEST_CHECK(m->num_mom == cases[i].nm);
-    gkyl_mom_type_release(m);
+    TEST_CHECK(gkyl_mom_gyrokinetic_num_mom(m) == cases[i].nm);
+    gkyl_mom_gyrokinetic_release(m);
   }
 
   free_fixture(&fx);

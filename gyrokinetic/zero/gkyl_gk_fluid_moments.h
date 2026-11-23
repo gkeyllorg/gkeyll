@@ -17,14 +17,17 @@ struct gkyl_gk_fluid_moments_inp {
   int num_moments; // Number of conserved fields in the fluid state.
   enum gkyl_distribution_moments moment; // Moment to calculate.
   bool integrated; // Return cell integrals instead of DG coefficients.
+  bool weighted; // Will be used for configuration-weighted moments; restricts moment choices.
   bool use_gpu; // Allocate scratch on the GPU.
 };
 
 /**
  * Create weak-DG conversions and Maxwellian closures for J*(rho,Mpar,E,pperp/B).
  * Always includes parallel and perpendicular velocity moments (2v).
+ * Set inp->weighted when using weighted advance.
  *
  * @param inp Configuration and geometry; arrays must reside on the selected device.
+ * @return New updater owned by the caller.
  */
 struct gkyl_gk_fluid_moments *gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp
 );
@@ -82,3 +85,21 @@ void gkyl_gk_fluid_moments_set_density(
  * @param up Fluid moment updater.
  */
 void gkyl_gk_fluid_moments_release(struct gkyl_gk_fluid_moments *up);
+
+/**
+ * Compute configuration-weighted raw fluid moments, applying the DG product
+ * before optional cell integration. Supports density, momentum and second moments.
+ *
+ * @param up Fluid moment updater constructed with weighted=true.
+ * @param range Configuration subrange indexing state and out.
+ * @param state Fluid state with the existing Jacobian convention.
+ * @param phi Potential (unused by the supported weighted moments; may be NULL).
+ * @param weight_range Independently indexed range covering range.
+ * @param weight Scalar DG weight in the configuration basis, on the same backend.
+ * @param out Output DG moments or cell integrals, not overlapping inputs.
+ */
+void gkyl_gk_fluid_moments_advance_weighted(
+  const struct gkyl_gk_fluid_moments *up, const struct gkyl_range *range,
+  const struct gkyl_array *state, const struct gkyl_array *phi,
+  const struct gkyl_range *weight_range, const struct gkyl_array *weight, struct gkyl_array *out
+);
