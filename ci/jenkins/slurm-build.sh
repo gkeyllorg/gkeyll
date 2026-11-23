@@ -13,7 +13,7 @@ case "$CI_BUILD_ACTION" in
         bash "$SLURM_CI_CONFIGURE_SCRIPT"
         if grep -Eq '^[[:space:]]*CC[[:space:]]*=[[:space:]]*(nvcc|nvc)([[:space:]]|$)' config.mak; then
             # Apply strict FP to both candidate and baseline GPU builds.
-            printf '\nUSE_STRICT_FP=1\n' >> config.mak
+            printf '\nUSE_STRICT_FP=1\nUSE_DETERMINISTIC_REDUCTIONS_GPU=1\n' >> config.mak
         fi
         ;;
     unit|install)

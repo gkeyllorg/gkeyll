@@ -28,6 +28,7 @@ USE_MPI=
 USE_NCCL=
 USE_LAPACK_LITE=
 USE_STRICT_FP=
+USE_DETERMINISTIC_REDUCTIONS_GPU=
 
 # Optional heavy kernel set (see --build-vlasov-ten-2x3v-p2 below)
 BUILD_VLASOV_TEN_2X3V_P2=
@@ -72,6 +73,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
                            LAPACK_INC_DIR/LAPACK_LIB_DIR/LAPACK_LIB_NAME overrides.
 --strict-fp                [no] Strict floating point: no fast math and no FMA
                            contraction, for reproducible results (slower).
+--deterministic-reductions-gpu [no] Fixed-order GPU reductions (currently Vlasov moments).
 --build-vlasov-ten-2x3v-p2 [no] Build the 2x3v tensor p=2 Vlasov kernels
                            (velocity-space Hamiltonians: moments, velocity-map
                            Jacobians, sparse/dense H, E/phi/B/radiation forces,
@@ -179,6 +181,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_STRICT_FP="$value"
       ;;       
+   --deterministic-reductions-gpu)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_DETERMINISTIC_REDUCTIONS_GPU="$value"
+      ;;
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       LAPACK_INC_DIR="$value"
@@ -299,6 +305,13 @@ then
     USE_STRICT_FP=1
 else
     USE_STRICT_FP=
+fi
+
+if [ "$USE_DETERMINISTIC_REDUCTIONS_GPU" = "yes" ] || [ "$USE_DETERMINISTIC_REDUCTIONS_GPU" = "1" ]
+then
+    USE_DETERMINISTIC_REDUCTIONS_GPU=1
+else
+    USE_DETERMINISTIC_REDUCTIONS_GPU=
 fi
 
 if [ "$USE_LAPACK_LITE" = "yes" ] || [ "$USE_LAPACK_LITE" = "1" ]
@@ -427,6 +440,7 @@ CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
 
 USE_LAPACK_LITE=$USE_LAPACK_LITE
 USE_STRICT_FP=$USE_STRICT_FP
+USE_DETERMINISTIC_REDUCTIONS_GPU=$USE_DETERMINISTIC_REDUCTIONS_GPU
 
 USE_NCCL=$USE_NCCL
 CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR
