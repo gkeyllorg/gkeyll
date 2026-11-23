@@ -43,7 +43,7 @@ struct gkyl_dg_pkpm_remap_flux_surf_inp {
  * receiving side's velocity grid, over the momentum and energy shares and over both sides.
  *
  * Each cell owns its lower face in each direction, and the upper ghost cell owns the upper
- * boundary face.
+ * boundary face: the fluxes, the blend and the rates of a face are stored on its owner.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_remap_flux_surf_inp struct.
  * @return Pointer to the updater.
@@ -71,9 +71,12 @@ struct gkyl_dg_pkpm_remap_flux_surf *gkyl_dg_pkpm_remap_flux_surf_inew(
  *   cell of the face: side 0 is the flux the lower cell receives through its upper face, side 1
  *   the flux the upper cell receives through its lower face.
  * @param fluid_flux_surf Output fluid fluxes, [dir][component][surface mode].
- * @param cflrate_f Kinetic rate, incremented in every cell by the rate of its lower face in each
- *   direction; in the last cell of a direction by the larger of the rates of its lower face and
- *   of the upper boundary face.
+ * @param rate_surf_f Output kinetic rate of the lower face per direction, [dir], on the owning
+ *   phase cell: the largest speed bound over the face nodes and the velocity nodes of the cell,
+ *   over the width of the narrower of the two configuration cells the face separates.
+ * @param rate_surf_fluid Output fluid rate of the lower face per direction, [dir].
+ * @param cflrate_f Kinetic rate, incremented in every cell, in each direction, by the larger of
+ *   the rates of its two faces.
  * @param cflrate_fluid Fluid rate, incremented in the same way as cflrate_f.
  * @param blend Output weight of the label-paired flux of the lower face per direction, [dir].
  */
@@ -83,7 +86,8 @@ void gkyl_dg_pkpm_remap_flux_surf_advance(
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar,
   const struct gkyl_array *fluid, const struct gkyl_array *u, const struct gkyl_array *xi,
   const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *conf_flux_surf,
-  struct gkyl_array *fluid_flux_surf, struct gkyl_array *cflrate_f,
+  struct gkyl_array *fluid_flux_surf, struct gkyl_array *rate_surf_f,
+  struct gkyl_array *rate_surf_fluid, struct gkyl_array *cflrate_f,
   struct gkyl_array *cflrate_fluid, struct gkyl_array *blend
 );
 

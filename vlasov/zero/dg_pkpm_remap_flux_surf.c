@@ -167,8 +167,6 @@ gkyl_dg_pkpm_remap_flux_surf_inew(const struct gkyl_dg_pkpm_remap_flux_surf_inp 
 
   int nflux = PKPM_DIST_NUM_BLOCKS * up->num_surf_basis;
   up->column = gkyl_malloc(2 * nv * sizeof(long));
-  up->cell_column = gkyl_malloc(nv * sizeof(long));
-  up->face_rate = gkyl_malloc(2 * nv * sizeof(double));
   up->block_traces = gkyl_malloc(2 * nv * nflux * sizeof(double));
   up->face_flux = gkyl_malloc(2 * nv * nflux * sizeof(double));
   up->mesh = gkyl_malloc(
@@ -180,16 +178,17 @@ gkyl_dg_pkpm_remap_flux_surf_inew(const struct gkyl_dg_pkpm_remap_flux_surf_inp 
 }
 
 // The face between the configuration cells idx_l (lower) and idx_r (upper) in direction dir. The
-// fluxes are stored on idx_r. The rates of the face are those of the cell idx_r if owner_r and of
-// idx_l otherwise: rate_kin of each of its velocity cells and rate_fluid, returned to the caller.
+// fluxes, the blend and the rates of the face are stored on idx_r. The rates take the smaller of
+// the two cells' position-map Jacobians.
 static void
 remap_flux_face(
-  struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, const int *idx_l, const int *idx_r, int owner_r,
+  struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, const int *idx_l, const int *idx_r,
   const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar,
   const struct gkyl_array *fluid, const struct gkyl_array *u, const struct gkyl_array *xi,
   const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *conf_flux_surf,
-  struct gkyl_array *fluid_flux_surf, double *rate_kin, double *rate_fluid, struct gkyl_array *blend
+  struct gkyl_array *fluid_flux_surf, struct gkyl_array *rate_surf_f,
+  struct gkyl_array *rate_surf_fluid, struct gkyl_array *blend
 )
 {
   int cdim = up->cdim, nv = up->num_vel_cells, nk = up->num_surf_basis;
@@ -248,10 +247,9 @@ remap_flux_face(
                  admissible;
   }
 
-  // 3. The rates of the face for the owner cell, from the speed bounds of every node and velocity
-  // node.
-  int owner = owner_r ? 1 : 0;
-  double rate = 1.5 * (2.0 / up->phase_grid.dx[dir]) * jdinv[owner];
+  // 3. The rates of the face, from the speed bounds of every node and velocity node and the
+  // narrower of the two cells.
+  double rate = 1.5 * (2.0 / up->phase_grid.dx[dir]) * fmax(jdinv[0], jdinv[1]);
   double alpha_fluid = 0.0;
   for (int k = 0; k < nv; ++k) {
     double dw = up->vel_edges[k + 1] - up->vel_edges[k];
@@ -267,9 +265,9 @@ remap_flux_face(
         alpha_fluid = fmax(alpha_fluid, bounds[1] - bounds[0]);
       }
     }
-    rate_kin[k] = rate * alpha_kin;
+    ((double *)gkyl_array_fetch(rate_surf_f, up->column[nv + k]))[dir] = rate * alpha_kin;
   }
-  rate_fluid[0] = rate * alpha_fluid;
+  ((double *)gkyl_array_fetch(rate_surf_fluid, cloc[1]))[dir] = rate * alpha_fluid;
 
   // 4. The remap flux of every node; the blend from the shares summed over the nodes.
   double *fluid_flux = &((double *)gkyl_array_fetch(fluid_flux_surf, cloc[1]))[dir * num_fluid];
@@ -338,50 +336,63 @@ gkyl_dg_pkpm_remap_flux_surf_advance(
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar,
   const struct gkyl_array *fluid, const struct gkyl_array *u, const struct gkyl_array *xi,
   const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *conf_flux_surf,
-  struct gkyl_array *fluid_flux_surf, struct gkyl_array *cflrate_f,
+  struct gkyl_array *fluid_flux_surf, struct gkyl_array *rate_surf_f,
+  struct gkyl_array *rate_surf_fluid, struct gkyl_array *cflrate_f,
   struct gkyl_array *cflrate_fluid, struct gkyl_array *blend
 )
 {
-  int cdim = up->cdim, nv = up->num_vel_cells;
-  int idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
-  double *rate_kin = up->face_rate, *rate_kin_up = &up->face_rate[nv];
+  int cdim = up->cdim, pdim = cdim + 1;
+  int idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_up[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
-    long cell_loc = gkyl_range_idx(conf_range_ext, iter.idx);
     for (int dir = 0; dir < cdim; ++dir) {
-      // Lower face: the left neighbor (interior or ghost) is the l side.
-      double rate_fluid = 0.0;
+      // Lower face: the lower neighbor (interior or ghost) is the l side.
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir] - 1;
       remap_flux_face(
-        up, dir, idx_l, iter.idx, 1, conf_range_ext, phase_range, phase_range_ext, bvar, fluid, u,
-        xi, theta, fin, conf_flux_surf, fluid_flux_surf, rate_kin, &rate_fluid, blend
+        up, dir, idx_l, iter.idx, conf_range_ext, phase_range, phase_range_ext, bvar, fluid, u, xi,
+        theta, fin, conf_flux_surf, fluid_flux_surf, rate_surf_f, rate_surf_fluid, blend
       );
-      for (int k = 0; k < nv; ++k) {
-        up->cell_column[k] = up->column[nv + k]; // the current cell is the r side of this face
-      }
-      // Upper domain boundary: the face owned by the upper ghost cell, with the current cell as
-      // the l side. The rate of the current cell in this direction is the larger of those of its
-      // two faces.
+      // Upper end of the range: the face owned by the upper neighbor, with the current cell as
+      // the l side.
       if (iter.idx[dir] == conf_range->upper[dir]) {
-        double rate_fluid_up = 0.0;
         gkyl_copy_int_arr(cdim, iter.idx, idx_r);
         idx_r[dir] = idx_r[dir] + 1;
         remap_flux_face(
-          up, dir, iter.idx, idx_r, 0, conf_range_ext, phase_range, phase_range_ext, bvar, fluid, u,
-          xi, theta, fin, conf_flux_surf, fluid_flux_surf, rate_kin_up, &rate_fluid_up, blend
+          up, dir, iter.idx, idx_r, conf_range_ext, phase_range, phase_range_ext, bvar, fluid, u,
+          xi, theta, fin, conf_flux_surf, fluid_flux_surf, rate_surf_f, rate_surf_fluid, blend
         );
-        for (int k = 0; k < nv; ++k) {
-          rate_kin[k] = fmax(rate_kin[k], rate_kin_up[k]);
-        }
-        rate_fluid = fmax(rate_fluid, rate_fluid_up);
       }
-      // The rates of the directions add.
-      for (int k = 0; k < nv; ++k) {
-        ((double *)gkyl_array_fetch(cflrate_f, up->cell_column[k]))[0] += rate_kin[k];
-      }
-      ((double *)gkyl_array_fetch(cflrate_fluid, cell_loc))[0] += rate_fluid;
+    }
+  }
+
+  // A cell takes, in each direction, the larger of the rates of its two faces (its own lower
+  // face and that of its upper neighbor); the rates of the directions add.
+  gkyl_range_iter_init(&iter, phase_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(phase_range_ext, iter.idx);
+    const double *rate_lo = gkyl_array_cfetch(rate_surf_f, loc);
+    double *cflrate_d = gkyl_array_fetch(cflrate_f, loc);
+    for (int dir = 0; dir < cdim; ++dir) {
+      gkyl_copy_int_arr(pdim, iter.idx, idx_up);
+      idx_up[dir] = idx_up[dir] + 1;
+      const double *rate_up =
+        gkyl_array_cfetch(rate_surf_f, gkyl_range_idx(phase_range_ext, idx_up));
+      cflrate_d[0] += fmax(rate_lo[dir], rate_up[dir]);
+    }
+  }
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range_ext, iter.idx);
+    const double *rate_lo = gkyl_array_cfetch(rate_surf_fluid, loc);
+    double *cflrate_d = gkyl_array_fetch(cflrate_fluid, loc);
+    for (int dir = 0; dir < cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, iter.idx, idx_up);
+      idx_up[dir] = idx_up[dir] + 1;
+      const double *rate_up =
+        gkyl_array_cfetch(rate_surf_fluid, gkyl_range_idx(conf_range_ext, idx_up));
+      cflrate_d[0] += fmax(rate_lo[dir], rate_up[dir]);
     }
   }
 }
@@ -410,8 +421,6 @@ gkyl_dg_pkpm_remap_flux_surf_release(struct gkyl_dg_pkpm_remap_flux_surf *up)
   }
   gkyl_free(up->line_upper);
   gkyl_free(up->column);
-  gkyl_free(up->cell_column);
-  gkyl_free(up->face_rate);
   gkyl_free(up->block_traces);
   gkyl_free(up->face_flux);
   gkyl_free(up->mesh);

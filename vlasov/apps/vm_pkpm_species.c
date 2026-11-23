@@ -516,6 +516,10 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
     mkarr(app->use_gpu, 2 * PKPM_DIST_NUM_BLOCKS * cdim * nkc, s->kinetic->local_ext.volume);
   s->kinetic->pkpm.flux_blend = mkarr(app->use_gpu, cdim, app->local_ext.volume);
   gkyl_array_clear(s->kinetic->pkpm.flux_blend, 0.0);
+  s->kinetic->pkpm.rate_surf = mkarr(app->use_gpu, cdim, s->kinetic->local_ext.volume);
+  gkyl_array_clear(s->kinetic->pkpm.rate_surf, 0.0);
+  s->fluid->pkpm.rate_surf = mkarr(app->use_gpu, cdim, app->local_ext.volume);
+  gkyl_array_clear(s->fluid->pkpm.rate_surf, 0.0);
 
   struct gkyl_dg_pkpm_vel_flux_surf_inp vel_flux_inp = {
     .phase_grid = &s->kinetic->grid,
@@ -1196,7 +1200,8 @@ vm_pkpm_species_face_flux(
     &species->kinetic->local_ext, app->field->bvar, species->fluid->pkpm.fluid_no_J,
     species->fluid->pkpm.u, species->fluid->pkpm.xi, species->kinetic->pkpm.theta, fin,
     species->kinetic->pkpm.conf_flux_surf, species->fluid->pkpm.fluid_flux_surf,
-    species->kinetic->cflrate, species->fluid->cflrate, species->kinetic->pkpm.flux_blend
+    species->kinetic->pkpm.rate_surf, species->fluid->pkpm.rate_surf, species->kinetic->cflrate,
+    species->fluid->cflrate, species->kinetic->pkpm.flux_blend
   );
   // The gradient of u for the kinetic sources (bb:grad u); needs u in the ghost cells (at
   // absorbing boundaries that of the mirrored fluid state).
@@ -2302,6 +2307,8 @@ vm_pkpm_species_release(const gkyl_vlasov_app *app, struct vlasov_species *s)
   gkyl_array_release(s->kinetic->pkpm.rhs_moms);
   gkyl_array_release(s->kinetic->pkpm.conf_flux_surf);
   gkyl_array_release(s->kinetic->pkpm.flux_blend);
+  gkyl_array_release(s->kinetic->pkpm.rate_surf);
+  gkyl_array_release(s->fluid->pkpm.rate_surf);
   gkyl_array_release(s->kinetic->pkpm.vel_flux_surf);
   gkyl_array_release(s->fluid->pkpm.fluid_flux_surf);
   gkyl_array_release(s->fluid->pkpm.rho);

@@ -197,7 +197,8 @@ struct sim {
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
   struct gkyl_dg_pkpm_remap_flux_surf *flux_up;
-  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs, *blend;
+  struct gkyl_array *kin_flux, *kin_rate, *kin_cfl, *kin_rhs, *fl_flux, *fl_rate, *fl_cfl, *fl_rhs,
+    *blend;
 };
 
 // Phase-space ranges with the app's layout: conf ghost cells and one velocity ghost cell
@@ -405,6 +406,8 @@ advance(struct sim *s)
   int nkf = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis_fluid(s->flux_up);
   s->kin_flux = mkarr(2 * 8 * cdim * nkc, pvol);
   s->kin_cfl = mkarr(1, pvol);
+  s->kin_rate = mkarr(cdim, pvol);
+  s->fl_rate = mkarr(cdim, cvol);
   s->kin_rhs = mkarr(8 * np, pvol);
   s->fl_flux = mkarr(5 * cdim * nkf, cvol);
   s->fl_cfl = mkarr(1, cvol);
@@ -419,7 +422,8 @@ advance(struct sim *s)
   gkyl_array_clear(s->blend, 0.0);
   gkyl_dg_pkpm_remap_flux_surf_advance(
     s->flux_up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->fluid_phys,
-    s->u, s->xi, s->theta, s->f, s->kin_flux, s->fl_flux, s->kin_cfl, s->fl_cfl, s->blend
+    s->u, s->xi, s->theta, s->f, s->kin_flux, s->fl_flux, s->kin_rate, s->fl_rate, s->kin_cfl,
+    s->fl_cfl, s->blend
   );
   struct gkyl_dg_pkpm_kinetic_conf_inp kin_eqn_inp = {
     .conf_basis = &s->cbasis,
@@ -478,7 +482,7 @@ teardown(struct sim *s)
   gkyl_vlasov_position_map_release(s->pos_map);
   struct gkyl_array *arrs[] = {s->em, s->dtb, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi, s->rho, s->rho3,
     s->grad_rho, s->grad_ln_n, s->theta, s->fluid_phys, s->fluid, s->cmoms, s->f, s->kin_flux, s->kin_cfl,
-    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs, s->blend};
+    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs, s->blend, s->kin_rate, s->fl_rate};
   for (int i = 0; i < sizeof(arrs) / sizeof(arrs[0]); ++i) {
     gkyl_array_release(arrs[i]);
   }

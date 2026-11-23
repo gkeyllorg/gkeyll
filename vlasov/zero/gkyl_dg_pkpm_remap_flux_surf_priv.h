@@ -123,8 +123,6 @@ struct gkyl_dg_pkpm_remap_flux_surf {
 
   // Workspace for one face.
   long *column; // Phase index of each velocity cell, [side][cell].
-  long *cell_column; // Phase index of each velocity cell of the cell whose rates are accumulated.
-  double *face_rate; // Kinetic rates of the lower and of the upper face of a cell, [face][cell].
   double *block_traces; // Modal block traces, [side][cell][block][mode].
   double *face_flux; // Kinetic flux of the face, [side][cell][block][mode].
   struct gkyl_supermesh_1d_interval *mesh; // Supermesh of one node.

@@ -562,6 +562,8 @@ test_kinetic_flux(int cdim)
   struct gkyl_array *kin_cfl = mkarr(1, plocal_ext.volume);
   struct gkyl_array *blend = mkarr(cdim, clocal_ext.volume);
   struct gkyl_array *cfl = mkarr(1, clocal_ext.volume);
+  struct gkyl_array *kin_rate = mkarr(cdim, plocal_ext.volume);
+  struct gkyl_array *rate = mkarr(cdim, clocal_ext.volume);
   gkyl_array_clear(kin_flux, 0.0);
   gkyl_array_clear(kin_cfl, 0.0);
   gkyl_array_clear(blend, 0.0);
@@ -583,7 +585,7 @@ test_kinetic_flux(int cdim)
   gkyl_array_clear(flux, 0.0);
   gkyl_dg_pkpm_remap_flux_surf_advance(
     up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, u, xi, theta, f, kin_flux, flux,
-    kin_cfl, cfl, blend
+    kin_rate, rate, kin_cfl, cfl, blend
   );
   {
     struct gkyl_range_iter iter;
@@ -621,7 +623,7 @@ test_kinetic_flux(int cdim)
   gkyl_array_clear(flux, 0.0);
   gkyl_dg_pkpm_remap_flux_surf_advance(
     up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, u, xi, theta, f, kin_flux, flux,
-    kin_cfl, cfl, blend
+    kin_rate, rate, kin_cfl, cfl, blend
   );
   struct ref_side empty = in;
   empty.full = false;
@@ -687,7 +689,7 @@ test_kinetic_flux(int cdim)
   gkyl_array_clear(flux, 0.0);
   gkyl_dg_pkpm_remap_flux_surf_advance(
     up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, u, xi, theta, f, kin_flux, flux,
-    kin_cfl, cfl, blend
+    kin_rate, rate, kin_cfl, cfl, blend
   );
   // Normal momentum flux of the wall. The face frame is at rest along the normal, and the two
   // sides are paired at equal velocity in it.
@@ -742,6 +744,8 @@ test_kinetic_flux(int cdim)
   gkyl_array_release(kin_flux);
   gkyl_array_release(kin_cfl);
   gkyl_array_release(blend);
+  gkyl_array_release(kin_rate);
+  gkyl_array_release(rate);
   gkyl_dg_pkpm_remap_flux_surf_release(up);
   gkyl_vlasov_position_map_release(pm);
   gkyl_array_release(f);

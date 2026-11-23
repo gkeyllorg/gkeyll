@@ -309,6 +309,7 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
   // the kinetic flux, the kinetic rate and the blend weight are computed alongside (not checked)
   struct gkyl_array *kin_flux = mkarr(2 * NUM_BLOCKS * nk, plocal_ext.volume);
   struct gkyl_array *kin_cfl = mkarr(1, plocal_ext.volume), *blend = mkarr(1, clocal_ext.volume);
+  struct gkyl_array *kin_rate = mkarr(1, plocal_ext.volume), *rate = mkarr(1, clocal_ext.volume);
   gkyl_array_clear(flux, 0.0);
   gkyl_array_clear(cfl, 0.0);
   gkyl_array_clear(kin_flux, 0.0);
@@ -316,7 +317,7 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
   gkyl_array_clear(blend, 0.0);
   gkyl_dg_pkpm_remap_flux_surf_advance(
     up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, uarr, xiarr, theta, f, kin_flux,
-    flux, kin_cfl, cfl, blend
+    flux, kin_rate, rate, kin_cfl, cfl, blend
   );
   int gidx[1] = {clocal.upper[0] + 1};
   const double *fl = gkyl_array_cfetch(flux, gkyl_range_idx(&clocal_ext, gidx));
@@ -325,8 +326,9 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
   }
   gkyl_dg_pkpm_remap_flux_surf_release(up);
   gkyl_vlasov_position_map_release(pm);
-  struct gkyl_array *arrs[] = {fluid, uarr, bvar, xiarr, theta, f, flux, cfl, kin_flux, kin_cfl, blend};
-  for (int i = 0; i < 11; ++i) {
+  struct gkyl_array *arrs[] = {fluid, uarr, bvar, xiarr, theta, f, flux, cfl, kin_flux, kin_cfl, blend,
+    kin_rate, rate};
+  for (int i = 0; i < 13; ++i) {
     gkyl_array_release(arrs[i]);
   }
 }

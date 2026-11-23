@@ -2,13 +2,13 @@
 -- magnetic field with the PKPM system of equations (1x, normalized parallel velocity w = v_par/xi).
 -- A density pulse n = 1 + 0.2 sin(pi x) in a uniform flow u = 0.05 at uniform pressure p = 1 moves
 -- through the uniform static field B = (sin 0.0871, -cos 0.0871, 0) (b_x = 0.087) in a periodic box
--- of length 2, to t = 20 (3550 steps). The gas has no charge, so the field only sets the direction
+-- of length 2, to t = 20 (1851 steps). The gas has no charge, so the field only sets the direction
 -- b. Without collisions the pulse is not a steady state in the frame of the flow: the gas streams
 -- along b, at b_x w xi along x, which is comparable to the flow, and the pulse drives a flow that
 -- decays.
 -- Figures of merit (16 x 16 cells) to t = 20: particle number, the three components of the momentum
 -- and the total energy (kinetic + p_par/2 + p_perp) are conserved to 2e-12. The kinetic energy
--- rises from 0.0025 to 0.0325 (t = 0.76) and is back at 0.0025 at t = 20; the integrated parallel
+-- rises from 0.0025 to 0.0325 (t = 0.75) and is back at 0.0025 at t = 20; the integrated parallel
 -- and perpendicular pressures (both 2 initially) never differ by more than 0.030. The positivity
 -- limiter scales no cell.
 

@@ -822,6 +822,7 @@ struct vm_pkpm_kinetic {
   struct gkyl_array
     *conf_flux_surf; // stored modal configuration-space kinetic fluxes, [dir][side][block][mode]
   struct gkyl_array *flux_blend; // weight of the label-paired flux of each lower face, [dir]
+  struct gkyl_array *rate_surf; // kinetic time-step rate of each lower face, [dir]
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
   struct gkyl_dg_pkpm_harm_vol
     *harm_vol; // modal volume integrals of the first-harmonic terms (configuration pass)
@@ -899,6 +900,7 @@ struct vm_pkpm_fluid {
     *mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
   struct gkyl_array *grad_rho; // gradient of [rho, 0, 0] (scratch)
   struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
+  struct gkyl_array *rate_surf; // fluid time-step rate of each lower face, [dir]
 
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for the configuration-space variables
   struct gkyl_dg_eqn *eqn_fluid; // fluid equation object

@@ -993,6 +993,8 @@ test_m1_invariant(int cdim)
   struct gkyl_array *fluid_flux = mkarr(5 * cdim * nkc_fluid, s.clocal_ext.volume);
   struct gkyl_array *cflrate = mkarr(1, s.plocal_ext.volume);
   struct gkyl_array *cflrate_fluid = mkarr(1, s.clocal_ext.volume);
+  struct gkyl_array *rate_surf = mkarr(cdim, s.plocal_ext.volume);
+  struct gkyl_array *rate_surf_fluid = mkarr(cdim, s.clocal_ext.volume);
   struct gkyl_array *blend = mkarr(cdim, s.clocal_ext.volume);
   struct gkyl_array *rhs = mkarr(8 * np, s.plocal_ext.volume);
   gkyl_array_clear(cflux, 0.0);
@@ -1003,7 +1005,7 @@ test_m1_invariant(int cdim)
   gkyl_array_clear(rhs, 0.0);
   gkyl_dg_pkpm_remap_flux_surf_advance(
     calc_cflux, &s.clocal, &s.clocal_ext, &s.plocal, &s.plocal_ext, s.bvar, fluid, s.u, s.xi,
-    s.theta, s.f, cflux, fluid_flux, cflrate, cflrate_fluid, blend
+    s.theta, s.f, cflux, fluid_flux, rate_surf, rate_surf_fluid, cflrate, cflrate_fluid, blend
   );
   struct gkyl_dg_pkpm_kinetic_conf_inp ainp = {
     .conf_basis = &s.cbasis,
@@ -1162,6 +1164,8 @@ test_m1_invariant(int cdim)
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
   gkyl_array_release(cflrate_fluid);
+  gkyl_array_release(rate_surf);
+  gkyl_array_release(rate_surf_fluid);
   gkyl_array_release(cflux);
   gkyl_array_release(fluid_flux);
   gkyl_array_release(fluid);

@@ -1,5 +1,6 @@
 // Tests of the PKPM configuration-space face flux (dg_pkpm_remap_flux_surf): the HLL flux of the
 // two sides' distributions mapped exactly to the face frame, blended with the label-paired flux.
+#include <float.h>
 #include <math.h>
 #include <stdlib.h>
 
@@ -31,13 +32,14 @@ struct test_setup {
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext;
-  struct gkyl_array *bvar, *fluid, *u, *xi, *theta, *f, *flux, *fluid_flux, *cfl_f, *cfl_fluid,
-    *blend;
+  struct gkyl_array *bvar, *fluid, *u, *xi, *theta, *f, *flux, *fluid_flux, *rate_f, *rate_fluid,
+    *cfl_f, *cfl_fluid, *blend;
   struct gkyl_dg_pkpm_remap_flux_surf *up;
 };
 
+// Setup with a position map in every direction (pmap = NULL: the identity map).
 static void
-setup_cells(struct test_setup *s, int cdim, int nv, double wmax, const int *nx)
+setup_cells_map(struct test_setup *s, int cdim, int nv, double wmax, const int *nx, evalf_t pmap)
 {
   int pdim = cdim + 1;
   s->cdim = cdim;
@@ -64,6 +66,9 @@ setup_cells(struct test_setup *s, int cdim, int nv, double wmax, const int *nx)
   gkyl_create_grid_ranges(&s->cgrid, cghost, &s->clocal_ext, &s->clocal);
   gkyl_create_grid_ranges(&s->pgrid, pghost, &s->plocal_ext, &s->plocal);
   struct gkyl_vlasov_position_map_inp pinp[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < cdim; ++d) {
+    pinp[d].eval_pmap = pmap;
+  }
   s->pos_map =
     gkyl_vlasov_position_map_new(&s->cgrid, &s->clocal, &s->clocal_ext, &s->cbasis, pinp, false);
 
@@ -76,10 +81,14 @@ setup_cells(struct test_setup *s, int cdim, int nv, double wmax, const int *nx)
   s->xi = mkarr(3 * s->nc, cvol);
   s->theta = mkarr(s->nc, cvol);
   s->f = mkarr(8 * s->np, pvol);
+  s->rate_f = mkarr(cdim, pvol);
+  s->rate_fluid = mkarr(cdim, cvol);
   s->cfl_f = mkarr(1, pvol);
   s->cfl_fluid = mkarr(1, cvol);
   s->blend = mkarr(cdim, cvol);
   gkyl_array_clear(s->f, 0.0);
+  gkyl_array_clear(s->rate_f, 0.0);
+  gkyl_array_clear(s->rate_fluid, 0.0);
   gkyl_array_clear(s->cfl_f, 0.0);
   gkyl_array_clear(s->cfl_fluid, 0.0);
 
@@ -102,6 +111,12 @@ setup_cells(struct test_setup *s, int cdim, int nv, double wmax, const int *nx)
 }
 
 static void
+setup_cells(struct test_setup *s, int cdim, int nv, double wmax, const int *nx)
+{
+  setup_cells_map(s, cdim, nv, wmax, nx, NULL);
+}
+
+static void
 setup(struct test_setup *s, int cdim, int nv, double wmax)
 {
   const int nx[3] = {4, 3, 3};
@@ -121,6 +136,8 @@ teardown(struct test_setup *s)
   gkyl_array_release(s->f);
   gkyl_array_release(s->flux);
   gkyl_array_release(s->fluid_flux);
+  gkyl_array_release(s->rate_f);
+  gkyl_array_release(s->rate_fluid);
   gkyl_array_release(s->cfl_f);
   gkyl_array_release(s->cfl_fluid);
   gkyl_array_release(s->blend);
@@ -185,7 +202,8 @@ advance(struct test_setup *s)
 {
   gkyl_dg_pkpm_remap_flux_surf_advance(
     s->up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->fluid, s->u, s->xi,
-    s->theta, s->f, s->flux, s->fluid_flux, s->cfl_f, s->cfl_fluid, s->blend
+    s->theta, s->f, s->flux, s->fluid_flux, s->rate_f, s->rate_fluid, s->cfl_f, s->cfl_fluid,
+    s->blend
   );
 }
 
@@ -880,6 +898,231 @@ test_uniform_pressure(void)
   teardown(&s);
 }
 
+// The time-step rates of configuration cell ix of a 1x setup: the kinetic rate of each of its
+// velocity cells and the fluid rate.
+static void
+get_rates_1x(const struct test_setup *s, int ix, double *rate_kin, double *rate_fluid)
+{
+  for (int k = 0; k < s->nv; ++k) {
+    int pidx[2] = {ix, s->plocal.lower[1] + k};
+    rate_kin[k] =
+      ((const double *)gkyl_array_cfetch(s->cfl_f, gkyl_range_idx(&s->plocal_ext, pidx)))[0];
+  }
+  rate_fluid[0] =
+    ((const double *)gkyl_array_cfetch(s->cfl_fluid, gkyl_range_idx(&s->clocal_ext, &ix)))[0];
+}
+
+// Frame of a cell: density, flow and thermal speed.
+struct rate_frame {
+  double rho, u[3], xi;
+};
+
+// Rates of the cells of a 1x line whose frame is uniform (frame 0), or jumps from frame 0 to
+// frame 1 at the upper face of cell num_lo.
+static void
+rates_of_line(
+  int num_cells, int num_lo, const struct rate_frame *frames, double *rate_kin, double *rate_fluid
+)
+{
+  struct test_setup s;
+  const int nx[3] = {num_cells, 1, 1};
+  setup_cells(&s, 1, 8, 6.0, nx);
+  const double b[3] = {1.0, 0.0, 0.0};
+  for (int ix = 0; ix <= num_cells + 1; ++ix) {
+    const struct rate_frame *fr = ix <= num_lo ? &frames[0] : &frames[1];
+    set_frame(&s, gkyl_range_idx(&s.clocal_ext, &ix), fr->rho, fr->u, fr->xi, b, 1.0);
+  }
+  advance(&s);
+  for (int ix = 1; ix <= num_cells; ++ix) {
+    get_rates_1x(&s, ix, &rate_kin[(ix - 1) * s.nv], &rate_fluid[ix - 1]);
+  }
+  teardown(&s);
+}
+
+// A cell takes, in each direction, the larger of the rates of its two faces: with a jump of the
+// frame at one face of a line, the two cells of that face see its rate, and every other cell the
+// rate of its own uniform frame.
+static void
+test_rate_larger_face(void)
+{
+  enum { NUM_CELLS = 6, NUM_LO = 3, NV = 8 };
+  struct rate_frame frames[2] = {
+    {.rho = 1.0, .u = {0.4, 0.0, 0.0}, .xi = 1.0}, {.rho = 0.5, .u = {-2.6, 0.0, 0.0}, .xi = 0.7}
+  };
+  struct rate_frame frames_lo[2] = {frames[0], frames[0]}, frames_up[2] = {frames[1], frames[1]};
+  double kin_lo[NUM_CELLS * NV], fluid_lo[NUM_CELLS], kin_up[NUM_CELLS * NV], fluid_up[NUM_CELLS];
+  double kin[NUM_CELLS * NV], fluid[NUM_CELLS];
+  rates_of_line(NUM_CELLS, NUM_CELLS + 1, frames_lo, kin_lo, fluid_lo);
+  rates_of_line(NUM_CELLS, NUM_CELLS + 1, frames_up, kin_up, fluid_up);
+  rates_of_line(NUM_CELLS, NUM_LO, frames, kin, fluid);
+
+  bool jump_is_faster = false;
+  for (int ix = 1; ix <= NUM_CELLS; ++ix) {
+    // Cells away from the jump: the rate of the uniform frame on their side.
+    if (ix != NUM_LO && ix != NUM_LO + 1) {
+      const double *kin_ref = ix < NUM_LO ? kin_lo : kin_up;
+      const double *fluid_ref = ix < NUM_LO ? fluid_lo : fluid_up;
+      for (int k = 0; k < NV; ++k) {
+        TEST_CHECK(kin[(ix - 1) * NV + k] == kin_ref[k]);
+        TEST_MSG(
+          "cell %d, velocity cell %d: %g against %g", ix, k, kin[(ix - 1) * NV + k], kin_ref[k]
+        );
+      }
+      TEST_CHECK(fluid[ix - 1] == fluid_ref[0]);
+    }
+  }
+  // The two cells of the jump: max(uniform lower, jump) and max(jump, uniform upper), so the
+  // larger of each with the other side's uniform rate is the same number.
+  for (int k = 0; k < NV; ++k) {
+    double below = kin[(NUM_LO - 1) * NV + k], above = kin[NUM_LO * NV + k];
+    TEST_CHECK(below >= kin_lo[k] && above >= kin_up[k]);
+    TEST_CHECK(fmax(below, kin_up[k]) == fmax(above, kin_lo[k]));
+    TEST_MSG(
+      "velocity cell %d: below %g, above %g (uniform %g, %g)", k, below, above, kin_lo[k], kin_up[k]
+    );
+    jump_is_faster = jump_is_faster || below > kin_lo[k];
+  }
+  TEST_CHECK(fluid[NUM_LO - 1] >= fluid_lo[0] && fluid[NUM_LO] >= fluid_up[0]);
+  TEST_CHECK(fmax(fluid[NUM_LO - 1], fluid_up[0]) == fmax(fluid[NUM_LO], fluid_lo[0]));
+  // The jump face is faster than the uniform faces of the cell below it, so the check above
+  // does test that this cell sees its upper face.
+  TEST_CHECK(jump_is_faster && fluid[NUM_LO - 1] > fluid_lo[0]);
+}
+
+// The rates of a cell do not depend on the range the updater is given: updating the two halves
+// of the domain separately (as two ranks do) gives the rates of updating all of it at once.
+static void
+test_rate_decomposition(int cdim, int split_dir)
+{
+  struct test_setup s;
+  const int nx[3] = {4, 4, 2};
+  setup_cells(&s, cdim, 4, 6.0, nx);
+  double b[3] = {0.6, 0.64, 0.48};
+  if (cdim == 1) {
+    b[0] = 1.0;
+    b[1] = b[2] = 0.0;
+  }
+  // A different frame in every cell (ghost cells included).
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.clocal_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.clocal_ext, iter.idx);
+    double u[3] = {sin(1.7 * loc), 0.5 * cos(0.9 * loc), 0.3 * sin(2.3 * loc + 1.0)};
+    set_frame(&s, loc, 1.0 + 0.5 * sin(0.7 * loc), u, 0.8 + 0.3 * cos(1.3 * loc), b, 1.0);
+  }
+  advance(&s);
+  struct gkyl_array *cfl_f_all = gkyl_array_clone(s.cfl_f);
+  struct gkyl_array *cfl_fluid_all = gkyl_array_clone(s.cfl_fluid);
+
+  gkyl_array_clear(s.cfl_f, 0.0);
+  gkyl_array_clear(s.cfl_fluid, 0.0);
+  int num_lo = nx[split_dir] / 2;
+  for (int half = 0; half < 2; ++half) {
+    int clo[GKYL_MAX_DIM], cup[GKYL_MAX_DIM], plo[GKYL_MAX_DIM], pup[GKYL_MAX_DIM];
+    for (int d = 0; d < s.pdim; ++d) {
+      plo[d] = s.plocal.lower[d];
+      pup[d] = s.plocal.upper[d];
+    }
+    plo[split_dir] = half == 0 ? 1 : num_lo + 1;
+    pup[split_dir] = half == 0 ? num_lo : nx[split_dir];
+    for (int d = 0; d < cdim; ++d) {
+      clo[d] = plo[d];
+      cup[d] = pup[d];
+    }
+    struct gkyl_range crange, prange;
+    gkyl_sub_range_init(&crange, &s.clocal, clo, cup);
+    gkyl_sub_range_init(&prange, &s.plocal, plo, pup);
+    gkyl_dg_pkpm_remap_flux_surf_advance(
+      s.up, &crange, &s.clocal_ext, &prange, &s.plocal_ext, s.bvar, s.fluid, s.u, s.xi, s.theta,
+      s.f, s.flux, s.fluid_flux, s.rate_f, s.rate_fluid, s.cfl_f, s.cfl_fluid, s.blend
+    );
+  }
+
+  gkyl_range_iter_init(&iter, &s.plocal);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.plocal_ext, iter.idx);
+    double all = ((const double *)gkyl_array_cfetch(cfl_f_all, loc))[0];
+    double halves = ((const double *)gkyl_array_cfetch(s.cfl_f, loc))[0];
+    TEST_CHECK(all == halves && all > 0.0);
+    TEST_MSG("kinetic rate of phase cell %ld: %.17g at once, %.17g in halves", loc, all, halves);
+  }
+  gkyl_range_iter_init(&iter, &s.clocal);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.clocal_ext, iter.idx);
+    double all = ((const double *)gkyl_array_cfetch(cfl_fluid_all, loc))[0];
+    double halves = ((const double *)gkyl_array_cfetch(s.cfl_fluid, loc))[0];
+    TEST_CHECK(all == halves && all > 0.0);
+    TEST_MSG("fluid rate of cell %ld: %.17g at once, %.17g in halves", loc, all, halves);
+  }
+  gkyl_array_release(cfl_f_all);
+  gkyl_array_release(cfl_fluid_all);
+  teardown(&s);
+}
+
+static void
+test_rate_decomposition_all(void)
+{
+  test_rate_decomposition(1, 0);
+  test_rate_decomposition(2, 0);
+  test_rate_decomposition(2, 1);
+  test_rate_decomposition(3, 2);
+}
+
+static void
+pmap_quadratic(double t, const double *xn, double *fout, void *ctx)
+{
+  fout[0] = xn[0] + 0.3 * xn[0] * xn[0];
+}
+
+// On a position map the rate of a face takes the narrower of its two cells: with a uniform frame
+// (every face has the same speeds) the rate of a cell is that of the identity map over the
+// smallest Jacobian of the cell and its two neighbors (a ghost cell has that of its skin cell).
+static void
+test_rate_narrower_cell(void)
+{
+  enum { NUM_CELLS = 6, NV = 8 };
+  const int nx[3] = {NUM_CELLS, 1, 1};
+  const double u[3] = {0.4, 0.0, 0.0}, b[3] = {1.0, 0.0, 0.0};
+  double kin_identity[NV], fluid_identity[1];
+  struct test_setup s;
+  setup_cells(&s, 1, NV, 6.0, nx);
+  set_uniform_frame(&s, 1.0, u, 1.0, b, 1.0);
+  advance(&s);
+  get_rates_1x(&s, 1, kin_identity, fluid_identity);
+  teardown(&s);
+
+  setup_cells_map(&s, 1, NV, 6.0, nx, pmap_quadratic);
+  set_uniform_frame(&s, 1.0, u, 1.0, b, 1.0);
+  advance(&s);
+  for (int ix = 1; ix <= NUM_CELLS; ++ix) {
+    double jacob_min = DBL_MAX;
+    for (int j = ix - 1; j <= ix + 1; ++j) {
+      const double *jacob =
+        gkyl_array_cfetch(s.pos_map->jacob_pos, gkyl_range_idx(&s.clocal_ext, &j));
+      jacob_min = fmin(jacob_min, jacob[0]);
+    }
+    double kin[NV], fluid[1];
+    get_rates_1x(&s, ix, kin, fluid);
+    for (int k = 0; k < NV; ++k) {
+      TEST_CHECK(gkyl_compare(kin[k], kin_identity[k] / jacob_min, 1e-14));
+      TEST_MSG(
+        "cell %d, velocity cell %d: %g against %g", ix, k, kin[k], kin_identity[k] / jacob_min
+      );
+    }
+    TEST_CHECK(gkyl_compare(fluid[0], fluid_identity[0] / jacob_min, 1e-14));
+  }
+  // The map is not uniform, so the check above distinguishes the cells.
+  const int first = 1, last = NUM_CELLS;
+  double jacob_first =
+    ((const double *)gkyl_array_cfetch(s.pos_map->jacob_pos, gkyl_range_idx(&s.clocal_ext, &first))
+    )[0];
+  double jacob_last =
+    ((const double *)gkyl_array_cfetch(s.pos_map->jacob_pos, gkyl_range_idx(&s.clocal_ext, &last))
+    )[0];
+  TEST_CHECK(jacob_last > 2.0 * jacob_first);
+  teardown(&s);
+}
+
 TEST_LIST = {
   {"test_identity_1x", test_identity_1x},
   {"test_identity_2x", test_identity_2x},
@@ -891,5 +1134,8 @@ TEST_LIST = {
   {"test_disjoint_beams", test_disjoint_beams},
   {"test_axis_all", test_axis_all},
   {"test_uniform_pressure", test_uniform_pressure},
+  {"test_rate_larger_face", test_rate_larger_face},
+  {"test_rate_decomposition", test_rate_decomposition_all},
+  {"test_rate_narrower_cell", test_rate_narrower_cell},
   {NULL, NULL}
 };

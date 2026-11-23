@@ -19,7 +19,7 @@
 -- 0.1896 over t = 20-65 (both species PKPM: 0.1895; kinetic electrons with the same ion fluid:
 -- 0.1947). It peaks at 3.4e-3 at t = 72.3 (both PKPM: 3.2e-3 at t = 72.3) and is 1.8e-3 at t = 80.
 -- Electron and ion number are conserved to 1e-12. The total energy (field and the fluid energies of
--- both species from the histories) changes by 7e-14 of itself up to t = 40 and by 2e-13 up to t =
+-- both species from the histories) changes by 7e-14 of itself up to t = 40 and by 5e-13 up to t =
 -- 80. The mean of E_x is at round-off (below 1e-15) at t = 80, where the largest cell average of
 -- E_x is 0.083.
 
