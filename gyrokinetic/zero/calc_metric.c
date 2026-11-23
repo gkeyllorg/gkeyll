@@ -6,6 +6,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
 
+#include <float.h>
+
 gkyl_calc_metric *
 gkyl_calc_metric_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
@@ -43,6 +45,20 @@ calc_metric(double dxdz[3][3], int i, int j)
     sum += dxdz[k][i - 1] * dxdz[k][j - 1];
   }
   return sum;
+}
+
+static inline double
+calc_bimpactangle(double g33, double dual3)
+{
+  double arg = 1.0 / (sqrt(g33) * dual3);
+  // The exact metric gives |arg| <= 1; preserve invalid metrics beyond roundoff.
+  const double roundoff = 64.0 * DBL_EPSILON;
+  if (arg > 1.0 && arg <= 1.0 + roundoff) {
+    arg = 1.0;
+  } else if (arg < -1.0 && arg >= -1.0 - roundoff) {
+    arg = -1.0;
+  }
+  return asin(arg);
 }
 
 // Calculates e^1 = e_2 x e_3 /J
@@ -980,7 +996,7 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = calc_bimpactangle(gFld_n[5], norm3);
       }
     }
   }
@@ -1991,6 +2007,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   // One-sided stencils are used at domain boundaries except in periodic directions.
+  // One-sided stencils are used at domain boundaries except in periodic directions.
   int cidx[3];
 
   for (int ia = gk_geom->nrange_surf[dir].lower[AL_IDX];
@@ -2296,7 +2313,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = calc_bimpactangle(gFld_n[5], norm3);
       }
     }
   }

@@ -143,3 +143,21 @@ void gkyl_cu_memcpy_async(
 
 /** Set memory on device */
 void gkyl_cu_memset(void *data, int val, size_t count);
+
+// Allocators on the host or on the device (NV-GPU), chosen at run time.
+
+#define gkyl_calloc_hodev(use_gpu, num, size) \
+  gkyl_calloc_hodev_(__FILE__, __LINE__, __FUNCTION__, use_gpu, num, size)
+#define gkyl_free_hodev(use_gpu, ptr) \
+  gkyl_free_hodev_(__FILE__, __LINE__, __FUNCTION__, use_gpu, ptr)
+
+/**
+ * Allocate zeroed memory for num elements of the given size, on the device if
+ * use_gpu is true and on the host otherwise. Free it with gkyl_free_hodev.
+ */
+void *gkyl_calloc_hodev_(
+  const char *file, int line, const char *func, bool use_gpu, size_t num, size_t size
+);
+
+/** Free memory allocated with gkyl_calloc_hodev (with the same use_gpu). */
+void gkyl_free_hodev_(const char *file, int line, const char *func, bool use_gpu, void *ptr);

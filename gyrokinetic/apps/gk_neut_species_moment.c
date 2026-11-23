@@ -43,7 +43,7 @@ gk_neut_species_kinetic_moment_calc(
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
 {
-  if (sm->is_maxwellian_moms) {
+  if (sm->type == GKYL_F_MOMENT_LTE) {
     gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, &phase_rng, &conf_rng, fin, sm->marr);
   } else {
     gkyl_mom_calc_advance(sm->mom_calc, &phase_rng, &conf_rng, fin, sm->marr);
@@ -64,7 +64,7 @@ gk_neut_species_kinetic_moment_release(
     gkyl_mom_type_release(sm->mom_type);
     gkyl_mom_calc_release(sm->mom_calc);
   } else {
-    if (sm->is_maxwellian_moms) {
+    if (sm->type == GKYL_F_MOMENT_LTE) {
       gkyl_vlasov_lte_moments_release(sm->vlasov_lte_moms);
     } else {
       gkyl_mom_type_release(sm->mom_type);
@@ -112,7 +112,7 @@ gk_neut_species_kinetic_moment_init(
     }
   } else {
     // Create moment operator.
-    if (sm->is_maxwellian_moms) {
+    if (sm->type == GKYL_F_MOMENT_LTE) {
       struct gkyl_vlasov_lte_moments_inp inp_mom = {
         .phase_grid = &gkns->grid,
         .vel_grid = &gkns->grid_vel,
@@ -211,7 +211,7 @@ gk_neut_species_fluid_moment_calc(
       sm->nf_prim_vars, fin, sm->marr, 0
     );
   } else {
-    if (sm->is_maxwellian_moms) {
+    if (sm->type == GKYL_F_MOMENT_LTE) {
       // Get LTE moments.
       gkyl_gk_neut_fluid_prim_vars_lte_advance(sm->nf_prim_vars, fin, sm->marr, 0);
     } else {
@@ -233,7 +233,7 @@ gk_neut_species_fluid_moment_release(
   if (sm->is_integrated) {
     gkyl_gk_neut_fluid_prim_vars_release(sm->nf_prim_vars);
   } else {
-    if (sm->is_maxwellian_moms) {
+    if (sm->type == GKYL_F_MOMENT_LTE) {
       gkyl_gk_neut_fluid_prim_vars_release(sm->nf_prim_vars);
     } else {
       // Nothing to release.
@@ -268,7 +268,7 @@ gk_neut_species_fluid_moment_init(
       GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY, true, app->use_gpu
     );
   } else {
-    if (sm->is_maxwellian_moms) {
+    if (sm->type == GKYL_F_MOMENT_LTE) {
       // Compute (n, ux, uy, uz, T/m) moments.
       sm->num_mom = 5;
       sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(
@@ -324,7 +324,7 @@ gk_neut_species_moment_init(
 {
   // Initialize neutral species moment object.
   sm->is_integrated = is_integrated;
-  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_LTE;
+  sm->type = mom_type;
 
   if (gkns->is_fluid) {
     gk_neut_species_fluid_moment_init(app, gkns, sm, mom_type, is_integrated);

@@ -521,8 +521,8 @@ create_ctx(void)
   double inv_asp_ratio = r0 / R_axis;
 
   // Grid parameters
-  int Nx = 4; // dx = 2 rho_s.
-  int Ny = 2; // dy = 7.5 rho_s: ky*rho_s up to 0.42; Ny = 32 resolves the linear peak (~0.45).
+  int Nx = 8; // dx = 2 rho_s.
+  int Ny = 4; // dy = 7.5 rho_s: ky*rho_s up to 0.42; Ny = 32 resolves the linear peak (~0.45).
   int Nz = 4;
   int Nvpar = 2;
   int Nmu = 2;
@@ -717,6 +717,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   if (ctx.magnetic_shear) {
@@ -811,6 +813,9 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = parallelism,
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
   };
 
   // Set app output name from the executable name (argv[0]).

@@ -212,7 +212,7 @@ clamp_cflrate_by_omega_max(
 )
 {
   // buffer = min(1, omega_max/cflrate) * time_dilation_scale_const
-  gkyl_array_invert_by_cell(fdmul->buffer, cflrate);
+  gkyl_array_comp_op(fdmul->buffer, GKYL_INV, 1.0, cflrate, 0.0, NULL);
   gkyl_array_scale(fdmul->buffer, omega_max);
   gkyl_array_min_by_cell(fdmul->buffer, fdmul->buffer, 1.0);
   gkyl_array_scale(fdmul->buffer, fdmul->time_dilation_scale_const);
@@ -425,13 +425,10 @@ gk_species_fdot_multiplier_init_comp(
         if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
           fdmul->omega_max_local_cu = (double *)gkyl_cu_malloc(sizeof(double));
-          fdmul->local_max_f = (double *)gkyl_cu_malloc(sizeof(double) * gks->basis.num_basis);
-          fdmul->global_max_f = (double *)gkyl_cu_malloc(sizeof(double) * gks->basis.num_basis);
 #endif
-        } else {
-          fdmul->local_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
-          fdmul->global_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
         }
+        fdmul->local_max_f = gkyl_calloc_hodev(app->use_gpu, gks->basis.num_basis, sizeof(double));
+        fdmul->global_max_f = gkyl_calloc_hodev(app->use_gpu, gks->basis.num_basis, sizeof(double));
 
         enum gkyl_dg_array_mask_types mask_type = GKYL_DG_ARRAY_MASK_NONE;
         switch (fdmul->type) {
@@ -605,13 +602,10 @@ gk_species_fdot_multiplier_release_comp(
     if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
       gkyl_cu_free(fdmul->omega_max_local_cu);
-      gkyl_cu_free(fdmul->local_max_f);
-      gkyl_cu_free(fdmul->global_max_f);
 #endif
-    } else {
-      gkyl_free(fdmul->local_max_f);
-      gkyl_free(fdmul->global_max_f);
     }
+    gkyl_free_hodev(app->use_gpu, fdmul->local_max_f);
+    gkyl_free_hodev(app->use_gpu, fdmul->global_max_f);
   }
 }
 

@@ -254,11 +254,7 @@ test_2x_option(bool use_gpu)
 
   double *red_integ_diag_global;
 
-  if (use_gpu) {
-    red_integ_diag_global = gkyl_cu_malloc(4 * sizeof(double));
-  } else {
-    red_integ_diag_global = gkyl_malloc(4 * sizeof(double));
-  }
+  red_integ_diag_global = gkyl_calloc_hodev(use_gpu, 4, sizeof(double));
 
   // Now calculate the integrated moments
   double avals_global[2 + vdim];
@@ -301,10 +297,8 @@ test_2x_option(bool use_gpu)
   if (use_gpu) {
     gkyl_array_release(m0_dev);
     gkyl_array_release(prim_moms_dev);
-    gkyl_cu_free(red_integ_diag_global);
-  } else {
-    gkyl_free(red_integ_diag_global);
   }
+  gkyl_free_hodev(use_gpu, red_integ_diag_global);
 
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_gk_geometry_release(gk_geom);
