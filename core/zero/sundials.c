@@ -630,7 +630,9 @@ smanynvec_randomize(N_Vector manynvin, double lo, double up)
 struct gkyl_sundials *
 gkyl_sundials_new(bool use_gpu)
 {
-  struct gkyl_sundials *gksun = gkyl_malloc(sizeof(*gksun));
+  // Zero-initialize the object: gkyl_sundials_release reads the method flags
+  // and the dominant eigenvalue estimator, which only some methods set.
+  struct gkyl_sundials *gksun = gkyl_calloc(1, sizeof(*gksun));
 
   gksun->use_gpu = use_gpu;
   gksun->diag_dom_eig = NULL;

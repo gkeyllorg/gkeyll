@@ -240,18 +240,17 @@ dfdt_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
 
   // Distribute state vector as Gkeyll expects.
-  int stage_idx, num_stages;
-  int flag = ARKodeGetStageIndex(app_ctx->arkode_mem_outer, &stage_idx, &num_stages);
-  if (stage_idx == 0) {
-    // Treat this stage different because SUNDIALS passes yin instead of ycur
-    // in stage=0 to avoid a yin->ycur copy at the beginning of every step.
-    N_Vector manynvec_ycur;
+  // In the first evaluation of a step SUNDIALS passes yin (its copy of the
+  // state at the beginning of the step) instead of ycur, to avoid a yin->ycur
+  // copy at the beginning of every step. Use ycur in that case. Any other
+  // vector is used as passed, so that callers other than the integrator (e.g.
+  // the dominant eigenvalue estimator, which passes a perturbed state while
+  // the stage index is still 0) get df/dt of the state they ask for.
+  N_Vector manynvec_yin = 0, manynvec_ycur = 0;
+  int flag = ARKodeGetLastState(app_ctx->arkode_mem_outer, &manynvec_yin);
+  if (flag == ARK_SUCCESS && manynvec_y == manynvec_yin)
     flag = ARKodeGetCurrentState(app_ctx->arkode_mem_outer, &manynvec_ycur);
-    unpack_manynvec_gyrokinetic(fdot_args, manynvec_ycur, manynvec_ydot);
-  }
-  else {
-    unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
-  }
+  unpack_manynvec_gyrokinetic(fdot_args, manynvec_ycur != 0? manynvec_ycur : manynvec_y, manynvec_ydot);
 
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
