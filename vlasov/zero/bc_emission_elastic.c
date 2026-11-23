@@ -5,6 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <assert.h>
 #include <math.h>
 
@@ -124,6 +125,12 @@ void
 gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
   gkyl_emission_elastic_model_release(up->elastic_model);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_copy_func_is_cu_dev(up->reflect_func)) {
+    gkyl_cu_free(up->reflect_func->ctx_on_dev);
+    gkyl_cu_free(up->reflect_func->on_dev);
+  }
+#endif
   gkyl_free(up->reflect_func->ctx);
   gkyl_free(up->reflect_func);
   // Release updater memory.

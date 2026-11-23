@@ -3,6 +3,11 @@
 #include <gkyl_mom_type.h>
 #include <gkyl_rect_grid.h>
 
+typedef struct {
+  double *partial_dev;
+  size_t partial_bytes;
+} gkyl_mom_calc_bcorr_buffer;
+
 struct gkyl_mom_calc_bcorr {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
@@ -11,6 +16,7 @@ struct gkyl_mom_calc_bcorr {
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   int space;
   const struct gkyl_mom_type *momt; // moment type object
+  gkyl_mom_calc_bcorr_buffer *buffer; // Host-owned GPU reduction buffer.
 
   uint32_t flags;
   struct gkyl_mom_calc_bcorr *on_dev;
