@@ -212,13 +212,22 @@ struct gkyl_vlasov_app {
   // temperature sources)
   bool has_implicit_species_ops;
 
-  // Explicit fluid-EM coupling (use_explicit_sources with momentum-carrying fluids and the
-  // Maxwell field): the plasma frequency squared of the coupled fluids in each cell, for the rate
-  // of the source in the time-step of each fluid; computed every stage by src_omega_p_func (a
-  // no-op otherwise, and the arrays are NULL).
-  void (*src_omega_p_func)(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
-  struct gkyl_array *src_omega_p_sq; // per cell: sum over the fluids of (q/m)^2 rho / eps0
-  struct gkyl_array *src_rho_avg; // per cell: average density of a fluid (scratch)
+  // Sources of a Maxwell field that are explicit in the stages (every current and the resistive
+  // layer, without the implicit fluid-EM coupling): the plasma frequency squared of all species in
+  // each cell, for the rate of the source in the time-step of each fluid, and the time-step that
+  // resolves it and the layer, computed every stage by src_dt_func. A static field does not
+  // respond: src_omega_p_sq stays zero, there is no bound and the other members are unset. With
+  // the coupling or another field all are unset.
+  double (*src_dt_func)(
+    gkyl_vlasov_app *app, int stage, const struct gkyl_array *fin[],
+    const struct gkyl_array *fluidin[]
+  );
+  struct gkyl_array *src_omega_p_sq; // per cell: sum over the species of q^2 n / (eps0 m)
+  struct gkyl_array *src_omega_p_sq_kin; // its part of the kinetic species, from the first stage
+  struct gkyl_array *src_rho_avg; // per cell: average density of a species (scratch)
+  double *src_omega_p_sq_max; // maximum of src_omega_p_sq over the local range
+  int src_num_kinetic; // number of charged kinetic species
+  int src_kinetic[GKYL_MAX_SPECIES]; // indices of the charged kinetic species
 
   // PKPM species.
   bool has_pkpm; // some species is a PKPM species
@@ -249,16 +258,25 @@ void vlasov_forward_euler(
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 );
 
-// Explicit fluid-EM coupling: nothing to prepare (assigned to the app's src_omega_p_func).
-void vlasov_src_omega_p_none(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
+// No explicit source of a Maxwell field: no bound on the time-step (assigned to the app's
+// src_dt_func).
+double vlasov_src_dt_none(
+  gkyl_vlasov_app *app, int stage, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[]
+);
 
-// Explicit fluid-EM coupling: the plasma frequency squared of the coupled fluids in each cell,
-// the sum of (q/m)^2 rho / eps0 with the cell averages of the stage densities, into
-// app->src_omega_p_sq (fluid and PKPM species). With the cyclotron frequency of a fluid it bounds
-// the frequencies of its source (see gkyl_dg_calc_fluid_vars_em_source), which enters the
-// time-step of the fluid. Zero for a static field, which does not respond to the currents.
-// Kinetic species are not included.
-void vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
+// Explicit sources of a Maxwell field: the plasma frequency squared of all species in each cell,
+// the sum of q^2 n / (eps0 m) with the cell averages of the densities, into app->src_omega_p_sq.
+// Kinetic species enter with their densities at the start of the step (computed at stage 1),
+// fluid and PKPM species with those of the stage. With the cyclotron frequency of a fluid it
+// bounds the frequencies of its source (see gkyl_dg_calc_fluid_vars_em_source), which enters the
+// time-step of the fluid. Returns the time-step of the field's own sources: the eigenvalues of
+// dE/dt = -sigma E - J/eps0, dJ/dt = eps0 omega_p^2 E are no larger than max(omega_p, sigma), so
+// dt = cfl / max(omega_p, sigma) over the local range (sigma: the resistive layer).
+double vlasov_src_dt_explicit(
+  gkyl_vlasov_app *app, int stage, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[]
+);
 
 // The implicit operators of SSP-RK3 stage 'stage' (1, 2 or 3), applied to the
 // stage state after the explicit part of the stage, its BCs and the stage

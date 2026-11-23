@@ -1,19 +1,32 @@
 #include <gkyl_vlasov_priv.h>
 
-void
-vlasov_src_omega_p_none(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[])
+double
+vlasov_src_dt_none(
+  gkyl_vlasov_app *app, int stage, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[]
+)
 {
+  return DBL_MAX;
 }
 
-void
-vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[])
+double
+vlasov_src_dt_explicit(
+  gkyl_vlasov_app *app, int stage, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[]
+)
 {
   double eps0 = app->field->info.epsilon0;
-  gkyl_array_clear(app->src_omega_p_sq, 0.0);
-  // A static field does not respond to the currents: only the gyration of each fluid remains.
-  if (app->field->info.is_static) {
-    return;
+  // Kinetic species: the densities at the start of the step.
+  if (stage == 1) {
+    gkyl_array_clear(app->src_omega_p_sq_kin, 0.0);
+    for (int i = 0; i < app->src_num_kinetic; ++i) {
+      int idx = app->src_kinetic[i];
+      vm_species_accumulate_omega_p_sq(
+        app, app->species[idx].kinetic, fin[idx], app->src_rho_avg, app->src_omega_p_sq_kin
+      );
+    }
   }
+  gkyl_array_set(app->src_omega_p_sq, 1.0, app->src_omega_p_sq_kin);
   for (int i = 0; i < app->num_species; ++i) {
     struct vm_fluid_species *fs = app->species[i].fluid;
     if (fs && fs->qmem) {
@@ -28,6 +41,16 @@ vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluid
       );
     }
   }
+
+  gkyl_array_reduce_range(app->src_omega_p_sq_max, app->src_omega_p_sq, GKYL_MAX, &app->local);
+  double omega_p_sq_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omega_p_sq_ho, app->src_omega_p_sq_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    omega_p_sq_ho[0] = app->src_omega_p_sq_max[0];
+  }
+  double rate = fmax(sqrt(omega_p_sq_ho[0]), app->field->sigma_max);
+  return rate > 0.0 ? app->cfl / rate : DBL_MAX;
 }
 
 // Take a forward Euler step of the Vlasov-Maxwell system of equations
@@ -92,9 +115,11 @@ vlasov_forward_euler(
     vlasov_species_calc_coupled_vars(app, &app->species[i], fin[i], fluidin[i]);
   }
 
-  // Explicit fluid-EM coupling: the plasma frequency of the stage, for the time-step of the
-  // fluids.
-  app->src_omega_p_func(app, fluidin);
+  // Sources of the Maxwell field that are explicit in the stage (the currents, the resistive
+  // layer): the plasma frequency of the stage for the time-step of the fluids, and the time-step
+  // that resolves it and the layer.
+  double dt1_src = app->src_dt_func(app, stage, fin_field, fluidin);
+  dtmin = fmin(dtmin, dt1_src);
 
   // Compute RHS of the Vlasov/fluid equations.
   for (int i = 0; i < num_species; ++i) {

@@ -4,7 +4,9 @@
 // step suggested. With retake, stage 1 takes the step its CFL bound allows
 // and a smaller bound in stage 2 or 3 restarts from stage 1; without, the
 // function returns at the first stage whose bound is below dt0, with only
-// the stage arrays written and dt_actual < dt0 in the status.
+// the stage arrays written and dt_actual < dt0 in the status. What the
+// species record over the stages (vlasov_species_discard_step) is discarded
+// on a restart, and left to the caller on that return.
 static inline struct gkyl_update_status
 update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
 {
@@ -81,6 +83,9 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
 
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
+            for (int i = 0; i < num_species; ++i) {
+              vlasov_species_discard_step(app, &app->species[i]);
+            }
           } else {
             for (int i = 0; i < num_species; ++i) {
               vlasov_species_combine(
@@ -129,6 +134,9 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
 
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
+            for (int i = 0; i < num_species; ++i) {
+              vlasov_species_discard_step(app, &app->species[i]);
+            }
 
             app->stat.nstage_2_fail += 1;
           } else {

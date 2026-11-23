@@ -101,6 +101,20 @@ vm_species_moment_divide_Jx(
   gkyl_vlasov_position_map_divide_jacobpos_conf(s->pos_map, &app->local, num_coeff_divide, mom, mom);
 }
 
+void
+vm_species_accumulate_omega_p_sq(
+  struct gkyl_vlasov_app *app, struct vm_species *s, const struct gkyl_array *fin,
+  struct gkyl_array *m0_avg, struct gkyl_array *omega_p_sq
+)
+{
+  vm_species_moment_calc(&s->m0, s->local, app->local, fin);
+  vm_species_moment_divide_Jx(app, s, &s->m0, s->m0.marr);
+  gkyl_dg_calc_average_range(&app->basis, 0, m0_avg, 0, s->m0.marr, app->local);
+  gkyl_array_accumulate_range(
+    omega_p_sq, s->charge * s->charge / (app->field->info.epsilon0 * s->mass), m0_avg, &app->local
+  );
+}
+
 // release memory for moment data object
 void
 vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)

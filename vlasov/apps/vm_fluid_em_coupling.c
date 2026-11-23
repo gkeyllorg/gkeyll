@@ -28,16 +28,10 @@ fluid_em_coupling_dt_none(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupli
 static double
 fluid_em_coupling_dt_kinetic(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
 {
-  double eps0 = app->field->info.epsilon0;
   gkyl_array_clear(fl_em->omega_p_sq, 0.0);
   for (int i = 0; i < fl_em->num_kinetic; ++i) {
-    struct vlasov_species *sp = fl_em->kinetic[i];
-    struct vm_species *vms = sp->kinetic;
-    vm_species_moment_calc(&vms->m0, vms->local, app->local, vms->f);
-    gkyl_dg_calc_average_range(&app->basis, 0, fl_em->m0_avg, 0, vms->m0.marr, app->local);
-    gkyl_array_accumulate_range(
-      fl_em->omega_p_sq, sp->charge * sp->charge / (eps0 * sp->mass), fl_em->m0_avg, &app->local
-    );
+    struct vm_species *vms = fl_em->kinetic[i]->kinetic;
+    vm_species_accumulate_omega_p_sq(app, vms, vms->f, fl_em->m0_avg, fl_em->omega_p_sq);
   }
   gkyl_array_reduce_range(fl_em->omega_p_sq_max, fl_em->omega_p_sq, GKYL_MAX, &app->local);
 

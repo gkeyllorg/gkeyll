@@ -449,7 +449,8 @@ struct gkyl_vlasov_fluid_species {
 //   internal energy, inadmissible average]) and the counts per integrated-moment interval
 //   in the dynvec <name>-<species>-positivity-stat.gkyl ([cells scaled for the density, for
 //   the internal energy, cells with an inadmissible average, limiter applications], summed
-//   over ranks).
+//   over ranks). Both hold the limiter of the initial condition and of the steps taken: a step
+//   that is retaken with a smaller time step leaves no count.
 //   diffusion: of the momentum (also on a position map), order 2 (grad^2, the default) or 4.
 // Boundary conditions: each block carries its own and each is applied to its own state.
 // The kinetic BC fills the ghost cells of the distributions: GKYL_SPECIES_COPY, GKYL_SPECIES_ABSORB
@@ -510,7 +511,8 @@ struct gkyl_vlasov_field {
   // m_A c/hbar is the inverse screening length (the photon's Compton wave
   // number), and the field energy diagnostic becomes int |grad phi|^2 + mu_sq phi^2.
   double mu_sq;
-  // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors.
+  // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors. The div(E)
+  // correction is for vacuum fields: it is rejected in a run with charged species.
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
   double K_phi, K_psi; // Geometric source coefficients for electric/magnetic cleaning fields.
 

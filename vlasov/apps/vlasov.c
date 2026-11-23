@@ -473,6 +473,15 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     vlasov_species_init(app, &vm->species[i], &app->species[i]);
   }
   vlasov_check_species_partners(app, vm);
+  // Divergence cleaning of the electric field relaxes div(E) to zero, which holds in vacuum
+  // only: with a charged species div(E) is its charge density.
+  for (int i = 0; app->has_field && i < ntot; ++i) {
+    if (app->field->info.elcErrorSpeedFactor != 0.0 && vm->species[i].charge != 0.0) {
+      gkyl_exit(
+        "gkyl_vlasov_app_new: divergence cleaning of the electric field (elcErrorSpeedFactor) is not supported with charged species."
+      );
+    }
+  }
 
   // Species initialization runs in three phases: kinetic aspects, then the
   // links between them (emission, cross collisions, sources), then the fluid
@@ -503,7 +512,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     }
   }
   app->has_fluid_em_coupling = false;
-  app->src_omega_p_func = vlasov_src_omega_p_none;
+  app->src_dt_func = vlasov_src_dt_none;
   app->src_omega_p_sq = 0;
   app->op_split_dt_prev = 0.0;
   app->op_split_dt_suggested = 0.0;
@@ -520,11 +529,29 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       app->has_fluid_em_coupling = true;
       app->fl_em = vm_fluid_em_coupling_new(app);
       vm_field_set_source_split(app, app->field);
-    } else {
-      // The time-step of the explicit coupling resolves the plasma and cyclotron frequencies.
-      app->src_omega_p_func = vlasov_src_omega_p_explicit;
-      app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    }
+  }
+  // Without the split, the currents of all species and the resistive layer are explicit in the
+  // stages of a Maxwell field: the time-step resolves the plasma frequency (with the cyclotron
+  // frequency in the rate of each coupled fluid) and the rate of the layer. A static field does
+  // not respond to them: the plasma frequency the fluid sources read stays zero.
+  if (app->has_field && app->field->field_id == GKYL_FIELD_E_B && !app->has_fluid_em_coupling) {
+    app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    gkyl_array_clear(app->src_omega_p_sq, 0.0);
+    if (!app->field->info.is_static) {
+      app->src_dt_func = vlasov_src_dt_explicit;
+      app->src_omega_p_sq_kin = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      gkyl_array_clear(app->src_omega_p_sq_kin, 0.0);
       app->src_rho_avg = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      app->src_omega_p_sq_max = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) :
+                                               gkyl_malloc(sizeof(double));
+      app->src_num_kinetic = 0;
+      for (int i = 0; i < ntot; ++i) {
+        if (app->species[i].type == GKYL_SPECIES_VLASOV && app->species[i].charge != 0.0) {
+          app->src_kinetic[app->src_num_kinetic] = i;
+          app->src_num_kinetic += 1;
+        }
+      }
     }
   }
 
@@ -1285,7 +1312,15 @@ gkyl_vlasov_app_release(gkyl_vlasov_app *app)
   }
   if (app->src_omega_p_sq) {
     gkyl_array_release(app->src_omega_p_sq);
+  }
+  if (app->src_dt_func == vlasov_src_dt_explicit) {
+    gkyl_array_release(app->src_omega_p_sq_kin);
     gkyl_array_release(app->src_rho_avg);
+    if (app->use_gpu) {
+      gkyl_cu_free(app->src_omega_p_sq_max);
+    } else {
+      gkyl_free(app->src_omega_p_sq_max);
+    }
   }
 
   gkyl_comm_release(app->comm);

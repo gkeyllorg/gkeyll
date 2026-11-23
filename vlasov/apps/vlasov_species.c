@@ -43,6 +43,12 @@ species_no_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
 }
 
+// Nothing recorded over the stages of a time step (kinetic and fluid species).
+static void
+species_no_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+}
+
 // Empty finish-stage method (kinetic and fluid species).
 static void
 species_no_finish_stage(
@@ -302,6 +308,7 @@ vlasov_kinetic_species_init(
   sp->calc_coupled_vars_func = kinetic_calc_coupled_vars;
   sp->finish_stage_func = species_no_finish_stage;
   sp->complete_step_func = species_no_complete_step;
+  sp->discard_step_func = species_no_discard_step;
   sp->calc_integrated_mom_func = species_calc_integrated_mom_aspects;
   sp->write_func = species_write_aspects;
   sp->write_mom_func = species_write_mom_aspects;
@@ -354,6 +361,7 @@ vlasov_fluid_species_init(
   sp->calc_coupled_vars_func = fluid_calc_coupled_vars;
   sp->finish_stage_func = species_no_finish_stage;
   sp->complete_step_func = species_no_complete_step;
+  sp->discard_step_func = species_no_discard_step;
   sp->calc_integrated_mom_func = species_calc_integrated_mom_aspects;
   sp->write_func = species_write_aspects;
   sp->write_mom_func = species_write_mom_aspects;
@@ -541,6 +549,14 @@ void
 vlasov_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
   sp->complete_step_func(app, sp);
+}
+
+// Discard what the species recorded since its last completed step (empty for
+// kinetic and fluid species).
+void
+vlasov_species_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  sp->discard_step_func(app, sp);
 }
 
 // RK buffer of the kinetic (fluid) aspect selected by the stepper.

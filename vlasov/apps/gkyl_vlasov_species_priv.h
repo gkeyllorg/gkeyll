@@ -843,6 +843,9 @@ struct vm_pkpm_kinetic {
   long
     num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
   double closure_cond_min; // smallest det/det0 of the closure solves over the run
+  // both for the stages of the step in progress, added to the run when the step completes
+  long num_null_closure_step;
+  double closure_cond_min_step;
   bool closure_null_warned; // the velocity-extent warning was printed
   // Diagnostic output: the variables
   // [u (3), T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
@@ -911,9 +914,9 @@ struct vm_pkpm_fluid {
     *pos_io_host; // the record as cell averages of a p=1 field for IO
   long pos_count_since
     [PKPM_POS_NUM_STAT]; // limiter counts [rho, e, avg, applications] since the last integrated-moment call
-  // both records as saved by vm_pkpm_species_positivity_record_save
-  struct gkyl_array *pos_count_saved;
-  long pos_count_since_saved[PKPM_POS_NUM_STAT];
+  // both records for the step in progress, added to the run when the step completes
+  struct gkyl_array *pos_count_step;
+  long pos_count_since_step[PKPM_POS_NUM_STAT];
   gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 
@@ -1377,6 +1380,9 @@ struct vlasov_species {
   // Completion of a time step, once its last stage has been accepted (empty for
   // kinetic and fluid species).
   void (*complete_step_func)(gkyl_vlasov_app *app, struct vlasov_species *sp);
+  // Discard what the species recorded since its last completed step (empty for kinetic
+  // and fluid species).
+  void (*discard_step_func)(gkyl_vlasov_app *app, struct vlasov_species *sp);
   // Diagnostics, output and restart of the species as a whole (those of the aspect
   // of a kinetic or of a fluid species; a PKPM species forms its diagnostics from
   // both aspects and names the files of both).
@@ -1600,6 +1606,16 @@ void vlasov_species_finish_stage(
  * @param sp Species container
  */
 void vlasov_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
+
+/**
+ * Discard what the species recorded since its last completed step: called when a
+ * step is retaken, and after an update that is not part of the evolution (empty
+ * for kinetic and fluid species).
+ *
+ * @param app Vlasov app object
+ * @param sp Species container
+ */
+void vlasov_species_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
 
 /**
  * Combine RK buffers, out = c1*b1 + c2*b2, for each present aspect. The
@@ -1949,6 +1965,21 @@ void vm_species_moment_calc(
 void vm_species_moment_divide_Jx(
   const struct gkyl_vlasov_app *app, const struct vm_species *s, const struct vm_species_moment *sm,
   struct gkyl_array *mom
+);
+
+/**
+ * Accumulate the plasma frequency squared of a kinetic species in each cell of the local range,
+ * q^2 n / (epsilon0 m) with the cell average of its physical density (s->m0 is recomputed).
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param fin Input distribution function array
+ * @param m0_avg Scratch array (one component per cell)
+ * @param omega_p_sq Plasma frequency squared (one component per cell), incremented
+ */
+void vm_species_accumulate_omega_p_sq(
+  struct gkyl_vlasov_app *app, struct vm_species *s, const struct gkyl_array *fin,
+  struct gkyl_array *m0_avg, struct gkyl_array *omega_p_sq
 );
 
 /**
@@ -3611,15 +3642,11 @@ void vm_pkpm_species_bgk_release(
   const gkyl_vlasov_app *app, const struct vm_pkpm_bgk_collisions *bgk
 );
 
-// Save and restore the records of the positivity limiter of a fluid aspect (the per-cell counts
-// and the counts since the last integrated-moment call), around an application of the limiter
-// that is not part of the evolution (the synchronization of the staggered split for output).
-void vm_pkpm_species_positivity_record_save(struct vm_fluid_species *fl);
-void vm_pkpm_species_positivity_record_restore(struct vm_fluid_species *fl);
-
 /**
  * Apply the vertex positivity limiter to a fluid state over the local range and record the
- * cells it acted on and the counts of the current integrated-moment interval.
+ * cells it acted on and its counts for the step in progress. The records of the run take those
+ * of a step when it completes (vm_pkpm_species_complete_step), so a step that is retaken leaves
+ * none.
  *
  * @param app Vlasov app object
  * @param fl Fluid aspect of the species
@@ -3713,12 +3740,22 @@ double vm_pkpm_fluid_species_rhs(
 
 /**
  * Complete a time step of a species: keep the closures of its last stage for the first stage of
- * the next step.
+ * the next step, and add the records of its stages (the positivity limiter, the nulled closure
+ * nodes) to those of the run.
  *
  * @param app Vlasov app object
  * @param sp Species object
  */
 void vm_pkpm_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
+
+/**
+ * Discard the records of the stages since the last completed step (the positivity limiter, the
+ * nulled closure nodes).
+ *
+ * @param app Vlasov app object
+ * @param sp Species object
+ */
+void vm_pkpm_species_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
 
 /**
  * Complete the stage of a species after the forward-Euler accumulate: the gyrophase-mixing

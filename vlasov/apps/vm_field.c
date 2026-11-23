@@ -152,6 +152,22 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .use_gpu = app->use_gpu,
     });
   }
+  // The largest rate of the layer on this rank, for the time-step of its explicit increment.
+  f->sigma_max = 0.0;
+  if (f->has_sigma) {
+    double sigma_red_ho[num_quad_tot];
+    if (app->use_gpu) {
+      double *sigma_red = gkyl_cu_malloc(sizeof(double[num_quad_tot]));
+      gkyl_array_reduce_range(sigma_red, f->sigma, GKYL_MAX, &app->local);
+      gkyl_cu_memcpy(sigma_red_ho, sigma_red, sizeof(double[num_quad_tot]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_free(sigma_red);
+    } else {
+      gkyl_array_reduce_range(sigma_red_ho, f->sigma, GKYL_MAX, &app->local);
+    }
+    for (int q = 0; q < num_quad_tot; ++q) {
+      f->sigma_max = fmax(f->sigma_max, sigma_red_ho[q]);
+    }
+  }
 
   // Initialize external EM fields (always used by implicit fluid sources, so always initialize)
   f->ext_em = mkarr(app->use_gpu, 6 * app->basis.num_basis, app->local_ext.volume);

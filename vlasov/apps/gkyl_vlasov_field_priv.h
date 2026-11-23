@@ -125,6 +125,7 @@ struct vm_field {
       bool has_sigma; // flag to indicate there is a resistive layer
       struct gkyl_array *sigma; // resistive layer, the damping rate of E at the quadrature points
       struct gkyl_dg_calc_resistive_layer *sigma_slvr; // explicit increment of the resistive layer
+      double sigma_max; // largest sigma over the local range (0 without a layer)
 
       gkyl_hyper_dg *slvr; // Maxwell solver
 

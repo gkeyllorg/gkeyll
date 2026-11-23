@@ -17,7 +17,9 @@
 //
 // The positivity limiter of the fluids and the field limiter (limit_em) are applied after the
 // source step of an update, and after that of the synchronization for output, so that the fluids
-// and the field that are written are limited as those that are evolved. Each frame is written
+// and the field that are written are limited as those that are evolved. The species record the
+// limiter of the updates that complete, not that of a repeated source step or of the
+// synchronization. Each frame is written
 // with the staggered fluids and field (the files _restart_<frame>), from which a restart
 // continues the run.
 
@@ -37,6 +39,10 @@ op_split_trial_dt(gkyl_vlasov_app *app, double dt0)
   vlasov_forward_euler(
     app, 1, app->tcurr, dt0, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
   );
+  // the trial step is not part of the evolution
+  for (int i = 0; i < num_species; ++i) {
+    vlasov_species_discard_step(app, &app->species[i]);
+  }
   return st.dt_actual;
 }
 
@@ -84,6 +90,10 @@ vlasov_update_op_split(gkyl_vlasov_app *app, double dt0)
       gkyl_array_copy(fl_em->species[i]->fluid->fluid, fl_em->fluid_stag[i]);
     }
     gkyl_array_copy(app->field->em, fl_em->em_stag);
+    // what the species recorded in the source step and in the stages goes with them
+    for (int i = 0; i < app->num_species; ++i) {
+      vlasov_species_discard_step(app, &app->species[i]);
+    }
     dt0 = st.dt_actual;
   }
 
@@ -105,22 +115,15 @@ vlasov_op_split_sync(gkyl_vlasov_app *app)
     gkyl_array_copy(fl_em->fluid_stag[i], fl_em->species[i]->fluid->fluid);
   }
   gkyl_array_copy(fl_em->em_stag, app->field->em);
-  // the limiter of the synchronization is not part of the evolution: PKPM species keep it out of
-  // their records (the statistics of the dynvec and the per-cell counts of the frames)
-  for (int i = 0; i < fl_em->num_fluid; ++i) {
-    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
-      vm_pkpm_species_positivity_record_save(fl_em->species[i]->fluid);
-    }
-  }
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
   // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
   vm_fluid_em_coupling_update(app, fl_em, app->tcurr - 0.5 * dt_half, dt_half);
   vm_fluid_em_coupling_limit(app, fl_em);
+  // the limiter of the synchronization is not part of the evolution: the species keep it out of
+  // their records
   for (int i = 0; i < fl_em->num_fluid; ++i) {
-    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
-      vm_pkpm_species_positivity_record_restore(fl_em->species[i]->fluid);
-    }
+    vlasov_species_discard_step(app, fl_em->species[i]);
   }
   app->op_split_synced = true;
 }

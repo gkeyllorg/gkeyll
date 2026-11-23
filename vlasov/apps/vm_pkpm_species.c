@@ -97,6 +97,7 @@ static void vm_pkpm_kinetic_species_apply_ic(
 static void vm_pkpm_fluid_species_apply_ic(
   gkyl_vlasov_app *app, struct vm_fluid_species *fl, double t0
 );
+static void vm_pkpm_species_positivity_record_complete(struct vm_fluid_species *fl);
 static void vm_pkpm_kinetic_species_calc_L2(gkyl_vlasov_app *app, struct vm_species *kin, double tm);
 static void vm_pkpm_kinetic_species_write_L2(gkyl_vlasov_app *app, struct vm_species *kin);
 static struct gkyl_app_restart_status vm_pkpm_kinetic_species_from_file(
@@ -242,6 +243,7 @@ vlasov_pkpm_species_init(
   sp->calc_coupled_vars_func = vm_pkpm_species_calc_coupled_vars;
   sp->finish_stage_func = vm_pkpm_species_finish_stage;
   sp->complete_step_func = vm_pkpm_species_complete_step;
+  sp->discard_step_func = vm_pkpm_species_discard_step;
   // diagnostics, output and restart of the species as a whole
   sp->calc_integrated_mom_func = vm_pkpm_species_calc_integrated_mom;
   sp->write_func = vm_pkpm_species_write;
@@ -460,6 +462,8 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
   gkyl_array_clear(s->kinetic->pkpm.theta, 0.0);
   s->kinetic->pkpm.num_null_closure = 0;
   s->kinetic->pkpm.closure_cond_min = 1.0;
+  s->kinetic->pkpm.num_null_closure_step = 0;
+  s->kinetic->pkpm.closure_cond_min_step = 1.0;
   s->kinetic->pkpm.closure_null_warned = false;
 
   // Updaters for the configuration-space variables, one per aspect: the fluid one forms the
@@ -490,10 +494,12 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
     s->kinetic->pkpm.vars_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
   }
   // Record of the positivity limiter: per cell [density scalings, energy scalings,
-  // inadmissible averages] accumulated over the run, and its p=1 image for IO.
+  // inadmissible averages] accumulated over the completed steps of the run and over the step in
+  // progress, and its p=1 image for IO.
   s->fluid->pkpm.pos_count = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT, app->local_ext.volume);
   gkyl_array_clear(s->fluid->pkpm.pos_count, 0.0);
-  s->fluid->pkpm.pos_count_saved = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT, app->local_ext.volume);
+  s->fluid->pkpm.pos_count_step = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT, app->local_ext.volume);
+  gkyl_array_clear(s->fluid->pkpm.pos_count_step, 0.0);
   s->fluid->pkpm.pos_io = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT * nc, app->local_ext.volume);
   s->fluid->pkpm.pos_io_host = s->fluid->pkpm.pos_io;
   if (app->use_gpu) {
@@ -653,6 +659,7 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
   s->fluid->pkpm.is_first_pos_stat_write_call = true;
   for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
     s->fluid->pkpm.pos_count_since[c] = 0;
+    s->fluid->pkpm.pos_count_since_step[c] = 0;
   }
   s->kinetic->is_first_integ_L2_write_call = true;
   s->fluid->is_first_integ_write_call = true;
@@ -1034,12 +1041,14 @@ vm_pkpm_fluid_species_project_ic(gkyl_vlasov_app *app, struct vm_fluid_species *
   }
 }
 
-// Initial conditions of the fluid aspect: the projected state, limited.
+// Initial conditions of the fluid aspect: the projected state, limited. The records of the run
+// start with those of this limiter.
 static void
 vm_pkpm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl, double t0)
 {
   vm_pkpm_fluid_species_project_ic(app, fl, t0);
   vm_pkpm_species_apply_positivity(app, fl, fl->fluid);
+  vm_pkpm_species_positivity_record_complete(fl);
 }
 
 // Kinetic coupling moments [p_par, p_perp, q_par, q_perp, s, r] = [p M2, p M0_G, p xi M3, p xi M1_G,
@@ -1151,22 +1160,25 @@ vm_pkpm_species_calc_pkpm_vars(
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-void
-vm_pkpm_species_positivity_record_save(struct vm_fluid_species *fl)
+// Clear the records of the positivity limiter for the step in progress.
+static void
+vm_pkpm_species_positivity_record_discard(struct vm_fluid_species *fl)
 {
   for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-    fl->pkpm.pos_count_since_saved[c] = fl->pkpm.pos_count_since[c];
+    fl->pkpm.pos_count_since_step[c] = 0;
   }
-  gkyl_array_copy(fl->pkpm.pos_count_saved, fl->pkpm.pos_count);
+  gkyl_array_clear(fl->pkpm.pos_count_step, 0.0);
 }
 
-void
-vm_pkpm_species_positivity_record_restore(struct vm_fluid_species *fl)
+// Add the records of the positivity limiter for the step in progress to those of the run.
+static void
+vm_pkpm_species_positivity_record_complete(struct vm_fluid_species *fl)
 {
   for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-    fl->pkpm.pos_count_since[c] = fl->pkpm.pos_count_since_saved[c];
+    fl->pkpm.pos_count_since[c] += fl->pkpm.pos_count_since_step[c];
   }
-  gkyl_array_copy(fl->pkpm.pos_count, fl->pkpm.pos_count_saved);
+  gkyl_array_accumulate(fl->pkpm.pos_count, 1.0, fl->pkpm.pos_count_step);
+  vm_pkpm_species_positivity_record_discard(fl);
 }
 
 void
@@ -1177,13 +1189,13 @@ vm_pkpm_species_apply_positivity(
   struct timespec tm = gkyl_wall_clock();
   int num_rho = 0, num_e = 0, num_avg = 0;
   gkyl_dg_calc_pkpm_vars_positivity(
-    fl->pkpm.calc_pkpm_vars, &app->local, fl->positivity_eps, fluid, fl->pkpm.pos_count, &num_rho,
-    &num_e, &num_avg
+    fl->pkpm.calc_pkpm_vars, &app->local, fl->positivity_eps, fluid, fl->pkpm.pos_count_step,
+    &num_rho, &num_e, &num_avg
   );
-  fl->pkpm.pos_count_since[0] += num_rho;
-  fl->pkpm.pos_count_since[1] += num_e;
-  fl->pkpm.pos_count_since[2] += num_avg;
-  fl->pkpm.pos_count_since[3] += 1;
+  fl->pkpm.pos_count_since_step[0] += num_rho;
+  fl->pkpm.pos_count_since_step[1] += num_e;
+  fl->pkpm.pos_count_since_step[2] += num_avg;
+  fl->pkpm.pos_count_since_step[3] += 1;
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
@@ -1343,16 +1355,11 @@ vm_pkpm_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
   struct vm_species *kin = sp->kinetic;
   gkyl_array_set_offset(kin->pkpm.closure_step, 1.0, kin->pkpm.alpha_0, 0);
   gkyl_array_set_offset(kin->pkpm.closure_step, 1.0, kin->pkpm.c_h, app->basis.num_basis);
-}
 
-// Record the nulled closure nodes of a stage in the statistics of the species.
-static void
-vm_pkpm_species_kinetic_closure_stat(gkyl_vlasov_app *app, struct vm_species *kin, int num_null)
-{
+  vm_pkpm_species_positivity_record_complete(sp->fluid);
+  long num_null = kin->pkpm.num_null_closure_step;
   kin->pkpm.num_null_closure += num_null;
-  kin->pkpm.closure_cond_min = fmin(
-    kin->pkpm.closure_cond_min, gkyl_dg_calc_pkpm_vars_closure_cond_min(kin->pkpm.calc_pkpm_vars)
-  );
+  kin->pkpm.closure_cond_min = fmin(kin->pkpm.closure_cond_min, kin->pkpm.closure_cond_min_step);
   // A nulled node means the traces at the velocity-domain edges are large enough to make the
   // closure system singular: the constraints drift in that cell. Say so once, with the proxy.
   if (num_null > 0 && !kin->pkpm.closure_null_warned) {
@@ -1361,12 +1368,33 @@ vm_pkpm_species_kinetic_closure_stat(gkyl_vlasov_app *app, struct vm_species *ki
     gkyl_comm_get_rank(app->comm, &rank);
     fprintf(
       stderr,
-      "WARNING (rank %d): species %s at t = %g: the closure solve was nulled at %d nodes (min det/det0 so far %g).\n"
+      "WARNING (rank %d): species %s at t = %g: the closure solve was nulled at %ld nodes in the stages of a step (min det/det0 so far %g).\n"
       "  The normalized distribution is not negligible at the velocity-space boundary; the constraints drift there.\n"
       "  The velocity extents are likely too small for this species.\n",
       rank, kin->name, app->tcurr, num_null, kin->pkpm.closure_cond_min
     );
   }
+  kin->pkpm.num_null_closure_step = 0;
+  kin->pkpm.closure_cond_min_step = 1.0;
+}
+
+void
+vm_pkpm_species_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  vm_pkpm_species_positivity_record_discard(sp->fluid);
+  sp->kinetic->pkpm.num_null_closure_step = 0;
+  sp->kinetic->pkpm.closure_cond_min_step = 1.0;
+}
+
+// Record the nulled closure nodes of a stage in the statistics of the step in progress.
+static void
+vm_pkpm_species_kinetic_closure_stat(struct vm_species *kin, int num_null)
+{
+  kin->pkpm.num_null_closure_step += num_null;
+  kin->pkpm.closure_cond_min_step = fmin(
+    kin->pkpm.closure_cond_min_step,
+    gkyl_dg_calc_pkpm_vars_closure_cond_min(kin->pkpm.calc_pkpm_vars)
+  );
 }
 
 void
@@ -1412,7 +1440,7 @@ vm_pkpm_kinetic_species_rhs(
   // The nodal increment of the LBO, converted and added to rhs.
   vm_pkpm_species_nodal_accumulate(app, kin, rhs);
   int num_null = vm_pkpm_species_kinetic_closure(app, kin, fin, rhs, kin->pkpm.closure_from_step);
-  vm_pkpm_species_kinetic_closure_stat(app, kin, num_null);
+  vm_pkpm_species_kinetic_closure_stat(kin, num_null);
   gkyl_dg_pkpm_vel_flux_surf_advance(
     kin->pkpm.calc_vel_flux, &app->local, &kin->local, kin->pkpm.harm_wnode, kin->pkpm.theta,
     app->field->bvar, kin->pkpm.alpha_0, kin->pkpm.c_h, fin, kin->pkpm.vel_flux_surf
@@ -2329,7 +2357,7 @@ vm_pkpm_species_release(const gkyl_vlasov_app *app, struct vlasov_species *s)
   gkyl_array_release(s->fluid->pkpm.prim_io);
   gkyl_array_release(s->kinetic->pkpm.vars_io);
   gkyl_array_release(s->fluid->pkpm.pos_count);
-  gkyl_array_release(s->fluid->pkpm.pos_count_saved);
+  gkyl_array_release(s->fluid->pkpm.pos_count_step);
   gkyl_array_release(s->fluid->pkpm.pos_io);
   if (app->use_gpu) {
     gkyl_array_release(s->fluid->pkpm.pos_io_host);
