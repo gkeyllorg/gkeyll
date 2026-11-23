@@ -888,6 +888,20 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetPostStepFn", 1);
 }
 
+/**
+ * Right-hand side advanced by the STS integrator: the terms stepped with STS
+ * when another integrator advances the other terms (operator split and
+ * ExtSTS), and all the terms when the STS integrator is used alone.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Right-hand side function of the STS integrator.
+ */
+static ARKRhsFn
+gkyl_sundials_sts_rhs_func(const struct gkyl_sundials *gksun)
+{
+  return (gksun->has_ssprk || gksun->is_extsts)? gksun->dfdt_sts_func : gksun->dfdt_func;
+}
+
 static int
 dom_eig_diag_func(sunrealtype t, N_Vector manynvin, N_Vector fn, sunrealtype* lambdaR,
   sunrealtype* lambdaI, void* user_data, N_Vector temp1,
@@ -912,9 +926,9 @@ dom_eig_diag_func(sunrealtype t, N_Vector manynvin, N_Vector fn, sunrealtype* la
     sundials_check_flag(DEE, "SUNDomEigEstimator_Power", 0);
     gksun->dom_eig_est = DEE;
 
-    // Set the ODE right-hand side function at t for the Jacobian-vector products.
-//    flag = SUNDomEigEstimator_SetRhs(DEE, user_data, gksun->has_ssprk? gksun->dfdt_sts_func : gksun->dfdt_func);
-    flag = SUNDomEigEstimator_SetRhs(DEE, user_data, gksun->has_ssprk? gksun->dfdt_func : gksun->dfdt_sts_func);
+    // Set the ODE right-hand side function at t for the Jacobian-vector
+    // products: the one the STS integrator advances.
+    flag = SUNDomEigEstimator_SetRhs(DEE, user_data, gkyl_sundials_sts_rhs_func(gksun));
     sundials_check_flag(&flag, "SUNDomEigEstimator_SetRhs", 1);
 
     // Set the number of initial preprocessing iterations for the dominant eigenvalue estimator.
@@ -932,9 +946,11 @@ dom_eig_diag_func(sunrealtype t, N_Vector manynvin, N_Vector fn, sunrealtype* la
   }
 
   // Set the linearization vector and time for the Jacobian-vector products.
-  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, manynvin, fn);
-//  N_Vector nvin = N_VGetSubvector_ManyVector(manynvin, 0);
-//  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, nvin);
+  // fn is the right-hand side the STS integrator has stored at manynvin. With
+  // ExtSTS it also contains the forcing of the outer (MRI) method, which is
+  // not part of the right-hand side given to the estimator above. In that
+  // case let the estimator evaluate the right-hand side at manynvin itself.
+  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, manynvin, gksun->is_extsts? NULL : fn);
   sundials_check_flag(&flag, "SUNDomEigEstimator_SetRhsLinearizationPoint", 1);
 
   // Estimate the dominant eigenvalue with power iteration.
@@ -1012,26 +1028,6 @@ gkyl_sundials_sts_dom_eig_init(struct gkyl_sundials *gksun,
   // SUNDIALS' power iteration estimator.
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
-  if (nvin == 0) {
-    fprintf(stderr, "\ngkyl_sundials_stepper_init_sts: Error, gsnv has null N_Vector.\n");
-    assert(false);
-  }
-
-  // Call LSRKStepCreateSTS to initialize the ARK timestepper module and
-  // specify the right-hand side function in dfdt, the initial time
-  // t_curr, and the initial dependent variable vector nvin.
-//  gksun->arkode_mem_sts = LSRKStepCreateSTS(gksun->has_ssprk? gksun->dfdt_sts_func : gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
-  gksun->arkode_mem_sts = LSRKStepCreateSTS(gksun->has_ssprk? gksun->dfdt_func : gksun->dfdt_sts_func, inp->t_curr, nvin, nvin->sunctx);
-  sundials_check_flag((void*)gksun->arkode_mem_sts, "LSRKStepCreateSTS", 0);
-
-  // Set user data (app pointer).
-  inp->app_ctx->arkode_mem_sts = gksun->arkode_mem_sts;
-  flag = ARKodeSetUserData(gksun->arkode_mem_sts, inp->app_ctx);
-  sundials_check_flag(&flag, "ARKodeSetUserData", 1);
-
-  // Specify tolerances.
-  flag = ARKodeSStolerances(gksun->arkode_mem_sts, inp->rel_tol, inp->abs_tol);
-  sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
   // Randomize the input vector (needed by DEE).
   smanynvec_randomize(nvin, 0.5, 1.5);
@@ -1099,7 +1095,7 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   // Call LSRKStepCreateSTS to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
   // t_curr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem_sts = LSRKStepCreateSTS(gksun->has_ssprk? gksun->dfdt_sts_func : gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
+  gksun->arkode_mem_sts = LSRKStepCreateSTS(gkyl_sundials_sts_rhs_func(gksun), inp->t_curr, nvin, nvin->sunctx);
   sundials_check_flag((void*)gksun->arkode_mem_sts, "LSRKStepCreateSTS", 0);
 
   // Set user data (app pointer).
@@ -1294,6 +1290,9 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
 
     gksun->stepper_inp = inp; // Store stepper inputs.
     gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
+    gksun->app_ctx->gksun = gksun; // Store Sundials object in user data.
+    gksun->diag_dom_eig = inp->write_diagnostics ? gkyl_dynvec_new(GKYL_DOUBLE, 2) : NULL;
+    gksun->is_first_diag_write_call = true;
 
     gksun->has_ssprk = false;
     gksun->has_sts = true;
