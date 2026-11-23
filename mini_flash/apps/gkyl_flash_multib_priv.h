@@ -29,8 +29,9 @@ struct gkyl_flash_multib_app {
   struct gkyl_flash_block_geom *block_geom; // Block geometry object.
   struct gkyl_block_topo *topo; // Block topology and connections.
 
-  enum gkyl_flash_multib_decomp_type decomp_type; // Flag for method of decomposing the global grid into blocks and 
-                                                  // assigning ranks per block.
+  enum gkyl_flash_multib_decomp_type
+    decomp_type; // Flag for method of decomposing the global grid into blocks and
+  // assigning ranks per block.
 
   // Objects to handle decomposition of the grid into blocks and assignment of ranks.
   const struct gkyl_rrobin_decomp *round_robin; // Round-robin decomp.
@@ -40,8 +41,10 @@ struct gkyl_flash_multib_app {
   struct gkyl_rect_decomp **decomps_kin, **decomps_flu; // Blockwise grid decomposition.
 
   struct gkyl_mbcc_sr *mbcc_sync_kin; // Connections for phase-space (distribution function) syncing.
-  struct gkyl_mbcc_sr *mbcc_sync_conf; // Connections for configuration-space syncing on the kinetic grid.
-  struct gkyl_mbcc_sr *mbcc_sync_flu; // Connections for configuration-space syncing on the fluid grid.
+  struct gkyl_mbcc_sr
+    *mbcc_sync_conf; // Connections for configuration-space syncing on the kinetic grid.
+  struct gkyl_mbcc_sr
+    *mbcc_sync_flu; // Connections for configuration-space syncing on the fluid grid.
 
   double tcurr;
 
@@ -59,8 +62,9 @@ struct gkyl_flash_multib_app {
  * @param dt0 Suggested timestep.
  * @return struct gkyl_update_status
  */
-struct gkyl_update_status
-gkyl_flash_multib_update_ssp_rk3(struct gkyl_flash_multib_app *app, double dt0);
+struct gkyl_update_status gkyl_flash_multib_update_ssp_rk3(
+  struct gkyl_flash_multib_app *app, double dt0
+);
 
 /**
  * Sync the interpolated fluid momentum density (species fluid_rhou) at
@@ -68,5 +72,36 @@ gkyl_flash_multib_update_ssp_rk3(struct gkyl_flash_multib_app *app, double dt0);
  *
  * @param app Multiblock app object.
  */
-void
-flash_multib_sync_fluid_rhou(struct gkyl_flash_multib_app *app);
+void flash_multib_sync_fluid_rhou(struct gkyl_flash_multib_app *app);
+
+/**
+ * Initialize the distribution functions on all local blocks as Maxwellians
+ * matching the stored moments of each species, then apply physical and
+ * inter-block boundary conditions. Must be called on all ranks.
+ *
+ * @param app Multiblock app object.
+ */
+void flash_multib_app_init_maxwellian_from_stored_moms(gkyl_flash_multib_app *app);
+
+/**
+ * Take a forward Euler step of only the kinetic equation on local block
+ * blockId_local with timestep dt, and apply its physical BCs. No communication.
+ *
+ * @param app Multiblock app object.
+ * @param blockId_local Local block index.
+ * @param dt Timestep.
+ * @return Status with the actual and suggested timesteps of this block.
+ */
+struct gkyl_update_status flash_multib_kinetic_update_block(
+  gkyl_flash_multib_app *app, int blockId_local, double dt
+);
+
+/**
+ * Complete a kinetic step taken block by block: advance the app time by dt
+ * and sync the distribution functions at inter-block boundaries. Must be
+ * called once on all ranks after every local block has been updated.
+ *
+ * @param app Multiblock app object.
+ * @param dt Timestep taken by the blocks.
+ */
+void flash_multib_kinetic_update_sync(gkyl_flash_multib_app *app, double dt);
