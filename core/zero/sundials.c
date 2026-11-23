@@ -8,6 +8,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
+#include <gkyl_util.h>
 #include <string.h> // for memcpy.
 
 #ifdef GKYL_HAVE_SUNDIALS
@@ -417,6 +418,59 @@ snvec_abs_max_norm(N_Vector u)
   return u_abs_max;
 }
 
+static sunrealtype
+snvec_l1_norm_local(N_Vector x)
+{
+  if (NV_CONTENT_GKZ(x)->no_error_norm)
+    return 0.0;
+
+  struct gkyl_array *arr = NV_CONTENT_GKZ(x)->arr;
+  struct gkyl_sundials_reduce_mem *red_mem = NV_CONTENT_GKZ(x)->red_mem;
+  N_Vector abs_x = N_VClone(x);
+  gkyl_array_comp_op_range(NV_CONTENT_GKZ(abs_x)->arr, GKYL_ABS,
+    SUN_RCONST(1.0), arr, SUN_RCONST(1.0), NV_CONTENT_GKZ(abs_x)->arr,
+    NV_CONTENT_GKZ(x)->local_range);
+  gkyl_array_reduce_range(red_mem->red_local, NV_CONTENT_GKZ(abs_x)->arr,
+    GKYL_SUM, NV_CONTENT_GKZ(x)->local_range);
+
+  if (NV_CONTENT_GKZ(x)->use_gpu)
+    gkyl_cu_memcpy(red_mem->red_global_ho, red_mem->red_local,
+      arr->ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(red_mem->red_global_ho, red_mem->red_local, arr->ncomp * sizeof(double));
+
+  sunrealtype norm = 0.0;
+  for (sunindextype comp = 0; comp < arr->ncomp; ++comp)
+    norm += red_mem->red_global_ho[comp];
+
+  N_VDestroy(abs_x);
+  return norm;
+}
+
+static sunrealtype
+snvec_l1_norm(N_Vector x)
+{
+  if (NV_CONTENT_GKZ(x)->no_error_norm)
+    return 0.0;
+
+  snvec_l1_norm_local(x);
+  struct gkyl_array *arr = NV_CONTENT_GKZ(x)->arr;
+  struct gkyl_sundials_reduce_mem *red_mem = NV_CONTENT_GKZ(x)->red_mem;
+  gkyl_comm_allreduce(NV_CONTENT_GKZ(x)->comm, GKYL_DOUBLE, GKYL_SUM,
+    arr->ncomp, red_mem->red_local, red_mem->red_global);
+
+  if (NV_CONTENT_GKZ(x)->use_gpu)
+    gkyl_cu_memcpy(red_mem->red_global_ho, red_mem->red_global,
+      arr->ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(red_mem->red_global_ho, red_mem->red_global, arr->ncomp * sizeof(double));
+
+  sunrealtype norm = 0.0;
+  for (sunindextype comp = 0; comp < arr->ncomp; ++comp)
+    norm += red_mem->red_global_ho[comp];
+  return norm;
+}
+
 /**
  * Compute the WRMS norm of a Nvector x (typically the error in the solution
  * vector) given the weight w. The norm is
@@ -511,6 +565,8 @@ snvec_new_empty(SUNContext sunctx)
   nvec->ops->nvdotprod   = snvec_dot_product;
   nvec->ops->nvmaxnorm   = snvec_abs_max_norm;
   nvec->ops->nvwrmsnorm  = snvec_wrms_norm;
+  nvec->ops->nvl1norm      = snvec_l1_norm;
+  nvec->ops->nvl1normlocal = snvec_l1_norm_local;
 
   // Create content.
   content = 0;
@@ -577,6 +633,8 @@ gkyl_sundials_new(bool use_gpu)
   struct gkyl_sundials *gksun = gkyl_malloc(sizeof(*gksun));
 
   gksun->use_gpu = use_gpu;
+  gksun->diag_dom_eig = NULL;
+  gksun->is_first_diag_write_call = true;
 
   // Create the SUNDIALS context object.
   SUNContext_Create(SUN_COMM_NULL, &gksun->sunctx);
@@ -830,6 +888,72 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetPostStepFn", 1);
 }
 
+static int
+dom_eig_diag_func(sunrealtype t, N_Vector manynvin, N_Vector fn, sunrealtype* lambdaR,
+  sunrealtype* lambdaI, void* user_data, N_Vector temp1,
+  N_Vector temp2, N_Vector temp3)
+{
+  int flag;
+  struct gkyl_sundials_app_ctx *data = (struct gkyl_sundials_app_ctx *)user_data; // Cast user data.
+
+  struct gkyl_sundials *gksun = (struct gkyl_sundials *)data->gksun; // Gkeyll sundials object.
+  SUNContext ctx         = gksun->sunctx; // Sundials context.
+  SUNDomEigEstimator DEE = gksun->dom_eig_est; // DEE object.
+
+  // DEE is initialized to NULL, so on the first dom_eig call we need
+  // to create and initialize this object.
+  if (DEE == NULL)
+  {
+    // Create random initial vector for power iteration.
+    smanynvec_randomize(temp1, 0.5, 1.5);
+
+    // Create power iteration dominant eigenvalue estimator (DEE).
+    DEE = SUNDomEigEstimator_Power(temp1, gksun->stepper_inp->dee_max_iter, gksun->stepper_inp->dee_rel_tol, ctx);
+    sundials_check_flag(DEE, "SUNDomEigEstimator_Power", 0);
+    gksun->dom_eig_est = DEE;
+
+    // Set the ODE right-hand side function at t for the Jacobian-vector products.
+//    flag = SUNDomEigEstimator_SetRhs(DEE, user_data, gksun->has_ssprk? gksun->dfdt_sts_func : gksun->dfdt_func);
+    flag = SUNDomEigEstimator_SetRhs(DEE, user_data, gksun->has_ssprk? gksun->dfdt_func : gksun->dfdt_sts_func);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_SetRhs", 1);
+
+    // Set the number of initial preprocessing iterations for the dominant eigenvalue estimator.
+    flag = SUNDomEigEstimator_SetNumPreprocessIters(DEE, gksun->stepper_inp->dee_num_init_warmups);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_SetNumPreprocessIters", 1);
+
+    flag = SUNDomEigEstimator_Initialize(DEE);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_Initialize", 1);
+  }
+  else
+  {
+    // Set the number of successive preprocessing iterations for the dominant eigenvalue estimator.
+    flag = SUNDomEigEstimator_SetNumPreprocessIters(DEE, gksun->stepper_inp->dee_num_succ_warmups);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_SetNumPreprocessIters", 1);
+  }
+
+  // Set the linearization vector and time for the Jacobian-vector products.
+  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, manynvin, fn);
+//  N_Vector nvin = N_VGetSubvector_ManyVector(manynvin, 0);
+//  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, nvin);
+  sundials_check_flag(&flag, "SUNDomEigEstimator_SetRhsLinearizationPoint", 1);
+
+  // Estimate the dominant eigenvalue with power iteration.
+  flag = SUNDomEigEstimator_Estimate(DEE, lambdaR, lambdaI);
+  sundials_check_flag(&flag, "SUNDomEigEstimator_Estimate", 1);
+
+  if (gksun->stepper_inp->write_diagnostics) {
+    N_Vector nvin = N_VGetSubvector_ManyVector(manynvin, 0);
+    int rank;
+    gkyl_comm_get_rank(NV_CONTENT_GKZ(nvin)->comm, &rank);
+    if (rank == 0) {
+      double lambda[2] = { lambdaR[0], lambdaI[0] };
+      gkyl_dynvec_append(gksun->diag_dom_eig, t, lambda);
+    }
+  }
+
+  return 0; // Return with success.
+}
+
 static void
 gkyl_sundials_sts_set_defaults(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
@@ -888,6 +1012,26 @@ gkyl_sundials_sts_dom_eig_init(struct gkyl_sundials *gksun,
   // SUNDIALS' power iteration estimator.
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
+  if (nvin == 0) {
+    fprintf(stderr, "\ngkyl_sundials_stepper_init_sts: Error, gsnv has null N_Vector.\n");
+    assert(false);
+  }
+
+  // Call LSRKStepCreateSTS to initialize the ARK timestepper module and
+  // specify the right-hand side function in dfdt, the initial time
+  // t_curr, and the initial dependent variable vector nvin.
+//  gksun->arkode_mem_sts = LSRKStepCreateSTS(gksun->has_ssprk? gksun->dfdt_sts_func : gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
+  gksun->arkode_mem_sts = LSRKStepCreateSTS(gksun->has_ssprk? gksun->dfdt_func : gksun->dfdt_sts_func, inp->t_curr, nvin, nvin->sunctx);
+  sundials_check_flag((void*)gksun->arkode_mem_sts, "LSRKStepCreateSTS", 0);
+
+  // Set user data (app pointer).
+  inp->app_ctx->arkode_mem_sts = gksun->arkode_mem_sts;
+  flag = ARKodeSetUserData(gksun->arkode_mem_sts, inp->app_ctx);
+  sundials_check_flag(&flag, "ARKodeSetUserData", 1);
+
+  // Specify tolerances.
+  flag = ARKodeSStolerances(gksun->arkode_mem_sts, inp->rel_tol, inp->abs_tol);
+  sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
   // Randomize the input vector (needed by DEE).
   smanynvec_randomize(nvin, 0.5, 1.5);
@@ -897,7 +1041,13 @@ gkyl_sundials_sts_dom_eig_init(struct gkyl_sundials *gksun,
     flag = LSRKStepSetDomEigFn(arkode_mem_sts, gk_dom_eig_func);
     sundials_check_flag(&flag, "LSRKStepSetDomEigFn", 1);
   }
+  else if (inp->write_diagnostics) {
+    // Use the diagnostic callback to estimate and record the eigenvalue.
+    flag = LSRKStepSetDomEigFn(arkode_mem_sts, dom_eig_diag_func);
+    sundials_check_flag(&flag, "LSRKStepSetDomEigFn (diagnostics)", 1);
+  }
   else {
+    // Use the SUNDIALS estimator directly when no diagnostic callback is needed.
     // Set the initial eigenvector for DEE. Should reset after ICs are set.
     gksun->dom_eig_est = SUNDomEigEstimator_Power(nvin, inp->dee_max_iter,
       inp->dee_rel_tol, nvin->sunctx);
@@ -1176,6 +1326,9 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
 
   gksun->stepper_inp = inp; // Store stepper inputs.
   gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
+  gksun->app_ctx->gksun = gksun; // Store Sundials object in user data.
+  gksun->diag_dom_eig = inp->write_diagnostics ? gkyl_dynvec_new(GKYL_DOUBLE, 2) : NULL;
+  gksun->is_first_diag_write_call = true;
 
   gksun->has_ssprk = gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3) ||
                      gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
@@ -1268,7 +1421,7 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
   if (gksun->has_sts) {
-    if ( !(gksun->stepper_inp->dee_by_gkeyll) ) {
+    if ( !(gksun->stepper_inp->dee_by_gkeyll || gksun->stepper_inp->write_diagnostics) ) {
       // Pass ICs to the eigenvalue estimate.
       flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);
       sundials_check_flag(&flag, "SUNDomEigEstimator_SetInitialGuess", 1);
@@ -1541,9 +1694,41 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
     }
   }
 
+  if (gksun->dom_eig_est != NULL)
+    SUNDomEigEstimator_Destroy(&gksun->dom_eig_est);
+
+  if (gksun->diag_dom_eig != NULL)
+    gkyl_dynvec_release(gksun->diag_dom_eig);
+
   SUNContext_Free(&gksun->sunctx);
 
   gkyl_free(gksun);
+}
+
+int
+gkyl_sundials_write_diagnostics(struct gkyl_sundials *gksun,
+  const char *app_name)
+{
+  if (gksun->diag_dom_eig == NULL)
+    return 0;
+
+  const char *fmt = "%s-sundials_sts_dom_eig.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app_name);
+  char fileNm[sz+1];
+  snprintf(fileNm, sizeof fileNm, fmt, app_name);
+
+  int status = gksun->is_first_diag_write_call
+    ? gkyl_dynvec_write(gksun->diag_dom_eig, fileNm)
+    : gkyl_dynvec_awrite(gksun->diag_dom_eig, fileNm);
+  gksun->is_first_diag_write_call = false;
+  gkyl_dynvec_clear(gksun->diag_dom_eig);
+  return status;
+}
+
+void
+gkyl_sundials_diagnostics_append_on_next_write(struct gkyl_sundials *gksun)
+{
+  gksun->is_first_diag_write_call = false;
 }
 
 struct gkyl_sundials_nvec*
@@ -1742,6 +1927,19 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
 
 void
 gkyl_sundials_release(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+}
+
+int
+gkyl_sundials_write_diagnostics(struct gkyl_sundials *gksun,
+  const char *app_name)
+{
+  return 0;
+}
+
+void
+gkyl_sundials_diagnostics_append_on_next_write(struct gkyl_sundials *gksun)
 {
   // Do nothing.
 }

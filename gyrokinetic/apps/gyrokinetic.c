@@ -1177,6 +1177,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_stepper_inp.t_curr = 0.0,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
     app->sundials_stepper_inp.print_arkode_stats = gk->sundials_stepper.print_arkode_stats,
+    app->sundials_stepper_inp.write_diagnostics = gk->sundials_stepper.write_diagnostics,
     app->sundials_stepper_inp.dee_by_gkeyll = gk->sundials_stepper.dee_by_gkeyll,
     app->sundials_stepper_inp.dee_max_iter = gk->sundials_stepper.dee_max_iter,
     app->sundials_stepper_inp.dee_rel_tol = gk->sundials_stepper.dee_relative_tolerance,
@@ -3350,6 +3351,20 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app)
   app->stat.n_diag_io += 1;
 }
 
+void
+gkyl_gyrokinetic_app_write_sundials_diagnostics(gkyl_gyrokinetic_app* app)
+{
+#ifdef GKYL_HAVE_SUNDIALS
+  if (!app->use_sundials || !app->sundials_stepper_inp.write_diagnostics)
+    return;
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0)
+    gkyl_sundials_write_diagnostics(app->gk_sundials, app->name);
+#endif
+}
+
 static struct gkyl_app_restart_status
 header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
@@ -3646,6 +3661,8 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 
   // Append to existing integrated diagnostics.
   app->is_first_dt_write_call = false;
+  if (app->use_sundials)
+    gkyl_sundials_diagnostics_append_on_next_write(app->gk_sundials);
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
   for (int b=0; b<gk_s->bflux.num_boundaries; ++b)

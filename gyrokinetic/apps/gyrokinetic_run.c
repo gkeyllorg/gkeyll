@@ -136,6 +136,7 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
       gkyl_gyrokinetic_app_write_field_energy(app);
       gkyl_gyrokinetic_app_write_integrated_mom(app);
       gkyl_gyrokinetic_app_write_dt(app);
+      gkyl_gyrokinetic_app_write_sundials_diagnostics(app);
     }
   }
   bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);

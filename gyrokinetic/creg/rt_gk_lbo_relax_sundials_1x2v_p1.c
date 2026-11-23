@@ -242,31 +242,31 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  // Top hat species.
-  struct gkyl_gyrokinetic_species square = {
-    .name = "square",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max },
-    .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = ctx.n0,
-
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalTopHatInit,
-      .ctx_func = &ctx,
-    },
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalTopHatNu,
-      .self_nu_ctx = &ctx,
-    },
-    
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-  };
+//  // Top hat species.
+//  struct gkyl_gyrokinetic_species square = {
+//    .name = "square",
+//    .charge = ctx.charge, .mass = ctx.mass,
+//    .vdim = ctx.vdim,
+//    .lower = { -ctx.vpar_max, 0.0 },
+//    .upper = { ctx.vpar_max, ctx.mu_max },
+//    .cells = { cells_v[0], cells_v[1] },
+//    .polarization_density = ctx.n0,
+//
+//    .projection = {
+//      .proj_id = GKYL_PROJ_FUNC,
+//      .func = evalTopHatInit,
+//      .ctx_func = &ctx,
+//    },
+//
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalTopHatNu,
+//      .self_nu_ctx = &ctx,
+//    },
+//    
+//    .num_diag_moments = 7,
+//    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+//  };
 
   // Bump species.
   struct gkyl_gyrokinetic_species bump = {
@@ -326,7 +326,8 @@ main(int argc, char **argv)
 //      .num_stages = 3,
 //      .max_num_stages = 10,
       .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
-//      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
+      .write_diagnostics = true, // Write dominant-eigenvalue diagnostics.
+      .dee_frequency = 1, // Frequency of DEE calculation in number of steps (default: 10).
     },
 
     .geometry = {
@@ -342,8 +343,10 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 2,
-    .species = { square, bump },
+//    .num_species = 2,
+//    .species = { square, bump },
+    .num_species = 1,
+    .species = { bump },
 
     .field = field,
 

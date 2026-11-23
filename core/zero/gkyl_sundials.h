@@ -70,6 +70,7 @@ struct gkyl_sundials_app_ctx {
   // Objects below are private.
   double dt_local; // CFL constrained time step in local MPI process.
   double dt_local_ssprk, dt_local_sts; // dt_local for SSP-RK and STS components.
+  void *gksun; // gkyl_sundials object.
 };
 
 // Sundials inputs specified in input file.
@@ -87,6 +88,7 @@ struct gkyl_sundials_stepper_inp {
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
   bool print_arkode_stats; // Whether to print ARKODE statistics at the end of the run. 
+  bool write_diagnostics; // Whether to record dominant-eigenvalue diagnostics.
   // Dominant eigenvalue estimator inputs.
   bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
   unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
@@ -296,6 +298,24 @@ bool gkyl_sundials_operator_split_in_method(enum gkyl_sundials_rk_method rk_meth
  */
 void gkyl_sundials_release(struct gkyl_sundials *gksun);
 
+/**
+ * Write and clear accumulated SUNDIALS diagnostics.
+ *
+ * @param gksun SUNDIALS object.
+ * @param app_name Name of the application; output is written to
+ *   <app_name>-sundials_sts_dom_eig.gkyl.
+ * @return 0 if succeeded.
+ */
+int gkyl_sundials_write_diagnostics(struct gkyl_sundials *gksun,
+  const char *app_name);
+
+/**
+ * Set the next diagnostics write to append to an existing output file.
+ *
+ * @param gksun SUNDIALS object.
+ */
+void gkyl_sundials_diagnostics_append_on_next_write(struct gkyl_sundials *gksun);
+
 //
 // SUNDIALS NVECTOR methods.
 
@@ -359,4 +379,3 @@ int gkyl_sundials_many_nvec_get_num_subvec(struct gkyl_sundials *gksun,
  * @param gsmanynv ManyNVECTOR to be destroyed.
  */
 void gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv);
-

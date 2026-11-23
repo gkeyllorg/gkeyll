@@ -559,6 +559,7 @@ struct gkyl_sundials_inp {
   int mri_coupling; // ARKODE_MRITableID of the outer ExtSTS method (default: 0 = SUNDIALS default).
   bool fixed_step; // Fixed time step set by the CFL limit of the SSP-RK terms, instead of adaptive steps (default: false; the operator split always uses fixed steps; not available for STS-only methods).
   bool print_arkode_stats; // Whether to print ARKODE statistics at the end of the run (default: false).
+  bool write_diagnostics; // Whether to write dominant-eigenvalue diagnostics (default: false).
   // Dominant eigenvalue estimator (DEE) inputs.
   bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
   unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
@@ -1300,6 +1301,14 @@ gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app* app, double tm, double dt);
  */
 void
 gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
+
+/**
+ * Write SUNDIALS diagnostics accumulated since the previous output.
+ *
+ * @param app App object.
+ */
+void
+gkyl_gyrokinetic_app_write_sundials_diagnostics(gkyl_gyrokinetic_app* app);
 
 /**
  * Read geometry file.
