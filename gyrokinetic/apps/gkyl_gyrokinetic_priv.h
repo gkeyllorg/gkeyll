@@ -5075,6 +5075,18 @@ void gk_neut_species_release(const gkyl_gyrokinetic_app *app, const struct gk_ne
 /** gk_field API */
 
 /**
+ * Check whether a field ID selects a Boltzmann electron closure.
+ *
+ * @param id Field solver ID.
+ * @return True for either Boltzmann closure.
+ */
+static inline bool
+gk_field_is_boltzmann(enum gkyl_gkfield_id id)
+{
+  return id == GKYL_GK_FIELD_BOLTZMANN_ZERO_CURRENT || id == GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR;
+}
+
+/**
  * Create new field object.
  *
  * @param gk Input gk data.

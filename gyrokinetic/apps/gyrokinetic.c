@@ -1167,7 +1167,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
   app->omegaH_gf = 1.0 / DBL_MAX;
 
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
+  if (!(gk_field_is_boltzmann(app->field->gkfield_id) || app->field->has_adiabatic_species)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(
@@ -1380,7 +1380,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
   }
 
-  if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+  if (gk_field_is_boltzmann(app->field->gkfield_id)) {
     gk_field_boltzmann_init(app, app->field);
   }
 

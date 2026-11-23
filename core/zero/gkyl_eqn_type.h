@@ -37,8 +37,8 @@ enum gkyl_eqn_type {
 // Identifiers for specific gyrokinetic field object types.
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
-  GKYL_GK_FIELD_BOLTZMANN =
-    1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
+  GKYL_GK_FIELD_BOLTZMANN_ZERO_CURRENT = 1, // Boltzmann electrons, zero combined end current.
+  GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR = 2, // Boltzmann electrons, averaged ambipolar sheath values.
   GKYL_GK_FIELD_EM = 4 // Electromagnetic GK.
 };
 

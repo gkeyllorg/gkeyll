@@ -1322,7 +1322,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
         distf_neut[li_neut + i] = sbapp->neut_species[i].f;
       }
     }
-    //    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    //    if (app->update_field && gk_field_is_boltzmann(app->field->gkfield_id)) {
     //      for (int i=0; i<app->num_species; ++i) {
     //        struct gk_species *s = &app->species[i];
     //

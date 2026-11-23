@@ -348,7 +348,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
 
   // Initialize the field solver
-  if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+  if (gk_field_is_boltzmann(gkf->gkfield_id)) {
     gk_field_fem_new_boltzmann(app, gkf);
   } else {
     if (app->cdim == 1) {

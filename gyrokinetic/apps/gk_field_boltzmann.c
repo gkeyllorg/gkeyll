@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_boltz_pot_0curr.h>
+#include <gkyl_boltz_pot_ambi.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gk_field_priv.h>
@@ -8,7 +9,13 @@
 #include <gkyl_array_dg_reduce.h>
 
 struct gk_field_boltzmann {
-  struct gkyl_boltz_pot_0curr *pot_op; // Boltzmann potential updater.
+  struct gkyl_boltz_pot_0curr *pot_0curr; // Zero-current updater; NULL for the ambipolar model.
+  struct gkyl_boltz_pot_ambi *pot_ambi; // Ambipolar updater; NULL for the zero-current model.
+  struct gkyl_array *nphi_ref_buff; // Upper-end reference buffer for ambipolar averaging.
+  void (*boundary_func)(struct gk_field_boltzmann *, struct gk_field *, int); // Pack one end.
+  void (*reference_func)(struct gk_field_boltzmann *, const struct gkyl_range *); // Set normalization.
+  void (*phi_func)(struct gk_field_boltzmann *, gkyl_gyrokinetic_app *, struct gk_field *); // Recover phi.
+  void (*release_func)(struct gk_field_boltzmann *); // Release the selected updater.
   struct gkyl_array *nphi_ref; // Reference density and potential in the local lower ghost slab.
   int num_ions; // Number of positive kinetic species contributing to the closure.
   int ion_idx[GKYL_MAX_SPECIES]; // Indices of those species in the app.
@@ -27,6 +34,78 @@ struct gk_field_boltzmann {
   struct gkyl_array *m0flux_tot[2]; // Summed outward ion m0 fluxes weighted by q_i/|q_e|.
   struct gkyl_array *end_vals[2]; // Packed surface flux, area factor, density, and wall potential.
 };
+
+static void
+gk_field_boltzmann_boundary_0curr(struct gk_field_boltzmann *boltz, struct gk_field *field, int edge)
+{
+  gkyl_boltz_pot_0curr_boundary(
+    boltz->pot_0curr, edge ? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE, &boltz->skin[edge],
+    boltz->m0flux_tot[edge], gkyl_gk_particle_flux_parallel_area(boltz->m0flux_op[0][edge]),
+    field->rho_c, boltz->wall[edge]->phi, boltz->end_vals[edge]
+  );
+}
+
+static void
+gk_field_boltzmann_reference_0curr(struct gk_field_boltzmann *boltz, const struct gkyl_range *ghost)
+{
+  gkyl_boltz_pot_0curr_reference(
+    boltz->pot_0curr, ghost, boltz->end_vals[0], boltz->end_vals[1], boltz->nphi_ref
+  );
+}
+
+static void
+gk_field_boltzmann_phi_0curr(
+  struct gk_field_boltzmann *boltz, gkyl_gyrokinetic_app *app, struct gk_field *field
+)
+{
+  gkyl_boltz_pot_0curr_phi_calc(
+    boltz->pot_0curr, &app->local, &app->local_ext, field->rho_c, boltz->nphi_ref, field->phi_smooth
+  );
+}
+
+static void
+gk_field_boltzmann_release_0curr(struct gk_field_boltzmann *boltz)
+{
+  gkyl_boltz_pot_0curr_release(boltz->pot_0curr);
+}
+
+static void
+gk_field_boltzmann_boundary_ambi(struct gk_field_boltzmann *boltz, struct gk_field *field, int edge)
+{
+  gkyl_boltz_pot_ambi_boundary(
+    boltz->pot_ambi, edge ? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE, &boltz->skin[edge],
+    boltz->m0flux_tot[edge], gkyl_gk_particle_flux_parallel_area(boltz->m0flux_op[0][edge]),
+    field->rho_c, boltz->wall[edge]->phi, boltz->end_vals[edge]
+  );
+}
+
+static void
+gk_field_boltzmann_reference_ambi(struct gk_field_boltzmann *boltz, const struct gkyl_range *ghost)
+{
+  // Preserve the legacy normalization: average the two densities and potentials separately.
+  gkyl_boltz_pot_ambi_reference(boltz->pot_ambi, ghost, boltz->end_vals[0], boltz->nphi_ref);
+  gkyl_boltz_pot_ambi_reference(boltz->pot_ambi, ghost, boltz->end_vals[1], boltz->nphi_ref_buff);
+  gkyl_array_comp_op_range(
+    boltz->nphi_ref, GKYL_AXPBY, 0.5, boltz->nphi_ref, 0.5, boltz->nphi_ref_buff, ghost
+  );
+}
+
+static void
+gk_field_boltzmann_phi_ambi(
+  struct gk_field_boltzmann *boltz, gkyl_gyrokinetic_app *app, struct gk_field *field
+)
+{
+  gkyl_boltz_pot_ambi_phi_calc(
+    boltz->pot_ambi, &app->local, &app->local_ext, field->rho_c, boltz->nphi_ref, field->phi_smooth
+  );
+}
+
+static void
+gk_field_boltzmann_release_ambi(struct gk_field_boltzmann *boltz)
+{
+  gkyl_boltz_pot_ambi_release(boltz->pot_ambi);
+  gkyl_array_release(boltz->nphi_ref_buff);
+}
 
 const struct gkyl_array *
 gk_field_boltzmann_nphi_ref(const struct gk_field *field)
@@ -169,11 +248,7 @@ gk_field_rhs_boltzmann(
       gk_species_phi_wall_advance(app, wall, tcurr);
 
       // Form end_vals data from the ion losses, density, magnetic incidence, and wall bias.
-      gkyl_boltz_pot_0curr_boundary(
-        boltz->pot_op, edge ? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE, &boltz->skin[edge],
-        boltz->m0flux_tot[edge], gkyl_gk_particle_flux_parallel_area(boltz->m0flux_op[0][edge]),
-        field->rho_c, wall->phi, boltz->end_vals[edge]
-      );
+      boltz->boundary_func(boltz, field, edge);
     }
 
     // Make each end_vals's data available to every rank.
@@ -182,16 +257,11 @@ gk_field_rhs_boltzmann(
     );
   }
 
-  // Balance the combined current at both ends to determine the Boltzmann normalization.
-  gkyl_boltz_pot_0curr_reference(
-    boltz->pot_op, &app->local_lower_ghost[par_dir], boltz->end_vals[0], boltz->end_vals[1],
-    boltz->nphi_ref
-  );
+  // Determine the normalization using the selected closure.
+  boltz->reference_func(boltz, &app->local_lower_ghost[par_dir]);
 
   // Recover the potential from the local density, then enforce parallel continuity.
-  gkyl_boltz_pot_0curr_phi_calc(
-    boltz->pot_op, &app->local, &app->local_ext, field->rho_c, boltz->nphi_ref, field->phi_smooth
-  );
+  boltz->phi_func(boltz, app, field);
 
   gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
 }
@@ -221,7 +291,7 @@ gk_field_boltzmann_release(const gkyl_gyrokinetic_app *app, struct gk_field_bolt
     gkyl_array_release(boltz->m0flux_buff);
   }
   gkyl_array_release(boltz->m0_buff);
-  gkyl_boltz_pot_0curr_release(boltz->pot_op);
+  boltz->release_func(boltz);
   gkyl_array_release(boltz->nphi_ref);
   gkyl_free(boltz);
 }
@@ -363,10 +433,28 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gk
   gkf->rhs_phi_func = gk_field_rhs_boltzmann;
   gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_boltzmann;
 
-  gkf->boltzmann->pot_op = gkyl_boltz_pot_0curr_new(
-    &app->basis, gkf->info.electron_mass, gkf->info.electron_charge, gkf->info.electron_temp,
-    app->use_gpu
-  );
+  // Choose the closure once; both models share the same field preparation.
+  if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN_ZERO_CURRENT) {
+    gkf->boltzmann->pot_0curr = gkyl_boltz_pot_0curr_new(
+      &app->basis, gkf->info.electron_mass, gkf->info.electron_charge, gkf->info.electron_temp,
+      app->use_gpu
+    );
+    gkf->boltzmann->boundary_func = gk_field_boltzmann_boundary_0curr;
+    gkf->boltzmann->reference_func = gk_field_boltzmann_reference_0curr;
+    gkf->boltzmann->phi_func = gk_field_boltzmann_phi_0curr;
+    gkf->boltzmann->release_func = gk_field_boltzmann_release_0curr;
+  } else {
+    gkf->boltzmann->pot_ambi = gkyl_boltz_pot_ambi_new(
+      &app->basis, gkf->info.electron_mass, gkf->info.electron_charge, gkf->info.electron_temp,
+      app->use_gpu
+    );
+    gkf->boltzmann->boundary_func = gk_field_boltzmann_boundary_ambi;
+    gkf->boltzmann->reference_func = gk_field_boltzmann_reference_ambi;
+    gkf->boltzmann->phi_func = gk_field_boltzmann_phi_ambi;
+    gkf->boltzmann->release_func = gk_field_boltzmann_release_ambi;
+    gkf->boltzmann->nphi_ref_buff =
+      mkarr(app->use_gpu, 2 * app->basis.num_basis, app->local_ext.volume);
+  }
 
   gkf->boltzmann->nphi_ref = mkarr(app->use_gpu, 2 * app->basis.num_basis, app->local_ext.volume);
 

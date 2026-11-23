@@ -75,7 +75,8 @@ static const struct gkyl_str_int_pair gk_species_scaling_type[] = {
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   {"Electrostatic", GKYL_GK_FIELD_ES},
-  {"Boltzmann", GKYL_GK_FIELD_BOLTZMANN},
+  {"BoltzmannZeroCurrent", GKYL_GK_FIELD_BOLTZMANN_ZERO_CURRENT},
+  {"BoltzmannAmbipolar", GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR},
   {"Electromagnetic", GKYL_GK_FIELD_EM},
   {0, 0}
 };
