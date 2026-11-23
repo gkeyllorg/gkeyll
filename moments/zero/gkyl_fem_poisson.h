@@ -44,6 +44,14 @@ struct gkyl_fem_poisson *gkyl_fem_poisson_new(
 );
 
 /**
+ * Use SuperLU-managed memory for CPU factorization. Call before the first solve.
+ * This setting has no effect on GPU solves.
+ *
+ * @param up FEM Poisson updater to configure.
+ */
+void gkyl_fem_poisson_set_use_superlu_system_memory(gkyl_fem_poisson *up);
+
+/**
  * Assign the right-side vector with the discontinuous (DG) source field.
  *
  * @param up FEM poisson updater to run.

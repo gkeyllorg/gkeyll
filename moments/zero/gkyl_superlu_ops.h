@@ -21,6 +21,14 @@ typedef struct gkyl_superlu_prob gkyl_superlu_prob;
 struct gkyl_superlu_prob *gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs);
 
 /**
+ * Use SuperLU-managed memory for the factorization instead of the default
+ * caller-supplied work buffer. Call before the first solve.
+ *
+ * @param prob SuperLU problem to configure.
+ */
+void gkyl_superlu_prob_set_use_system_memory(struct gkyl_superlu_prob *prob);
+
+/**
  * Initialize SuperLU matrix A in Ax=B problem from a list of triples.
  *
  * @param prob SuperLu struct holding arrays used in problem.
