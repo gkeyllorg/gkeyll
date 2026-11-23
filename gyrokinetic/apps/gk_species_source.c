@@ -465,7 +465,8 @@ gk_species_source_init(
     src->moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
     for (int m = 0; m < src->num_diag_mom; ++m) {
       gk_species_moment_init(
-        app, gks, &src->moms[m], gks->info.source.diagnostics.diag_moments[m], false
+        app, gks, &src->moms[m], gks->info.source.diagnostics.diag_moments[m],
+        GKYL_F_MOMENT_WEIGHT_NONE, false
       );
     }
 
@@ -543,7 +544,8 @@ gk_species_source_init(
             gks->info.source.projection[k].temp_min;
 
         gk_species_moment_init(
-          app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true
+          app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2,
+          GKYL_F_MOMENT_WEIGHT_NONE, true
         );
 
         // Initialize the infrastructure to compute integrated moments of the boundary fluxes.
