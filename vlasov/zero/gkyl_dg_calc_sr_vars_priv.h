@@ -83,6 +83,9 @@ struct gkyl_dg_calc_sr_vars {
   sr_pressure_t
     sr_pressure; // kernel for computing rest-frame pressure as a velocity moment of distribution function.
 
+  double *pressure_buffer_dev; // Device partial sums for deterministic pressure reduction.
+  size_t pressure_buffer_bytes; // Allocated size of pressure_buffer_dev.
+
   uint32_t flags;
   struct gkyl_dg_calc_sr_vars *on_dev; // pointer to itself or device data.
 };

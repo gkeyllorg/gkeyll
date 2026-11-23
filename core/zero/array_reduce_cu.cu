@@ -2,6 +2,11 @@
 
 #include <gkyl_array_reduce_cu_priv.h>
 
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#endif
+
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
@@ -206,6 +211,7 @@ gkyl_array_reduce_range_min_cu(
   cudaDeviceSynchronize();
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 template <unsigned int BLOCKSIZE>
 __global__ void
 arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
@@ -265,6 +271,64 @@ arraySum_range_blockRedAtomic_cub(
     array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
+#else
+template <bool USE_RANGE> struct array_sum_value {
+  const double *data_dev;
+  size_t ncomp;
+  size_t comp;
+  struct gkyl_range range;
+
+  __host__ __device__ double operator()(long linc) const
+  {
+    if (USE_RANGE) {
+      int idx[GKYL_MAX_DIM];
+      gkyl_sub_range_inv_idx(&range, linc, idx);
+      linc = gkyl_range_idx(&range, idx);
+    }
+    return data_dev[linc * ncomp + comp];
+  }
+};
+
+template <bool USE_RANGE>
+static void
+array_sum_deterministic_cu(
+  double *out_dev, const struct gkyl_array *inp, const struct gkyl_range *range
+)
+{
+  long count = USE_RANGE ? range->volume : inp->size;
+  if (count == 0) {
+    const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+    array_reduce_init_cu_kernel<<<gkyl_int_div_up(inp->ncomp, nthreads), nthreads>>>(
+      out_dev, inp->ncomp, 0.0
+    );
+    cudaDeviceSynchronize();
+    return;
+  }
+
+  typedef thrust::counting_iterator<long> CountingIterator;
+  typedef thrust::transform_iterator<array_sum_value<USE_RANGE>, CountingIterator, double>
+    InputIterator;
+  CountingIterator counting(0);
+  array_sum_value<USE_RANGE> value = {(const double *)inp->data, inp->ncomp, 0, {}};
+  if (USE_RANGE) {
+    value.range = *range;
+  }
+  InputIterator input(counting, value);
+  size_t buffer_bytes = 0;
+  cudaError_t status = cub::DeviceReduce::Sum(nullptr, buffer_bytes, input, out_dev, count);
+  assert(status == cudaSuccess);
+  void *buffer_dev = gkyl_cu_malloc(buffer_bytes);
+  for (size_t comp = 0; comp < inp->ncomp; ++comp) {
+    value.comp = comp;
+    input = InputIterator(counting, value);
+    status = cub::DeviceReduce::Sum(buffer_dev, buffer_bytes, input, out_dev + comp, count);
+    assert(status == cudaSuccess);
+  }
+  // The output may be mapped host memory, and the buffer must outlive the launches.
+  cudaDeviceSynchronize();
+  gkyl_cu_free(buffer_dev);
+}
+#endif
 
 void
 gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
@@ -272,6 +336,9 @@ gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
   if (inp->ncomp == 0) {
     return;
   }
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  array_sum_deterministic_cu<false>(out_d, inp, nullptr);
+#else
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   array_reduce_init_cu_kernel<<<gkyl_int_div_up(inp->ncomp, nthreads), nthreads>>>(
     out_d, inp->ncomp, 0.0
@@ -282,6 +349,7 @@ gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
   }
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
+#endif
 }
 
 void
@@ -292,6 +360,9 @@ gkyl_array_reduce_range_sum_cu(
   if (inp->ncomp == 0) {
     return;
   }
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  array_sum_deterministic_cu<true>(out_d, inp, range);
+#else
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   array_reduce_init_cu_kernel<<<gkyl_int_div_up(inp->ncomp, nthreads), nthreads>>>(
     out_d, inp->ncomp, 0.0
@@ -302,6 +373,7 @@ gkyl_array_reduce_range_sum_cu(
   }
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
+#endif
 }
 
 template <unsigned int BLOCKSIZE>

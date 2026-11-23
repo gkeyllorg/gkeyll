@@ -150,6 +150,9 @@ check_reductions(
   gkyl_array_copy(wgt, wgt_ho);
 
   double result_ho[3];
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  double first_sum[3];
+#endif
   double *result = use_gpu ? (pinned ? gkyl_cu_malloc_host(sizeof(result_ho)) :
                                        gkyl_cu_malloc(sizeof(result_ho))) :
                              result_ho;
@@ -181,6 +184,19 @@ check_reductions(
       }
 
       for (int comp = 0; comp < 3; ++comp) {
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+        if (use_gpu && !weighted && op == GKYL_SUM) {
+          if (rep == 0) {
+            first_sum[comp] = result_ho[comp];
+          } else {
+            TEST_CHECK(memcmp(&result_ho[comp], &first_sum[comp], sizeof(double)) == 0);
+            TEST_MSG(
+              "sum changed on repeat %d, component %d: %.17g vs %.17g", rep, comp, result_ho[comp],
+              first_sum[comp]
+            );
+          }
+        }
+#endif
         // Parallel sum ordering can differ, but extrema/empty identities are exact.
         double target = expected[operation][comp];
         if (operation == 0 || operation == 1 || operation == 3) {
@@ -666,6 +682,58 @@ test_array_reduce_extended_dev(void)
 {
   array_reduce_extended_test(true);
 }
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+/**
+ * Check that multiblock sums of interleaved components and a strided subrange repeat exactly.
+ */
+static void
+test_array_reduce_sum_deterministic_dev(void)
+{
+  struct gkyl_range parent, selection;
+  gkyl_range_init(&parent, 2, (int[]){1, 1}, (int[]){37, 37});
+  gkyl_sub_range_init(&selection, &parent, (int[]){2, 2}, (int[]){36, 36});
+
+  struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, 3, parent.volume);
+  for (long cell = 0; cell < parent.volume; ++cell) {
+    double *value = gkyl_array_fetch(host, cell);
+    for (int comp = 0; comp < 3; ++comp) {
+      value[comp] = ((cell % 17) - 8) * 0.1 / (comp + 1);
+    }
+  }
+  struct gkyl_array *device = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, parent.volume);
+  gkyl_array_copy(device, host);
+  double *result_dev = gkyl_cu_malloc(3 * sizeof(double));
+
+  for (int use_range = 0; use_range < 2; ++use_range) {
+    double expected[3], first[3], result[3];
+    if (use_range) {
+      gkyl_array_reduce_range(expected, host, GKYL_SUM, &selection);
+    } else {
+      gkyl_array_reduce(expected, host, GKYL_SUM);
+    }
+    for (int rep = 0; rep < 5; ++rep) {
+      if (use_range) {
+        gkyl_array_reduce_range(result_dev, device, GKYL_SUM, &selection);
+      } else {
+        gkyl_array_reduce(result_dev, device, GKYL_SUM);
+      }
+      gkyl_cu_memcpy(result, result_dev, sizeof(result), GKYL_CU_MEMCPY_D2H);
+      for (int comp = 0; comp < 3; ++comp) {
+        TEST_CHECK(fabs(result[comp] - expected[comp]) < 1e-11);
+        if (rep == 0) {
+          first[comp] = result[comp];
+        } else {
+          TEST_CHECK(memcmp(&result[comp], &first[comp], sizeof(double)) == 0);
+        }
+      }
+    }
+  }
+
+  gkyl_cu_free(result_dev);
+  gkyl_array_release(device);
+  gkyl_array_release(host);
+}
+#endif
 #ifndef __FAST_MATH__
 /**
  * Run the extreme weighted squared-sum checks on the GPU in strict builds.
@@ -697,6 +765,9 @@ TEST_LIST = {
   {"array_reduce_range_max_timer_32x32x32x32_dev", test_array_reduce_range_max_timer_32x32x32x32_dev
   },
   {"array_reduce_extended_dev", test_array_reduce_extended_dev},
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  {"array_reduce_sum_deterministic_dev", test_array_reduce_sum_deterministic_dev},
+#endif
 #ifndef __FAST_MATH__
   {"array_reduce_weighted_sq_sum_extreme_dev", test_array_reduce_weighted_sq_sum_extreme_dev},
 #endif
