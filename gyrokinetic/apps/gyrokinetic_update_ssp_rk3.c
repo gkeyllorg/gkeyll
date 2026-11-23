@@ -197,6 +197,20 @@ gyrokinetic_post_process_rk_stage_ssprk(gkyl_gyrokinetic_app* app, double tcurr,
 }
 
 void
+gyrokinetic_post_process_stage_extsts(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages)
+{
+  // Operations at the end of an ExtSTS outer stage. Stage 0 is the state at
+  // the start of the step and the last stage is handled at the end of the
+  // step, so stages 1 to num_stages-2 are post-processed: the first of these
+  // like the first SSP-RK stage, the others like intermediate SSP-RK stages.
+  if (stage_idx == 1)
+    gyrokinetic_post_process_rk_stage_initial_ssprk(app, tcurr, dt, fdot_args);
+  else
+    gyrokinetic_post_process_rk_stage_intermediate_ssprk(app, tcurr, dt, fdot_args);
+}
+
+void
 gyrokinetic_post_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr,
   double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
