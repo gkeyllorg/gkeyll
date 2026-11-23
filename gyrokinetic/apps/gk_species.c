@@ -169,10 +169,14 @@ gk_species_phi_wall_init(
 
 void
 gk_species_phi_wall_advance(
-  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+  gkyl_gyrokinetic_app *app, struct gk_species_wall_potential *wall, double tm
 )
 {
-  wall->advance_func(app, wall, tm);
+  if (!wall->has_time || wall->last_time != tm) {
+    wall->advance_func(app, wall, tm);
+    wall->last_time = tm;
+    wall->has_time = true;
+  }
 }
 
 void

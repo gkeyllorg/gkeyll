@@ -167,7 +167,10 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 // Solve the field equation with the adiabatic response, then smooth phi along z and apply the
 // FLR correction.
 static void
-gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_adiab_elc_rhs_phi_2x3x(
+  struct gkyl_gyrokinetic_app *app, struct gk_field *field, double tcurr,
+  const struct gkyl_array *fin[]
+)
 {
   // Solve -div(eps grad_perp phi) + K (phi - <phi>) = rho.
   gkyl_fem_poisson_perp_adiabatic_advance(field->gk_adiab.solver, field->rho_c, field->phi_smooth);

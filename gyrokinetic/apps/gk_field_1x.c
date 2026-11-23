@@ -13,7 +13,10 @@
 #include <time.h>
 
 static void
-gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs_phi_1x(
+  struct gkyl_gyrokinetic_app *app, struct gk_field *field, double tcurr,
+  const struct gkyl_array *fin[]
+)
 {
   // Solve the Poisson equation in 1x with the parallel FEM projection.
   gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);

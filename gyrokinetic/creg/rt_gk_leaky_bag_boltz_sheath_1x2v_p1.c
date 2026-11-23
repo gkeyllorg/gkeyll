@@ -134,8 +134,8 @@ compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
   double sheath_val = field_comp[0] / sqrt(2.) - field_comp[1] * sqrt(3. / 2.);
 
   double analytical_sheath =
-    app_inp->field.electron_temp / app_inp->field.electron_charge *
-    log(2 * sqrt(app_inp->field.electron_temp / app_inp->field.electron_mass) / (app->vti));
+    -app_inp->field.electron_temp / app_inp->field.electron_charge *
+    log(sqrt(app_inp->field.electron_temp / app_inp->field.electron_mass) / (app->vti));
 
   int check = gkyl_compare_double(sheath_val, analytical_sheath, 1e-3);
   if (check != 1) {

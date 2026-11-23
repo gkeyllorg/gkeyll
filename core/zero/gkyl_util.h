@@ -2,8 +2,10 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 // random number generator
@@ -314,7 +316,14 @@ int gkyl_compare_double(double a, double b, double eps);
  * @param value Value to classify.
  * @return True for a finite value; false for NaN or infinity.
  */
-bool gkyl_is_dfinite(double value);
+GKYL_CU_DH static inline bool
+gkyl_is_dfinite(double value)
+{
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof bits);
+  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
+  return exponent != UINT64_C(0x7ff0000000000000);
+}
 
 /**
  * Round a double as if written to an E16.9 field and read back.

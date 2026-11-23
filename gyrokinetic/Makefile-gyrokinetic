@@ -105,7 +105,7 @@ $(REGS): ../${BUILD_DIR}/gyrokinetic/creg/%: creg/%.c $(LLIB) $(SLLIB)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 ifdef USING_NVCC
-../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/ambi_bolt_potential/%.c.o : $(KERNELS_DIR)/ambi_bolt_potential/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/boltz_potential/%.c.o : $(KERNELS_DIR)/boltz_potential/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
@@ -168,6 +168,10 @@ ifdef USING_NVCC
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_collisionless_flux/%.c.o : $(KERNELS_DIR)/gk_collisionless_flux/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_particle_flux_parallel/%.c.o : $(KERNELS_DIR)/gk_particle_flux_parallel/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gk_field_priv.h>
 #include <gkyl_gk_fluid_moments.h>
 
 // The target density includes J. Scale all conserved fields by the density ratio.
@@ -61,8 +62,8 @@ gk_species_scaling_apply_fixed_fraction_fluid(
 
 static void
 copy_lower_z_ghost_to_all_z_conf(
-  gkyl_gyrokinetic_app *app, struct gkyl_array *arr_out, struct gkyl_array *arr_in, int comp_in,
-  struct gkyl_array *buff
+  gkyl_gyrokinetic_app *app, struct gkyl_array *arr_out, const struct gkyl_array *arr_in,
+  int comp_in, struct gkyl_array *buff
 )
 {
   // Copy the component 'comp_in' of the lower ghost cell of 'arr_in' into the
@@ -107,10 +108,9 @@ gk_species_scaling_boltzmann_density(
 
   // Boltzmann density = n_sheath * exp(-q * (phi-phi_sheath)/T ).
   // Copy the sheath potential from the lower ghost cell to the interior cells.
-  int idx_par = app->cdim - 1;
-  int off = 2 * idx_par;
+  const struct gkyl_array *nphi_ref = gk_field_boltzmann_nphi_ref(app->field);
   copy_lower_z_ghost_to_all_z_conf(
-    app, sca->sheath_val, app->field->sheath_vals[off], 1 * app->basis.num_basis, sca->buffer_conf
+    app, sca->sheath_val, nphi_ref, 1 * app->basis.num_basis, sca->buffer_conf
   );
 
   // Compute ( phi-phi_sheath)/(T/m) ).
@@ -128,7 +128,7 @@ gk_species_scaling_boltzmann_density(
 
   // Copy the sheath density from the lower ghost cell to the interior cells.
   copy_lower_z_ghost_to_all_z_conf(
-    app, sca->sheath_val, app->field->sheath_vals[off], 0 * app->basis.num_basis, sca->buffer_conf
+    app, sca->sheath_val, nphi_ref, 0 * app->basis.num_basis, sca->buffer_conf
   );
 
   // Compute n_sheath * exp(-q * (phi-phi_sheath)/T ).

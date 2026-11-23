@@ -55,7 +55,7 @@ gyrokinetic_multib_forward_euler(
   app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
 
   struct timespec wst = gkyl_wall_clock();
-  // Complete update of distribution functions.
+  // Advance distributions and moment integrals with the same forward Euler step.
   double dta = st->dt_actual;
   for (int b = 0; b < app->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -65,14 +65,14 @@ gyrokinetic_multib_forward_euler(
       struct gk_species *gks = &sbapp->species[i];
       gk_species_step_f(gks, fout[li_charged + i], dta, fin[li_charged + i]);
       gk_stepped_moms_step_f(
-        &gks->step_moms, smom_out[li_charged + i], 1.0, smom_in[li_charged + i]
+        &gks->step_moms, smom_out[li_charged + i], dta, smom_in[li_charged + i]
       );
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       struct gk_neut_species *gkns = &sbapp->neut_species[i];
       gk_neut_species_step_f(gkns, fout_neut[li_neut + i], dta, fin_neut[li_neut + i]);
       gk_stepped_moms_step_f(
-        &gkns->step_moms, smom_out_neut[li_neut + i], 1.0, smom_in_neut[li_neut + i]
+        &gkns->step_moms, smom_out_neut[li_neut + i], dta, smom_in_neut[li_neut + i]
       );
     }
   }
@@ -123,6 +123,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             fin[li_charged + i] = gks->f;
             fout[li_charged + i] = gks->f1;
             // Stepped moments.
+            gk_stepped_moms_clear(&gks->step_moms, gks->step_moms.f, 0.0);
             smom_in[li_charged + i] = gks->step_moms.f;
             smom_out[li_charged + i] = gks->step_moms.f1;
           }
@@ -131,6 +132,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             fin_neut[li_neut + i] = gkns->f;
             fout_neut[li_neut + i] = gkns->f1;
             // Stepped moments.
+            gk_stepped_moms_clear(&gkns->step_moms, gkns->step_moms.f, 0.0);
             smom_in_neut[li_neut + i] = gkns->step_moms.f;
             smom_out_neut[li_neut + i] = gkns->step_moms.f1;
           }
@@ -139,35 +141,13 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         gyrokinetic_multib_forward_euler(app, tcurr, dt, fdot_args, &st);
         dt = st.dt_actual;
 
-        // Subtract the old moments from f1 to accumulate only the current
-        // timestep's contribution. Keep the old moments in f for RK-stage retries.
-        struct timespec wst = gkyl_wall_clock();
-        for (int b = 0; b < nblocks_local; ++b) {
-          struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-          int li_charged = b * ns_charged;
-          int li_neut = b * ns_neut;
-          for (int i = 0; i < ns_charged; ++i) {
-            struct gk_species *gks = &sbapp->species[i];
-            gk_stepped_moms_accumulate(
-              &gks->step_moms, smom_out[li_charged + i], -1.0, smom_in[li_charged + i]
-            );
-          }
-          for (int i = 0; i < ns_neut; ++i) {
-            struct gk_neut_species *gkns = &sbapp->neut_species[i];
-            gk_stepped_moms_accumulate(
-              &gkns->step_moms, smom_out_neut[li_neut + i], -1.0, smom_in_neut[li_neut + i]
-            );
-          }
-        }
-        app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
-
         for (int b = 0; b < nblocks_local; ++b) {
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           gyrokinetic_save_old_step_diagnostics(sbapp, dt, &sbapp->fdot_args);
         }
 
         // Compute the fields and apply BCs.
-        gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
+        gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, fout_neut);
 
         state = SSPRK_3_3_STAGE_1;
         break;
@@ -208,7 +188,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               smom_in[li_charged + i] = gks->step_moms.f;
             }
           }
-          gyrokinetic_multib_calc_field(app, tcurr, fin, smom_in);
+          gyrokinetic_multib_calc_field(app, tcurr, fin);
 
           // Collect stats.
           double dt_rel_diff = (dt - st.dt_actual) / st.dt_actual;
@@ -228,8 +208,9 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               gk_species_combine(
                 gks, gks->f1, 3.0 / 4.0, gks->f, 1.0 / 4.0, gks->fnew, &gks->local_ext
               );
-              gk_stepped_moms_set(
-                &gks->step_moms, gks->step_moms.f1, 1.0 / 4.0, gks->step_moms.fnew
+              gk_stepped_moms_combine(
+                &gks->step_moms, gks->step_moms.f1, 3.0 / 4.0, gks->step_moms.f, 1.0 / 4.0,
+                gks->step_moms.fnew
               );
             }
             for (int i = 0; i < ns_neut; ++i) {
@@ -237,8 +218,9 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               gk_neut_species_combine(
                 gkns, gkns->f1, 3.0 / 4.0, gkns->f, 1.0 / 4.0, gkns->fnew, &gkns->local_ext
               );
-              gk_stepped_moms_set(
-                &gkns->step_moms, gkns->step_moms.f1, 1.0 / 4.0, gkns->step_moms.fnew
+              gk_stepped_moms_combine(
+                &gkns->step_moms, gkns->step_moms.f1, 3.0 / 4.0, gkns->step_moms.f, 1.0 / 4.0,
+                gkns->step_moms.fnew
               );
             }
           }
@@ -258,7 +240,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               fout_neut[li_neut + i] = sbapp->neut_species[i].f1;
             }
           }
-          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt / 2, fout, smom_out, fout_neut);
+          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt / 2, fout, fout_neut);
 
           state = SSPRK_3_3_STAGE_2;
         }
@@ -300,7 +282,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               smom_in[li_charged + i] = gks->step_moms.f;
             }
           }
-          gyrokinetic_multib_calc_field(app, tcurr, fin, smom_in);
+          gyrokinetic_multib_calc_field(app, tcurr, fin);
 
           // Collect stats.
           double dt_rel_diff = (dt - st.dt_actual) / st.dt_actual;
@@ -323,8 +305,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
                 gks, gks->f1, 1.0 / 3.0, gks->f, 2.0 / 3.0, gks->fnew, &gks->local_ext
               );
               gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
-              // Update stepped moments.
-              gk_stepped_moms_set(&gks->step_moms, gks->step_moms.f, 2.0 / 3.0, gks->step_moms.fnew);
+              // Step moment integrals with the same RK combination as f.
+              gk_stepped_moms_combine(
+                &gks->step_moms, gks->step_moms.f1, 1.0 / 3.0, gks->step_moms.f, 2.0 / 3.0,
+                gks->step_moms.fnew
+              );
+              gk_stepped_moms_copy(&gks->step_moms, gks->step_moms.f, gks->step_moms.f1);
             }
             for (int i = 0; i < ns_neut; ++i) {
               struct gk_neut_species *gkns = &sbapp->neut_species[i];
@@ -332,10 +318,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
                 gkns, gkns->f1, 1.0 / 3.0, gkns->f, 2.0 / 3.0, gkns->fnew, &gkns->local_ext
               );
               gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
-              // Update stepped moments.
-              gk_stepped_moms_set(
-                &gkns->step_moms, gkns->step_moms.f, 2.0 / 3.0, gkns->step_moms.fnew
+              // Step moment integrals with the same RK combination as f.
+              gk_stepped_moms_combine(
+                &gkns->step_moms, gkns->step_moms.f1, 1.0 / 3.0, gkns->step_moms.f, 2.0 / 3.0,
+                gkns->step_moms.fnew
               );
+              gk_stepped_moms_copy(&gkns->step_moms, gkns->step_moms.f, gkns->step_moms.f1);
             }
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
@@ -360,6 +348,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             }
             for (int i = 0; i < ns_neut; ++i) {
               fout_neut[li_neut + i] = sbapp->neut_species[i].f;
+              smom_out_neut[li_neut + i] = sbapp->neut_species[i].step_moms.f;
             }
           }
 
@@ -367,7 +356,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
           //          gyrokinetic_multib_post_positivity_quasineut(app, fout);
 
           // Compute the fields and apply BCs
-          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
+          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, fout_neut);
 
           for (int b = 0; b < nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -390,6 +379,19 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
 
       case SSPRK_3_3_STAGE_COMPLETE: // can't happen: suppresses warning
         break;
+    }
+  }
+
+  // Publish average rates only after acceptance, leaving integral states intact.
+  for (int b = 0; b < nblocks_local; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+    for (int i = 0; i < ns_charged; ++i) {
+      struct gk_stepped_moms *sm = &sbapp->species[i].step_moms;
+      gk_stepped_moms_set(sm, sm->rate, 1.0 / dt, smom_out[b * ns_charged + i]);
+    }
+    for (int i = 0; i < ns_neut; ++i) {
+      struct gk_stepped_moms *sm = &sbapp->neut_species[i].step_moms;
+      gk_stepped_moms_set(sm, sm->rate, 1.0 / dt, smom_out_neut[b * ns_neut + i]);
     }
   }
 

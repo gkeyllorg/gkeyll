@@ -397,11 +397,13 @@ gk_field_fem_parproj_new(
 // RHS functions for calculations
 
 void
-gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, double tcurr, const struct gkyl_array *fin[]
+)
 {
   // Compute the electrostatic potential.
   struct timespec wst = gkyl_wall_clock();
-  field->rhs_phi_func(app, field); // set inside the initialization function
+  field->rhs_phi_func(app, field, tcurr, fin); // set inside the initialization function
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -445,8 +447,7 @@ gk_field_calc_energy_balance(
 
 void
 gk_field_accumulate_rho_c_poisson(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
-  struct gkyl_array **bflux
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks
 )
 {
   // Gyroaverage the density if needed.
@@ -456,8 +457,7 @@ gk_field_accumulate_rho_c_poisson(
 
 void
 gk_field_accumulate_rho_c(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -466,7 +466,7 @@ gk_field_accumulate_rho_c(
     int i = field->rhoc_species_idx[k];
     struct gk_species *gks = &app->species[i];
     gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin[i]);
-    field->accumulate_rhoc_func(app, field, gks, bflux[i]);
+    field->accumulate_rhoc_func(app, field, gks);
   }
   field->accumulate_rhoc_bg_func(app, field);
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);

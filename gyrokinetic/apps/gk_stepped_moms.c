@@ -10,11 +10,13 @@ gk_stepped_moms_add(
   sm->f = gkyl_realloc(sm->f, sizeof(struct gkyl_array * [sm->num]));
   sm->f1 = gkyl_realloc(sm->f1, sizeof(struct gkyl_array * [sm->num]));
   sm->fnew = gkyl_realloc(sm->fnew, sizeof(struct gkyl_array * [sm->num]));
+  sm->rate = gkyl_realloc(sm->rate, sizeof(struct gkyl_array * [sm->num]));
   sm->range = gkyl_realloc(sm->range, sizeof(const struct gkyl_range * [sm->num]));
 
   sm->f[idx] = gkyl_array_clear(mkarr(use_gpu, ncomp, size), 0.0);
   sm->f1[idx] = gkyl_array_clear(mkarr(use_gpu, ncomp, size), 0.0);
   sm->fnew[idx] = gkyl_array_clear(mkarr(use_gpu, ncomp, size), 0.0);
+  sm->rate[idx] = gkyl_array_clear(mkarr(use_gpu, ncomp, size), 0.0);
   sm->range[idx] = range;
   return idx;
 }
@@ -30,14 +32,24 @@ gk_stepped_moms_append_refs(struct gk_stepped_moms *view, const struct gk_steppe
   view->f = gkyl_realloc(view->f, sizeof(struct gkyl_array * [view->num]));
   view->f1 = gkyl_realloc(view->f1, sizeof(struct gkyl_array * [view->num]));
   view->fnew = gkyl_realloc(view->fnew, sizeof(struct gkyl_array * [view->num]));
+  view->rate = gkyl_realloc(view->rate, sizeof(struct gkyl_array * [view->num]));
   view->range = gkyl_realloc(view->range, sizeof(const struct gkyl_range * [view->num]));
   for (int m = 0; m < owner->num; ++m) {
     view->f[idx + m] = owner->f[m];
     view->f1[idx + m] = owner->f1[m];
     view->fnew[idx + m] = owner->fnew[m];
+    view->rate[idx + m] = owner->rate[m];
     view->range[idx + m] = owner->range[m];
   }
   return idx;
+}
+
+void
+gk_stepped_moms_clear(const struct gk_stepped_moms *sm, struct gkyl_array **fout, double value)
+{
+  for (int i = 0; i < sm->num; i++) {
+    gkyl_array_clear_range(fout[i], value, sm->range[i]);
+  }
 }
 
 void
@@ -102,11 +114,13 @@ gk_stepped_moms_release(const struct gk_stepped_moms *sm)
     gkyl_array_release(sm->f[i]);
     gkyl_array_release(sm->f1[i]);
     gkyl_array_release(sm->fnew[i]);
+    gkyl_array_release(sm->rate[i]);
   }
   if (sm->num > 0) {
     gkyl_free(sm->f);
     gkyl_free(sm->f1);
     gkyl_free(sm->fnew);
+    gkyl_free(sm->rate);
     gkyl_free(sm->range);
   }
 }
@@ -118,6 +132,7 @@ gk_stepped_moms_release_view(const struct gk_stepped_moms *view)
     gkyl_free(view->f);
     gkyl_free(view->f1);
     gkyl_free(view->fnew);
+    gkyl_free(view->rate);
     gkyl_free(view->range);
   }
 }
