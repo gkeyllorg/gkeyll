@@ -222,6 +222,181 @@ test_nI_nu(int cdim, bool use_gpu)
 }
 
 static void
+test_nu(int cdim, bool use_gpu)
+{
+  // Exercise both drag callbacks with distinct scalar arguments and nonuniform
+  // magnetic fields. Compare with direct host kernels, including untouched ghosts.
+  int pdim = cdim + 2, cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM] = {0};
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  for (int d = 0; d < pdim; ++d) {
+    cells[d] = 2;
+    ghost[d] = d < cdim ? 1 : 0;
+    lower[d] = d == cdim ? -1.2 : 0.2;
+    upper[d] = d == cdim ? 1.7 : 1.8;
+  }
+
+  struct gkyl_rect_grid grid, cgrid, vgrid;
+  gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
+  gkyl_rect_grid_init(&cgrid, cdim, lower, upper, cells);
+  gkyl_rect_grid_init(&vgrid, 2, lower + cdim, upper + cdim, cells + cdim);
+
+  struct gkyl_range phase, phase_ext, conf, conf_ext, vel, vel_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &phase_ext, &phase);
+  gkyl_create_grid_ranges(&cgrid, ghost, &conf_ext, &conf);
+  gkyl_create_grid_ranges(&vgrid, (int[]){0, 0}, &vel_ext, &vel);
+
+  struct gkyl_basis cbasis, pbasis;
+  gkyl_cart_modal_serendip(&cbasis, cdim, 1);
+  gkyl_cart_modal_gkhybrid(&pbasis, cdim, 2);
+
+  struct gkyl_gk_geometry_inp geom_in = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .grid = cgrid,
+    .basis = cbasis,
+    .local = conf,
+    .local_ext = conf_ext,
+    .global = conf,
+    .global_ext = conf_ext,
+  };
+  struct gk_geometry *geom = gkyl_gk_geometry_new(NULL, &geom_in, false);
+  if (use_gpu) {
+    struct gk_geometry *geom_dev = gkyl_gk_geometry_new(geom, &geom_in, true);
+    gkyl_gk_geometry_release(geom);
+    geom = geom_dev;
+  }
+
+  struct gkyl_array *bmag = mkarr(false, cbasis.num_basis, conf_ext.volume);
+  for (long cell = 0; cell < conf_ext.volume; ++cell) {
+    double *coeff = gkyl_array_fetch(bmag, cell);
+    coeff[0] = 2.4 + 0.001 * cell;
+    for (int k = 1; k < cbasis.num_basis; ++k) {
+      coeff[k] = 0.01 / k;
+    }
+  }
+  gkyl_array_copy(geom->geo_int.bmag, bmag);
+
+  struct gkyl_velocity_map *map = gkyl_velocity_map_new(
+    (struct gkyl_mapc2p_inp){0}, grid, vgrid, phase, phase_ext, vel, vel_ext, use_gpu
+  );
+
+  struct gkyl_array *vmap = mkarr(false, map->vmap->ncomp, map->vmap->size);
+  struct gkyl_array *vmap_sq = mkarr(false, map->vmap_sq->ncomp, map->vmap_sq->size);
+  gkyl_array_copy(vmap, map->vmap);
+  gkyl_array_copy(vmap_sq, map->vmap_sq);
+
+  struct gkyl_dg_calc_gk_rad_vars *up =
+    gkyl_dg_calc_gk_rad_vars_new(&grid, &cbasis, &pbasis, -1.7, 2.3, geom, map, use_gpu);
+
+  // The 3x drag kernels omit y; density weighting later restores that dimension.
+  int nc = cdim == 3 ? cbasis.num_basis / 2 : cbasis.num_basis;
+  int ncomp[] = {2 * nc, 6 * nc, 3 * nc, 6 * nc};
+  struct gkyl_array *out[4], *expected[4], *actual[4];
+  for (int field = 0; field < 4; ++field) {
+    out[field] = mkarr(use_gpu, ncomp[field], phase_ext.volume);
+    expected[field] = mkarr(false, ncomp[field], phase_ext.volume);
+    actual[field] = mkarr(false, ncomp[field], phase_ext.volume);
+    gkyl_array_clear(expected[field], 0.625);
+    gkyl_array_copy(out[field], expected[field]);
+  }
+
+  for (int repeat = 0; repeat < 2; ++repeat) {
+    double a = 0.41 + 0.2 * repeat;
+
+    gkyl_dg_calc_gk_rad_vars_nu_advance(
+      up, &conf, &phase, a, 1.2, 2.1, 0.7, 1.3, out[0], out[1], out[2], out[3]
+    );
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &phase);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&phase, iter.idx);
+
+      long vloc = gkyl_range_idx(&vel, iter.idx + cdim);
+
+      const double *vm = gkyl_array_cfetch(vmap, vloc);
+      const double *vm_sq = gkyl_array_cfetch(vmap_sq, vloc);
+      const double *bm = gkyl_array_cfetch(bmag, gkyl_range_idx(&conf, iter.idx));
+
+      double *result[4];
+      for (int field = 0; field < 4; ++field) {
+        result[field] = gkyl_array_fetch(expected[field], loc);
+      }
+
+      switch (cdim) {
+        case 1:
+          rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1(
+            vm, vm_sq, -1.7, 2.3, a, 1.2, 2.1, 0.7, 1.3, bm, result[0], result[1]
+          );
+          rad_gyrokinetic_drag_numu_1x2v_ser_p1(
+            vm, vm_sq, -1.7, 2.3, a, 1.2, 2.1, 0.7, 1.3, bm, result[2], result[3]
+          );
+          break;
+        case 2:
+          rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1(
+            vm, vm_sq, -1.7, 2.3, a, 1.2, 2.1, 0.7, 1.3, bm, result[0], result[1]
+          );
+          rad_gyrokinetic_drag_numu_2x2v_ser_p1(
+            vm, vm_sq, -1.7, 2.3, a, 1.2, 2.1, 0.7, 1.3, bm, result[2], result[3]
+          );
+          break;
+        case 3:
+          rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1(
+            vm, vm_sq, -1.7, 2.3, a, 1.2, 2.1, 0.7, 1.3, bm, result[0], result[1]
+          );
+          rad_gyrokinetic_drag_numu_3x2v_ser_p1(
+            vm, vm_sq, -1.7, 2.3, a, 1.2, 2.1, 0.7, 1.3, bm, result[2], result[3]
+          );
+          break;
+      }
+      TEST_CHECK(isfinite(result[0][0]) && fabs(result[0][0]) > 1e-10);
+      TEST_CHECK(isfinite(result[2][0]) && fabs(result[2][0]) > 1e-10);
+    }
+
+    for (int field = 0; field < 4; ++field) {
+      gkyl_array_copy(actual[field], out[field]);
+
+      for (long cell = 0; cell < phase_ext.volume; ++cell) {
+        const double *want = gkyl_array_cfetch(expected[field], cell);
+        const double *got = gkyl_array_cfetch(actual[field], cell);
+        // Small modal coefficients result from cancellation; scale the error by
+        // the largest coefficient in this cell rather than by each component.
+        double scale = 0.0;
+        for (int k = 0; k < ncomp[field]; ++k) {
+          scale = fmax(scale, fabs(want[k]));
+        }
+        for (int k = 0; k < ncomp[field]; ++k) {
+          TEST_CHECK(fabs(got[k] - want[k]) <= 1e-12 * scale);
+          TEST_MSG(
+            "cdim=%d GPU=%d repeat=%d field=%d cell=%ld comp=%d: %.17g != %.17g", cdim, use_gpu,
+            repeat, field, cell, k, got[k], want[k]
+          );
+        }
+      }
+    }
+  }
+
+  for (int field = 0; field < 4; ++field) {
+    gkyl_array_release(out[field]);
+    gkyl_array_release(expected[field]);
+    gkyl_array_release(actual[field]);
+  }
+  gkyl_dg_calc_gk_rad_vars_release(up);
+  gkyl_array_release(vmap);
+  gkyl_array_release(vmap_sq);
+  gkyl_array_release(bmag);
+  gkyl_velocity_map_release(map);
+  gkyl_gk_geometry_release(geom);
+}
+
+static void
+test_nu_ho()
+{
+  for (int cdim = 1; cdim <= 3; ++cdim) {
+    test_nu(cdim, false);
+  }
+}
+
+static void
 test_1x2v_ho()
 {
   test_nI_nu(1, false);
@@ -240,6 +415,14 @@ test_3x2v_ho()
 }
 
 #ifdef GKYL_HAVE_CUDA
+static void
+test_nu_dev()
+{
+  for (int cdim = 1; cdim <= 3; ++cdim) {
+    test_nu(cdim, true);
+  }
+}
+
 static void
 test_1x2v_dev()
 {
@@ -260,10 +443,12 @@ test_3x2v_dev()
 #endif
 
 TEST_LIST = {
+  {"dg_calc_gk_rad_vars_nu_ho", test_nu_ho},
   {"dg_calc_gk_rad_vars_nI_nu_1x2v_ho", test_1x2v_ho},
   {"dg_calc_gk_rad_vars_nI_nu_2x2v_ho", test_2x2v_ho},
   {"dg_calc_gk_rad_vars_nI_nu_3x2v_ho", test_3x2v_ho},
 #ifdef GKYL_HAVE_CUDA
+  {"dg_calc_gk_rad_vars_nu_dev", test_nu_dev},
   {"dg_calc_gk_rad_vars_nI_nu_1x2v_dev", test_1x2v_dev},
   {"dg_calc_gk_rad_vars_nI_nu_2x2v_dev", test_2x2v_dev},
   {"dg_calc_gk_rad_vars_nI_nu_3x2v_dev", test_3x2v_dev},
