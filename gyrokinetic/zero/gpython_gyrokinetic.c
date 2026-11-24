@@ -2,7 +2,7 @@
 #include <gkyl_gpython_core_priv.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_mom_gyrokinetic.h>
-#include <gkyl_mom_calc.h>
+
 #include <gkyl_velocity_map.h>
 #include <gkyl_array_ops.h>
 #include <math.h>
@@ -99,15 +99,15 @@ gpython_mom_gyrokinetic(
   struct gkyl_mapc2p_inp identity = {0};
   struct gkyl_velocity_map *vmap =
     gkyl_velocity_map_new(identity, pgrid, vgrid, prange, prange, vrange, vrange, false);
-  struct gkyl_mom_type *momt = gkyl_mom_gyrokinetic_new(
-    cb, pb, &crange, mass, charge, vmap, geom, phi ? ARR(phi) : NULL, id, false
-  );
+  struct gkyl_mom_gyrokinetic *momt =
+    gkyl_mom_gyrokinetic_new(mass, charge, cb, pb, &pgrid, vmap, geom, id, false, false);
   struct gkyl_array *out =
-    gkyl_array_new(GKYL_DOUBLE, cb->num_basis * momt->num_mom, crange.volume);
-  struct gkyl_mom_calc *calc = gkyl_mom_calc_new(&pgrid, momt, false);
-  gkyl_mom_calc_advance(calc, &prange, &crange, CARR(distribution), out);
-  gkyl_mom_calc_release(calc);
-  gkyl_mom_type_release(momt);
+    gkyl_array_new(GKYL_DOUBLE, cb->num_basis * gkyl_mom_gyrokinetic_num_mom(momt), crange.volume);
+  struct gkyl_mom_gyrokinetic *calc = momt;
+  gkyl_mom_gyrokinetic_advance(
+    calc, &prange, &crange, phi ? ARR(phi) : NULL, CARR(distribution), out
+  );
+  gkyl_mom_gyrokinetic_release(calc);
   gkyl_velocity_map_release(vmap);
   gkyl_gk_geometry_release(geom);
   return (gpython_array *)out;
