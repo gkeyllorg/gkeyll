@@ -365,21 +365,6 @@ eval_temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[0] = init_profile(xn[0], app->Te0, app->LTi, app); // LTe = LTi.
 }
 
-// Equilibrium Maxwellian (density, flow and temperature of the IC) for the Krook buffers.
-static void
-eval_feq_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  double x = xn[0], z = xn[2], vpar = xn[3], mu = xn[4];
-  double n = init_profile(x, app->n0, app->Ln, app);
-  double T = init_profile(x, app->Ti0, app->LTi, app);
-  double u;
-  eval_upar_ion(t, xn, &u, ctx);
-  double B = Bmag(r_x(x, app->r0), z, ctx);
-  fout[0] =
-    n / pow(2.0 * M_PI * T / app->mi, 1.5) * exp(-(0.5 * app->mi * pow(vpar - u, 2) + mu * B) / T);
-}
-
 // Krook rate: nu_krook in num_cell_buff cells at each x wall, tanh transition (Grandgirard et al. 2016 Eq. 49).
 static void
 eval_krook_rate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -705,8 +690,7 @@ main(int argc, char **argv)
         .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
         .rate_profile = eval_krook_rate,
         .rate_profile_ctx = &ctx,
-        .feq_shape = eval_feq_ion,
-        .feq_shape_ctx = &ctx,
+        .projection = ion_bc,
       },
 
     .num_diag_moments = 4,

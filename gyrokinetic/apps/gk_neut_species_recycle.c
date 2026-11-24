@@ -31,8 +31,8 @@ gk_neut_species_recycle_write_flux_enabled(
     gk_species_bflux_get_flux(
       &gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]
     );
-    gkyl_dg_updater_moment_gyrokinetic_advance(
-      recyc->m0op_gk[i], &recyc->impact_normal_r[i], &recyc->impact_cbuff_r[i],
+    gkyl_mom_gyrokinetic_advance(
+      recyc->m0op_gk[i], &recyc->impact_normal_r[i], &recyc->impact_cbuff_r[i], 0,
       recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]
     );
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -389,9 +389,9 @@ gk_neut_species_recycle_cross_init(
 
     recyc->spectrum[i] = mkarr(app->use_gpu, gkns->basis.num_basis, recyc->emit_buff_r.volume);
 
-    recyc->m0op_gk[i] = gkyl_dg_updater_moment_gyrokinetic_new(
-      &recyc->impact_grid[i], &app->basis, &gks->basis, &recyc->emit_cbuff_r, gks->info.mass,
-      gks->info.charge, gks->vel_map, app->gk_geom, 0, GKYL_F_MOMENT_M0, false, app->use_gpu
+    recyc->m0op_gk[i] = gkyl_mom_gyrokinetic_new(
+      gks->info.mass, gks->info.charge, &app->basis, &gks->basis, &recyc->impact_grid[i],
+      gks->vel_map, app->gk_geom, GKYL_F_MOMENT_M0, false, app->use_gpu
     );
 
     // Create a phase-space range that only includes velocities towards the boundary
@@ -434,8 +434,8 @@ gk_neut_species_recycle_apply_bc(
     gk_species_bflux_get_flux(
       &gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]
     );
-    gkyl_dg_updater_moment_gyrokinetic_advance(
-      recyc->m0op_gk[i], &recyc->impact_normal_r[i], &recyc->impact_cbuff_r[i],
+    gkyl_mom_gyrokinetic_advance(
+      recyc->m0op_gk[i], &recyc->impact_normal_r[i], &recyc->impact_cbuff_r[i], 0,
       recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]
     );
 
@@ -481,7 +481,7 @@ gk_neut_species_recycle_release(
     gkyl_array_release(recyc->phase_flux_gk[i]);
     gkyl_array_release(recyc->m0_flux_gk[i]);
     gkyl_array_release(recyc->spectrum[i]);
-    gkyl_dg_updater_moment_gyrokinetic_release(recyc->m0op_gk[i]);
+    gkyl_mom_gyrokinetic_release(recyc->m0op_gk[i]);
   }
 
   gkyl_array_release(recyc->bc_buffer);

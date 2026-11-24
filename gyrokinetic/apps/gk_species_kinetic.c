@@ -641,7 +641,9 @@ gk_species_kinetic_init_dynamic(
   }
 
   if (alloc_surr_aux_var) {
-    gk_species_moment_init(app, gks, &gks->sheath_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+    gk_species_moment_init(
+      app, gks, &gks->sheath_moms, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_WEIGHT_NONE, false
+    );
     gks->dens_sheath = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gks->temp_sheath = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
@@ -1149,7 +1151,7 @@ gk_species_kinetic_init(
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
   // Allocate data for density (for charge density or upar calculation).
-  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
+  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_WEIGHT_NONE, false);
 
   if (gks->info.flr.type) {
     // Create operator needed for FLR effects.
@@ -1246,7 +1248,9 @@ gk_species_kinetic_init(
   int ndm = gks->info.num_diag_moments;
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m = 0; m < ndm; ++m) {
-    gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
+    gk_species_moment_init(
+      app, gks, &gks->moms[m], gks->info.diag_moments[m], GKYL_F_MOMENT_WEIGHT_NONE, false
+    );
   }
 
   // Initialize projection routine for initial conditions.

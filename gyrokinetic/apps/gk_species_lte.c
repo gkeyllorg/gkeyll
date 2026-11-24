@@ -10,7 +10,9 @@ gk_species_lte_init(
   int cdim = app->cdim;
 
   // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
-  gk_species_moment_init(app, gks, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+  gk_species_moment_init(
+    app, gks, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_WEIGHT_NONE, false
+  );
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &gks->grid,

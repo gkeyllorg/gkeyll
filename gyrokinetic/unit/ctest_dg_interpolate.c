@@ -12,7 +12,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_vlasov_velocity_map.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
@@ -1073,12 +1073,11 @@ calc_moms_gk(
   struct gkyl_array *distf, struct gkyl_array *moms
 )
 {
-  struct gkyl_dg_updater_moment *mom_op = gkyl_dg_updater_moment_gyrokinetic_new(
-    grid, confBasis, basis, confLocal, mass, charge, gvm, gk_geom, 0, GKYL_F_MOMENT_M0M1M2, false,
-    use_gpu
+  struct gkyl_mom_gyrokinetic *mom_op = gkyl_mom_gyrokinetic_new(
+    mass, charge, confBasis, basis, grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, false, use_gpu
   );
-  gkyl_dg_updater_moment_gyrokinetic_advance(mom_op, local, confLocal, distf, moms);
-  gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
+  gkyl_mom_gyrokinetic_advance(mom_op, local, confLocal, 0, distf, moms);
+  gkyl_mom_gyrokinetic_release(mom_op);
 }
 
 void
