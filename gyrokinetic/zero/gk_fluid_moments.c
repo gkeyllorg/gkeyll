@@ -254,6 +254,9 @@ struct gkyl_gk_fluid_moments *
 gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp)
 {
   assert(inp->mass > 0 && inp->bmag && inp->num_moments >= 4);
+  if (inp->weighted) {
+    gk_fluid_moments_validate_weighted(inp->moment);
+  }
 
   struct gkyl_gk_fluid_moments *up = gkyl_malloc(sizeof *up);
 
@@ -344,6 +347,27 @@ gkyl_gk_fluid_moments_advance(
 {
   assert(range->volume == up->num_cells);
   up->calc_func(up, range, state, phi);
+  up->final_func(up, range, out);
+}
+
+void
+gkyl_gk_fluid_moments_advance_weighted(
+  const struct gkyl_gk_fluid_moments *up, const struct gkyl_range *range,
+  const struct gkyl_array *state, const struct gkyl_array *phi,
+  const struct gkyl_range *weight_range, const struct gkyl_array *weight, struct gkyl_array *out
+)
+{
+  if (range->volume == 0) {
+    return;
+  }
+  up->calc_func(up, range, state, phi);
+  // Reuse upar after moment construction to align independently indexed weights.
+  struct gkyl_range selected_weight;
+  gkyl_sub_range_init(&selected_weight, weight_range, range->lower, range->upper);
+  gkyl_array_copy_range_to_range(up->upar, weight, range, &selected_weight);
+  for (int comp = 0; comp < up->num_mom_out; ++comp) {
+    gkyl_dg_mul_op_range(&up->basis, comp, up->result, comp, up->result, 0, up->upar, range);
+  }
   up->final_func(up, range, out);
 }
 

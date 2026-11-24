@@ -22,7 +22,7 @@ struct gk_app_ctx {
   double den_floor;
   double Te_floor;
   double Ti_floor;
-  double n0, Te0, Ti0, B0; // Reference parameters.
+  double n0, Te0, Ti0, B0, Cy, rho_s; // Reference parameters.
   // Collision parameters
   double nuFrac, nuElc, nuIon;
   // Source parameters
@@ -273,11 +273,11 @@ create_ctx(void)
   double temp_recycle_srcWALL = 4.0 * eV;
 
   // Grid parameters
-  int Nx = 12;
-  int Ny = 12;
+  int Nx = 9;
+  int Ny = 2;
   int Nz = 8;
-  int Nvpar = 8;
-  int Nmu = 4;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   // Velocity box dimensions
@@ -288,7 +288,7 @@ create_ctx(void)
 
   double t_end = 1.0e-7;
   int num_frames = 1;
-  double write_phase_freq = 0.01;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -306,6 +306,8 @@ create_ctx(void)
     .z_max = z_max,
     .Lx = Lx,
     .Ly = Ly,
+    .Cy = r0 / q0,
+    .rho_s = rho_s,
     .Lz = Lz,
     .rho_min = rho_min,
     .rho_max = rho_max,
@@ -494,10 +496,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 10,
     .diag_moments =
@@ -517,6 +521,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // Ion core source:
@@ -622,10 +628,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 10,
     .diag_moments =
@@ -645,13 +653,17 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -676,6 +688,11 @@ main(int argc, char **argv)
     .zmin_right = -1.0, // Z of outboard divertor plate.
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
+
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_bgk_im_asdex_33292_high3_3x2v_p1",
@@ -694,10 +711,18 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
+
     .num_species = ctx.num_species,
     .species = {elc, ion},
 
     .field = field,
+    .metadata =
+      {
+        .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+        .attributes = additional_metadata,
+      },
     .parallelism =
       {
         .use_gpu = app_args.use_gpu,

@@ -50,11 +50,13 @@ gks_pos_write_diags_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift.",
-  }};
+  struct gkyl_msgpack_map_elem desc[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift.",
+    },
+  };
   int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gks->io_meta_conf, app->gk_geom->io_meta_basic, desc
@@ -176,11 +178,13 @@ gks_pos_write_integrated_diags_enabled(
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (pos->is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moments of change in distribution due to positivity shift.",
-      }};
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integrated moments of change in distribution due to positivity shift.",
+        },
+      };
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -258,18 +262,19 @@ gk_species_positivity_init(
 
     if (pos->write_diagnostics) {
       // Allocate data for diagnostic moments.
-      gk_species_moment_init(app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+      gk_species_moment_init(
+        app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_WEIGHT_NONE, false
+      );
 
       // Integrated moments of delta f.
-      gk_species_moment_init(app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+      gk_species_moment_init(
+        app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_WEIGHT_NONE, true
+      );
 
-      if (app->use_gpu) {
-        pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
-        pos->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
-      } else {
-        pos->red_integ_diag = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
-        pos->red_integ_diag_global = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
-      }
+      pos->red_integ_diag =
+        gkyl_calloc_hodev(app->use_gpu, pos->integ_moms.num_mom, sizeof(double));
+      pos->red_integ_diag_global =
+        gkyl_calloc_hodev(app->use_gpu, pos->integ_moms.num_mom, sizeof(double));
       pos->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, pos->integ_moms.num_mom);
       pos->is_first_integ_write_call = true;
 
@@ -344,13 +349,8 @@ gk_species_positivity_release(
       gk_species_moment_release(app, &pos->moms);
       gk_species_moment_release(app, &pos->integ_moms);
       gkyl_dynvec_release(pos->integ_diag);
-      if (app->use_gpu) {
-        gkyl_cu_free(pos->red_integ_diag);
-        gkyl_cu_free(pos->red_integ_diag_global);
-      } else {
-        gkyl_free(pos->red_integ_diag);
-        gkyl_free(pos->red_integ_diag_global);
-      }
+      gkyl_free_hodev(app->use_gpu, pos->red_integ_diag);
+      gkyl_free_hodev(app->use_gpu, pos->red_integ_diag_global);
     }
   }
 }

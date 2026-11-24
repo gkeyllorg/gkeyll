@@ -284,8 +284,7 @@ gkyl_bc_sheath_gyrokinetic_new(
     up->kann_out = up->use_gpu ? gkyl_kn_vec_cu_dev_new(nperp_nodes, dim_out) :
                                  gkyl_kn_vec_new(nperp_nodes, dim_out);
     up->kann_infer_xy_out = mkarr(up->use_gpu, dim_out * pow(2, up->cdim - 1), up->skin_r->volume);
-    up->nn_out = up->use_gpu ? gkyl_cu_malloc(dim_out * pow(2, up->cdim - 1) * sizeof(double)) :
-                               gkyl_malloc(dim_out * pow(2, up->cdim - 1) * sizeof(double));
+    up->nn_out = gkyl_calloc_hodev(up->use_gpu, dim_out * pow(2, up->cdim - 1), sizeof(double));
 
     up->update_vcutsq = bc_gksheath_update_vcutsq_surrogate;
   }
@@ -439,11 +438,7 @@ gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
     gkyl_kn_vec_release(up->kann_inp);
     gkyl_kn_vec_release(up->kann_out);
     gkyl_array_release(up->kann_infer_xy_out);
-    if (up->use_gpu) {
-      gkyl_cu_free(up->nn_out);
-    } else {
-      gkyl_free(up->nn_out);
-    }
+    gkyl_free_hodev(up->use_gpu, up->nn_out);
   }
   gkyl_free(up);
 }

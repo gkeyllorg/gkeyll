@@ -75,7 +75,8 @@ gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gks->is_first_frequencies_write_call = true;
   gk_species_moment_init(
     app, gks, &gks->frequency_moms,
-    gks->grid_vel.ndim == 2 ? GKYL_F_MOMENT_BIMAXWELLIAN : GKYL_F_MOMENT_MAXWELLIAN, false
+    gks->grid_vel.ndim == 2 ? GKYL_F_MOMENT_BIMAXWELLIAN : GKYL_F_MOMENT_MAXWELLIAN,
+    GKYL_F_MOMENT_WEIGHT_NONE, false
   );
   gks->frequency_geometry = mkarr(false, 3, app->local_ext.volume);
   gks->frequency_nu = mkarr(false, app->basis.num_basis, app->local_ext.volume);

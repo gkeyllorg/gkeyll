@@ -105,11 +105,13 @@ gk_neut_species_lte_kinetic_write_max_corr_status(
 
       if (gkns->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Statistics on Maxwellian correction.",
-        }};
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Statistics on Maxwellian correction.",
+          },
+        };
         int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -185,11 +187,13 @@ gk_neut_species_lte_kinetic_init(
     .conf_range_ext = &app->local_ext,
     .vel_range = &gkns->local_vel,
     .phase_range = &gkns->local,
-    .h_ij = gkns->g_ij,
-    .h_ij_inv = gkns->gij,
-    .det_h = app->gk_geom->geo_int.jacobgeo,
+    .vel_basis = &gkns->basis_vel,
+    .hamil_range = &gkns->hamil_range,
     .hamil = gkns->hamil,
     .model_id = gkns->model_id,
+    .hamil_id = gkns->hamil_id,
+    .vel_map = gkns->vlasov_vel_map,
+    .use_extended_hamil_def = false,
     .use_gpu = app->use_gpu,
   };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
@@ -209,13 +213,15 @@ gk_neut_species_lte_kinetic_init(
       .conf_range_ext = &app->local_ext,
       .vel_range = &gkns->local_vel,
       .phase_range = &gkns->local,
-      .h_ij = gkns->g_ij,
-      .h_ij_inv = gkns->gij,
-      .det_h = app->gk_geom->geo_int.jacobgeo,
+      .vel_basis = &gkns->basis_vel,
+      .hamil_range = &gkns->hamil_range,
       .hamil = gkns->hamil,
       .model_id = gkns->model_id,
+      .hamil_id = gkns->hamil_id,
+      .vel_map = gkns->vlasov_vel_map,
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
+      .use_extended_hamil_def = false,
       .eps = iter_eps,
       .use_last_converged = use_last_converged,
     };

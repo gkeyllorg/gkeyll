@@ -1,3 +1,4 @@
+#include <gkyl_efit.h>
 #include <gkyl_gk_block_geom.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
@@ -6,6 +7,68 @@
 #include <gkyl_multib_conn.h>
 
 #include <mpack.h>
+
+// Convert a physical reference edge to the field-aligned computational edge.
+static enum gkyl_edge_loc
+multib_tok_edge(
+  const struct gkyl_gyrokinetic_multib_app *app, int bid, int dir, enum gkyl_edge_loc edge
+)
+{
+  int par_dir = gkyl_gk_block_geom_ndim(app->gk_block_geom) - 1;
+  if (dir == par_dir && app->tok_theta_reversed[bid]) {
+    return edge == GKYL_LOWER_EDGE ? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE;
+  }
+  return edge;
+}
+
+// Clone user topology and orient numerical-tokamak block edges along B_p.
+// Physical block names/plate callbacks retain their meaning; user objects are not mutated.
+static void
+multib_tok_orient_blocks(
+  const struct gkyl_gk_block_geom *input, struct gkyl_gyrokinetic_multib_app *app
+)
+{
+  int ndim = gkyl_gk_block_geom_ndim(input), count = gkyl_gk_block_geom_num_blocks(input);
+  int par_dir = ndim - 1;
+  app->tok_theta_reversed = gkyl_calloc(count, sizeof(bool));
+  app->gk_block_geom = gkyl_gk_block_geom_new(ndim, count);
+  for (int b = 0; b < count; ++b) {
+    const struct gkyl_gk_block_geom_info *info = gkyl_gk_block_geom_get_block(input, b);
+    if (info->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+        info->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
+      struct gkyl_efit *efit = gkyl_efit_new(&info->geometry.efit_info);
+      app->tok_theta_reversed[b] = efit->sibry < efit->simag;
+      gkyl_efit_release(efit);
+    }
+  }
+  for (int b = 0; b < count; ++b) {
+    const struct gkyl_gk_block_geom_info *src = gkyl_gk_block_geom_get_block(input, b);
+    struct gkyl_gk_block_geom_info dst = *src;
+    for (int d = 0; d < ndim; ++d) {
+      for (int e = 0; e < 2; ++e) {
+        int output_edge = d == par_dir && app->tok_theta_reversed[b] ? 1 - e : e;
+        struct gkyl_target_edge target = src->connections[d][e];
+        if (target.edge != GKYL_PHYSICAL) {
+          bool target_flip = app->tok_theta_reversed[target.bid];
+          int upper = target.edge >= GKYL_UPPER_POSITIVE;
+          int negative = target.edge == GKYL_LOWER_NEGATIVE || target.edge == GKYL_UPPER_NEGATIVE;
+          if (target.dir == par_dir && target_flip) {
+            upper = !upper;
+          }
+          // Tangential theta also reverses on radial block interfaces.
+          if (d != par_dir && target.dir != par_dir && app->tok_theta_reversed[b] != target_flip) {
+            negative = !negative;
+          }
+          target.edge = 1 + 2 * upper + negative;
+        }
+        dst.connections[d][output_edge] = target;
+      }
+    }
+    gkyl_gk_block_geom_set_block(app->gk_block_geom, b, &dst);
+  }
+  app->block_topo = gkyl_gk_block_geom_topo(app->gk_block_geom);
+  assert(gkyl_block_topo_check_consistency(app->block_topo));
+}
 
 // Compute total number of ranges specified by cuts.
 static inline int
@@ -93,11 +156,20 @@ singleb_app_new_geom(
   app_inp.geometry = bgi->geometry;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species;
+  // The geometry needs to know which neutral species are kinetic (velocity cells).
+  for (int i = 0; i < num_neut_species; ++i) {
+    const struct gkyl_gyrokinetic_multib_neut_species *nsp = &mbinp->neut_species[i];
+    app_inp.neut_species[i].vdim = nsp->vdim;
+    for (int v = 0; v < nsp->vdim; ++v) {
+      app_inp.neut_species[i].cells[v] = nsp->cells[v];
+    }
+  }
 
   app_inp.poly_order = mbinp->poly_order;
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac;
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH;
+  app_inp.diagnostics = mbinp->diagnostics;
 
   struct gkyl_comm *comm = mbapp->block_comms[bid];
 
@@ -118,7 +190,7 @@ singleb_app_new_geom(
   app_inp.metadata.num_attributes = mbapp->io_meta_basic_len;
   app_inp.metadata.attributes = mbapp->io_meta_basic;
 
-  return gkyl_gyrokinetic_app_new_geom(&app_inp);
+  return gyrokinetic_app_new_geom(&app_inp, true);
 }
 
 // Construct single-block App solver for given block ID.
@@ -153,6 +225,7 @@ singleb_app_new_solver(
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac;
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH;
+  app_inp.diagnostics = mbinp->diagnostics;
   app_inp.eirene = mbinp->eirene;
 
   for (int i = 0; i < num_species; ++i) {
@@ -192,6 +265,10 @@ singleb_app_new_solver(
     }
     species_inp.time_rate_diagnostics = sp->time_rate_diagnostics;
     species_inp.frequency_diagnostics = sp->frequency_diagnostics;
+    species_inp.num_balance_diags = sp->num_balance_diags;
+    for (int n = 0; n < species_inp.num_balance_diags; ++n) {
+      species_inp.balance_diags[n] = sp->balance_diags[n];
+    }
     species_inp.boundary_flux_diagnostics = sp->boundary_flux_diagnostics;
 
     // Choose proper block-specific species input.
@@ -244,7 +321,8 @@ singleb_app_new_solver(
     for (int i = 0; i < sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
         species_inp.bcs[bc_count_sp[bid]].dir = sp->bcs[i].dir;
-        species_inp.bcs[bc_count_sp[bid]].edge = sp->bcs[i].edge;
+        species_inp.bcs[bc_count_sp[bid]].edge =
+          multib_tok_edge(mbapp, bid, sp->bcs[i].dir, sp->bcs[i].edge);
         species_inp.bcs[bc_count_sp[bid]].type = sp->bcs[i].type;
         species_inp.bcs[bc_count_sp[bid]].aux_profile = sp->bcs[i].aux_profile;
         species_inp.bcs[bc_count_sp[bid]].aux_ctx = sp->bcs[i].aux_ctx;
@@ -315,7 +393,8 @@ singleb_app_new_solver(
     for (int i = 0; i < nsp->num_physical_bcs; ++i) {
       if (bid == nsp->bcs[i].bidx) {
         neut_species_inp.bcs[bc_count_nsp[bid]].dir = nsp->bcs[i].dir;
-        neut_species_inp.bcs[bc_count_nsp[bid]].edge = nsp->bcs[i].edge;
+        neut_species_inp.bcs[bc_count_nsp[bid]].edge =
+          multib_tok_edge(mbapp, bid, nsp->bcs[i].dir, nsp->bcs[i].edge);
         neut_species_inp.bcs[bc_count_nsp[bid]].type = nsp->bcs[i].type;
         neut_species_inp.bcs[bc_count_nsp[bid]].aux_profile = nsp->bcs[i].aux_profile;
         neut_species_inp.bcs[bc_count_nsp[bid]].aux_ctx = nsp->bcs[i].aux_ctx;
@@ -363,7 +442,8 @@ singleb_app_new_solver(
   for (int i = 0; i < fld->num_physical_bcs; i++) {
     if (bid == fld->bcs[i].bidx) {
       struct gkyl_gyrokinetic_bc *bc_curr = gk_fetch_bc_with_dir_edge(
-        field_inp.poisson_bcs, 2 * cdim, fld->bcs[i].dir, fld->bcs[i].edge
+        field_inp.poisson_bcs, 2 * cdim, fld->bcs[i].dir,
+        multib_tok_edge(mbapp, bid, fld->bcs[i].dir, fld->bcs[i].edge)
       );
       bc_curr->type = fld->bcs[i].type;
       bc_curr->aux_profile = fld->bcs[i].aux_profile;
@@ -405,6 +485,33 @@ singleb_app_new_solver(
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
+// Both public construction paths pass the same validated metadata to child blocks.
+static void
+multib_init_io(
+  const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp
+)
+{
+  // Create multiblock metadata to pass to each block, and combine with user's metadata.
+  const char *fmt_btopo = "%s-block_topo.gkyl";
+  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
+  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
+  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
+
+  // Basic metadata for I/O (including metadata optional from user).
+  const char *build_id = GIT_COMMIT_ID;
+  const char *build_date = GKYL_BUILD_DATE;
+  struct gkyl_msgpack_map_elem io_meta_default[] = {
+    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
+    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
+    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
+    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo},
+  };
+  mbapp->io_meta_basic = gyrokinetic_app_input_metadata(
+    sizeof(io_meta_default) / sizeof(io_meta_default[0]), io_meta_default, &mbinp->metadata,
+    &mbapp->io_meta_basic_len
+  );
+}
+
 gkyl_gyrokinetic_multib_app *
 gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
 {
@@ -424,13 +531,15 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   struct gkyl_gyrokinetic_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
+  mbapp->fdot_args = (struct gkyl_gyrokinetic_multib_fdot_args){0};
 
   strcpy(mbapp->name, mbinp->name);
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
   mbapp->use_gpu = mbinp->use_gpu;
 
-  mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
-  mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
+  multib_init_io(mbinp, mbapp);
+
+  multib_tok_orient_blocks(mbinp->gk_block_geom, mbapp);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
@@ -520,6 +629,40 @@ and the maximum number of cuts in a block is %d\n\n",
   return mbapp;
 }
 
+// Allocate only the top-level pointer arrays; all state data are borrowed.
+static void
+gyrokinetic_multib_fdot_args_init(struct gkyl_gyrokinetic_multib_app *app)
+{
+  struct gkyl_gyrokinetic_multib_fdot_args *args = &app->fdot_args;
+  args->num_species = app->num_species;
+  args->num_neut_species = app->num_neut_species;
+  args->nblocks_local = app->num_local_blocks;
+  size_t num_charged = (size_t)app->num_local_blocks * app->num_species;
+  args->fin = num_charged ? gkyl_calloc(num_charged, sizeof(*args->fin)) : NULL;
+  args->fout = num_charged ? gkyl_calloc(num_charged, sizeof(*args->fout)) : NULL;
+  args->smom_in = num_charged ? gkyl_calloc(num_charged, sizeof(*args->smom_in)) : NULL;
+  args->smom_out = num_charged ? gkyl_calloc(num_charged, sizeof(*args->smom_out)) : NULL;
+  size_t num_neut = (size_t)app->num_local_blocks * app->num_neut_species;
+  args->fin_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->fin_neut)) : NULL;
+  args->fout_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->fout_neut)) : NULL;
+  args->smom_in_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->smom_in_neut)) : NULL;
+  args->smom_out_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->smom_out_neut)) : NULL;
+}
+
+// Release pointer storage without releasing any borrowed state arrays.
+static void
+gyrokinetic_multib_fdot_args_release(struct gkyl_gyrokinetic_multib_fdot_args *args)
+{
+  gkyl_free(args->fin);
+  gkyl_free(args->fout);
+  gkyl_free(args->smom_in);
+  gkyl_free(args->smom_out);
+  gkyl_free(args->fin_neut);
+  gkyl_free(args->fout_neut);
+  gkyl_free(args->smom_in_neut);
+  gkyl_free(args->smom_out_neut);
+}
+
 gkyl_gyrokinetic_multib_app *
 gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
 {
@@ -539,13 +682,15 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   struct gkyl_gyrokinetic_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
+  mbapp->fdot_args = (struct gkyl_gyrokinetic_multib_fdot_args){0};
 
   strcpy(mbapp->name, mbinp->name);
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
   mbapp->use_gpu = mbinp->use_gpu;
 
-  mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
-  mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
+  multib_init_io(mbinp, mbapp);
+
+  multib_tok_orient_blocks(mbinp->gk_block_geom, mbapp);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
@@ -596,33 +741,6 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   mbapp->num_local_blocks = num_local_blocks;
-
-  // Create multiblock metadata to pass to each block, and combine with user's metadata.
-  const char *fmt_btopo = "%s-block_topo.gkyl";
-  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
-  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
-
-  // Basic metadata for I/O (including metadata optional from user).
-  const char *build_id = GIT_COMMIT_ID;
-  const char *build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_default[] = {
-    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
-    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
-  };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
-    io_meta_default, mbinp->metadata.attributes
-  };
-  int io_meta_union_len[] = {
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes
-  };
-
-  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(
-    sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len, io_meta_union,
-    &mbapp->io_meta_basic_len
-  );
 
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);
@@ -834,17 +952,21 @@ and the maximum number of cuts in a block is %d\n\n",
       gkyl_array_copy_range_to_range(
         buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]
       );
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_upper_skin[par_dir]);
+      gkyl_array_scale_range(delta_ts, -1.0, &sbapp->local_upper_skin[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &sbapp->local_upper_skin[par_dir]);
 
       gkyl_array_copy_range_to_range(
         buffer, delta_ts, &sbapp->local_lower_skin[par_dir], &sbapp->local_lower_ghost[par_dir]
       );
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_lower_skin[par_dir]);
+      gkyl_array_scale_range(delta_ts, -1.0, &sbapp->local_lower_skin[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &sbapp->local_lower_skin[par_dir]);
 
       gkyl_array_release(buffer);
 
-      // Deflate delta_ts.
-      gyrokinetic_deflate_delta_ts(sbapp, delta_ts);
+      // Deflate delta_ts, unless user-provided shift functions override it.
+      if (!sbapp->core_parallel_bcs.lower_shift_func) {
+        gyrokinetic_deflate_delta_ts(sbapp, delta_ts);
+      }
 
       // Write the twistshift shift.
       gyrokinetic_app_write_ts_shift(sbapp);
@@ -997,6 +1119,8 @@ and the maximum number of cuts in a block is %d\n\n",
   mbapp->dts = gkyl_dynvec_new(GKYL_DOUBLE, 1); // Dynvector to store time steps.
   mbapp->is_first_dt_write_call = true;
 
+  gyrokinetic_multib_fdot_args_init(mbapp);
+
   gkyl_free(rank_list);
   gkyl_free(branks);
 
@@ -1113,7 +1237,7 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app *app, double t0
     int li_neut = b * app->num_neut_species;
     for (int i = 0; i < app->num_species; ++i) {
       distf[li_charged + i] = sbapp->species[i].f;
-      bflux[li_charged + i] = sbapp->species[i].bflux.f1;
+      bflux[li_charged + i] = sbapp->species[i].step_moms.f1;
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       distf_neut[li_neut + i] = sbapp->neut_species[i].f;
@@ -1198,7 +1322,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
       int li_neut = b * app->num_neut_species;
       for (int i = 0; i < app->num_species; ++i) {
         distf[li_charged + i] = sbapp->species[i].f;
-        bflux[li_charged + i] = sbapp->species[i].bflux.f;
+        bflux[li_charged + i] = sbapp->species[i].step_moms.f;
       }
       for (int i = 0; i < app->num_neut_species; ++i) {
         distf_neut[li_neut + i] = sbapp->neut_species[i].f;
@@ -1221,9 +1345,15 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
     gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, bflux, distf_neut);
   }
 
-  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
-  sbapp->field->is_first_energy_write_call = false; // Append to existing diagnostic.
-  //
+  for (int b = 0; b < app->num_local_blocks; ++b) {
+    // Append to existing diagnostics.
+    struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+    sbapp->field->is_first_energy_write_call = false;
+    sbapp->field->is_first_energy_dot_write_call = false;
+    for (int d = 0; d < sbapp->gkbal.num_diags; ++d) {
+      sbapp->gkbal.is_first_write[d] = false;
+    }
+  }
   app->is_first_dt_write_call = false;
 
   return rstat;
@@ -1444,6 +1574,40 @@ gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app->singleb_apps[b], sidx);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_species_balance(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, double dt
+)
+{
+  for (int b = 0; b < app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_species_balance(app->singleb_apps[b], sidx, tm, dt);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_balance(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b = 0; b < app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_balance(app->singleb_apps[b], sidx);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_balance(gkyl_gyrokinetic_multib_app *app, double tm, double dt)
+{
+  for (int b = 0; b < app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_balance(app->singleb_apps[b], tm, dt);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_balance(gkyl_gyrokinetic_multib_app *app)
+{
+  for (int b = 0; b < app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_balance(app->singleb_apps[b]);
   }
 }
 
@@ -1720,7 +1884,9 @@ gkyl_gyrokinetic_multib_app_write_mom(gkyl_gyrokinetic_multib_app *app, double t
 }
 
 void
-gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app *app, double tm)
+gkyl_gyrokinetic_multib_app_calc_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, double tm, double dt
+)
 {
   for (int i = 0; i < app->num_species; ++i) {
     gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(app, i, tm);
@@ -1728,7 +1894,9 @@ gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app *app
     gkyl_gyrokinetic_multib_app_calc_species_source_bgk_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_multib_app_calc_species_balance(app, i, tm, dt);
   }
+  gkyl_gyrokinetic_multib_app_calc_balance(app, tm, dt);
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(app, i, tm);
@@ -1748,7 +1916,9 @@ gkyl_gyrokinetic_multib_app_write_integrated_mom(gkyl_gyrokinetic_multib_app *ap
     gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(app, i);
     gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(app, i);
+    gkyl_gyrokinetic_multib_app_write_species_balance(app, i);
   }
+  gkyl_gyrokinetic_multib_app_write_balance(app);
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(app, i);
@@ -2204,7 +2374,7 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app *app)
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."},
       };
       int io_meta_len[] = {app->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {app->io_meta_basic, io_meta_phi};
@@ -2256,6 +2426,7 @@ gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app *mbapp)
   gkyl_rrobin_decomp_release(mbapp->round_robin);
 
   gkyl_gk_block_geom_release(mbapp->gk_block_geom);
+  gkyl_free(mbapp->tok_theta_reversed);
   gkyl_block_topo_release(mbapp->block_topo);
 
   gkyl_comm_release(mbapp->comm);
@@ -2268,6 +2439,8 @@ gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app *mbapp)
 void
 gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
 {
+  gyrokinetic_multib_fdot_args_release(&mbapp->fdot_args);
+
   for (int i = 0; i < mbapp->num_neut_species; ++i) {
     for (int bI = 0; bI < mbapp->num_local_blocks; ++bI) {
       gkyl_multib_comm_conn_release(mbapp->mbcc_sync_neut[i].send[bI]);
@@ -2322,11 +2495,14 @@ gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
   gkyl_rrobin_decomp_release(mbapp->round_robin);
 
   gkyl_gk_block_geom_release(mbapp->gk_block_geom);
+  gkyl_free(mbapp->tok_theta_reversed);
   gkyl_block_topo_release(mbapp->block_topo);
 
   gkyl_comm_release(mbapp->comm);
 
   gkyl_dynvec_release(mbapp->dts);
+
+  gkyl_msgpack_map_elem_release(mbapp->io_meta_basic_len, mbapp->io_meta_basic);
 
   gkyl_free(mbapp);
 }

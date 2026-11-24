@@ -14,12 +14,14 @@ struct gkyl_mbcc_sr {
 
 // top-level internal App
 struct gkyl_gyrokinetic_multib_app {
+  struct gkyl_gyrokinetic_multib_fdot_args fdot_args; // Solver-owned state pointer arrays.
   char name[128]; // name of app
   struct gkyl_comm *comm; // global communicator to use
   bool use_gpu; // Whether to use the GPU.
 
   // geometry and topology of all blocks in simulation
   struct gkyl_gk_block_geom *gk_block_geom;
+  bool *tok_theta_reversed; // Physical block edges reversed to follow B_p.
   struct gkyl_block_topo *block_topo;
 
   double cfl_frac; // CFL fraction to use

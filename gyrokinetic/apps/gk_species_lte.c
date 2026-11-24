@@ -10,7 +10,9 @@ gk_species_lte_init(
   int cdim = app->cdim;
 
   // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
-  gk_species_moment_init(app, gks, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+  gk_species_moment_init(
+    app, gks, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_WEIGHT_NONE, false
+  );
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &gks->grid,
@@ -135,11 +137,13 @@ gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_specie
 
       if (gks->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Statistics on the Maxwellian correction.",
-        }};
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Statistics on the Maxwellian correction.",
+          },
+        };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi

@@ -6,6 +6,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
 
+#include <float.h>
+
 gkyl_calc_metric *
 gkyl_calc_metric_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
@@ -43,6 +45,20 @@ calc_metric(double dxdz[3][3], int i, int j)
     sum += dxdz[k][i - 1] * dxdz[k][j - 1];
   }
   return sum;
+}
+
+static inline double
+calc_bimpactangle(double g33, double dual3)
+{
+  double arg = 1.0 / (sqrt(g33) * dual3);
+  // The exact metric gives |arg| <= 1; preserve invalid metrics beyond roundoff.
+  const double roundoff = 64.0 * DBL_EPSILON;
+  if (arg > 1.0 && arg <= 1.0 + roundoff) {
+    arg = 1.0;
+  } else if (arg < -1.0 && arg >= -1.0 - roundoff) {
+    arg = -1.0;
+  }
+  return asin(arg);
 }
 
 // Calculates e^1 = e_2 x e_3 /J
@@ -515,6 +531,13 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -796,6 +819,13 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -966,7 +996,7 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = calc_bimpactangle(gFld_n[5], norm3);
       }
     }
   }
@@ -1830,6 +1860,16 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         };
         check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
 
+        // Match the discrete field-aligned direction used by the metric-only
+        // derived geometry and modal bcart. The check above compares it with
+        // the independent input field, allowing for finite-difference error.
+        double *bcartFld_n = gkyl_array_fetch(
+          gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        );
+        bcartFld_n[0] = e_3_norm[0];
+        bcartFld_n[1] = e_3_norm[1];
+        bcartFld_n[2] = e_3_norm[2];
+
         double norm1 = sqrt(
           dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]
         );
@@ -1966,6 +2006,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  // One-sided stencils are used at domain boundaries except in periodic directions.
   // One-sided stencils are used at domain boundaries except in periodic directions.
   int cidx[3];
 
@@ -2272,7 +2313,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = calc_bimpactangle(gFld_n[5], norm3);
       }
     }
   }

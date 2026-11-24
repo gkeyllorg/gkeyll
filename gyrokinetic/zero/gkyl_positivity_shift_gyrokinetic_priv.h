@@ -5,7 +5,6 @@
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_gyrokinetic_kernels.h>
 #include <gkyl_mom_gyrokinetic_kernels.h>
-#include <gkyl_mom_gyrokinetic_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_util.h>
 #include <assert.h>
@@ -19,8 +18,8 @@ enum gkyl_positivity_shift_type {
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
 typedef void (*m0_t)(
-  const double *dxv, const double *vmap, double m_, const double *bmag, const double *f,
-  double *GKYL_RESTRICT out
+  const double *dxv, const double *vmap, double m_, double q_, const double *bmag,
+  const double *phi, const double *f, double *GKYL_RESTRICT out
 );
 
 typedef struct {
@@ -56,10 +55,10 @@ GKYL_CU_D static const pos_shift_gk_kern_list_shift pos_shift_gk_kern_list_MRSli
 };
 
 GKYL_CU_D static const pos_shift_gk_kern_list_m0 pos_shift_gk_kern_list_m0_ser[] = {
-  {gyrokinetic_M0_1x1v_ser_p1, gyrokinetic_M0_1x1v_ser_p2, NULL},
-  {gyrokinetic_M0_1x2v_ser_p1, gyrokinetic_M0_1x2v_ser_p2, NULL},
-  {gyrokinetic_M0_2x2v_ser_p1, gyrokinetic_M0_2x2v_ser_p2, NULL},
-  {gyrokinetic_M0_3x2v_ser_p1, NULL, NULL}
+  {mom_gyrokinetic_M0_1x1v_ser_p1, mom_gyrokinetic_M0_1x1v_ser_p2, NULL},
+  {mom_gyrokinetic_M0_1x2v_ser_p1, mom_gyrokinetic_M0_1x2v_ser_p2, NULL},
+  {mom_gyrokinetic_M0_2x2v_ser_p1, mom_gyrokinetic_M0_2x2v_ser_p2, NULL},
+  {mom_gyrokinetic_M0_3x2v_ser_p1, NULL, NULL}
 };
 
 struct gkyl_positivity_shift_gyrokinetic_kernels {

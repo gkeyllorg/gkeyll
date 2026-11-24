@@ -13,6 +13,7 @@ void test_cudss_simple_dev();
 void test_cudss_ops_dev();
 void test_cudss_ops_update_amat_dev();
 void test_cudss_ops_multiple_rhs_dev();
+void test_cudss_ops_update_amat_multiple_rhs_dev();
 }
 
 #define checkCUDSS(call, status, msg)                                                            \
