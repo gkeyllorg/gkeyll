@@ -203,6 +203,12 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+# These address-taken functions match the weighted-moment call prototype in nvlink.
+# The more specific rule caps only density-weighted drag, not the rest of radiation.
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/rad/rad_gyrokinetic_drag_nI_nu_%.c.o : $(KERNELS_DIR)/rad/rad_gyrokinetic_drag_nI_nu_%.c Makefile-gyrokinetic ../Makefile $(wildcard ../config.mak)
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_RAD_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/rad/%.c.o : $(KERNELS_DIR)/rad/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@

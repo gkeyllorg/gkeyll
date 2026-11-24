@@ -143,6 +143,9 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
   struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq
 )
 {
+  if (phase_range->volume == 0) {
+    return;
+  }
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads>>>(
