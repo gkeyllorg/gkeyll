@@ -4592,6 +4592,14 @@ gkyl_gyrokinetic_app_read_geometry(
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.gij, arr_ho6, geometry_inp->geometry_path, "geo_int_gij"
   );
+  // Neutral metrics (alpha = phi): used by the fluid-neutral diffusion and kinetic neutrals.
+  gyrokinetic_app_geometry_read_and_copy(
+    app, app->gk_geom->geo_int.g_ij_neut, arr_ho6, geometry_inp->geometry_path,
+    "geo_int_g_ij_neut"
+  );
+  gyrokinetic_app_geometry_read_and_copy(
+    app, app->gk_geom->geo_int.gij_neut, arr_ho6, geometry_inp->geometry_path, "geo_int_gij_neut"
+  );
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.b_i, arr_ho3, geometry_inp->geometry_path, "geo_int_b_i"
   );
