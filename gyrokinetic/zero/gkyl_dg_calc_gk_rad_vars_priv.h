@@ -5,6 +5,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_rad_gyrokinetic_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
@@ -41,6 +42,17 @@ typedef struct {
   rad_gyrokinetic_nI_nu_t kernels[3];
 } gkyl_dg_rad_gyrokinetic_nI_nu_kern_list;
 
+// Host launcher selected once at construction; never called on the device.
+typedef void (*dg_calc_gk_rad_vars_nI_nu_launch_t)(
+  const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
+  const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
+  const struct gkyl_gk_rad_drag *vsqnu, const struct gkyl_array *n_elc_rad,
+  const struct gkyl_array *n_elc, const struct gkyl_array *nI, struct gkyl_array *nvnu_surf,
+  struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf, struct gkyl_array *nvsqnu,
+  struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq
+);
+
 struct gkyl_dg_calc_gk_rad_vars {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
@@ -49,7 +61,8 @@ struct gkyl_dg_calc_gk_rad_vars {
     rad_nu_vpar; // kernel for computing surface and volume expansions of vpar radiation drag
   rad_gyrokinetic_nu_t
     rad_nu_mu; // kernel for computing surface and volume expansions of mu radiation drag
-  rad_gyrokinetic_nI_nu_t rad_nI_nu; // kernel for density weighted radiation drag
+  rad_gyrokinetic_nI_nu_t rad_nI_nu; // Host kernel for density weighted radiation drag.
+  dg_calc_gk_rad_vars_nI_nu_launch_t rad_nI_nu_launch; // Host CUDA launcher.
 
   double charge, mass;
   double a, alpha, beta, gamma, v0; // Fitting parameters for radiation drag coefficient
@@ -77,15 +90,6 @@ GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_
   {NULL, rad_gyrokinetic_drag_numu_3x2v_ser_p1, NULL} // 3
 };
 
-// Density-weighted radiation drag surface and volume expansions (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list ser_rad_gyrokinetic_nI_nu_kernels[] =
-  {
-    {NULL, NULL, NULL}, // 0
-    {NULL, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1, NULL}, // 1
-    {NULL, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1, NULL}, // 2
-    {NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL} // 3
-};
-
 GKYL_CU_D static rad_gyrokinetic_nu_t
 choose_rad_gyrokinetic_nu_vpar_kern(int cdim, int vdim, int poly_order)
 {
@@ -98,11 +102,24 @@ choose_rad_gyrokinetic_nu_mu_kern(int cdim, int vdim, int poly_order)
   return ser_rad_gyrokinetic_nu_mu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
-GKYL_CU_D static rad_gyrokinetic_nI_nu_t
+// Keep these addresses out of device code: their nine 64-bit arguments match
+// weighted moments in nvlink's indirect-call analysis. CUDA uses direct calls.
+#ifndef __CUDA_ARCH__
+// Density-weighted radiation drag surface and volume expansions (Serendipity kernels)
+static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list ser_rad_gyrokinetic_nI_nu_kernels[] = {
+  {NULL, NULL, NULL}, // 0
+  {NULL, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1, NULL}, // 1
+  {NULL, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1, NULL}, // 2
+  {NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL} // 3
+};
+
+static rad_gyrokinetic_nI_nu_t
 choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
 {
-  return ser_rad_gyrokinetic_nI_nu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  assert(cdim >= 1 && cdim <= 3 && vdim == 2 && poly_order == 1);
+  return ser_rad_gyrokinetic_nI_nu_kernels[cdim].kernels[poly_order];
 }
+#endif
 
 /**
  * Find the nearest index in an array to given value (assumes 1 component in array)

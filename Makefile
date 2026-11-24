@@ -131,9 +131,9 @@ endif
 # volume/surface kernels are dense straight-line code and are left alone. Set
 # MOM_MAX_REGS=, FLUX_MAX_REGS= or BINOP_MAX_REGS= (empty) in config.mak or on the make
 # command line to disable a cap.
-MOM_MAX_REGS ?= 255
-FLUX_MAX_REGS ?= 255
-BINOP_MAX_REGS ?= 255
+MOM_MAX_REGS ?= 64
+FLUX_MAX_REGS ?= 128
+BINOP_MAX_REGS ?= 64
 NVCC_MOM_FLAGS =
 NVCC_FLUX_FLAGS =
 NVCC_BINOP_FLAGS =
