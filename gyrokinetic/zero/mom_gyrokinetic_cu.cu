@@ -7,6 +7,34 @@ extern "C" {
 #include <float.h>
 }
 
+// Constrain the indirect call to this interface's registry. The runtime pointer
+// still selects the kernel; unrelated functions with the same PTX signature are
+// not candidates. Every selected kernel must occur in the registry.
+GKYL_CU_D static __forceinline__ void
+mom_gk_call(
+  wmomf_t kernel, const double *dxv, const double *vmap, double mass, double charge,
+  const double *bmag, const double *phi, const double *f, double *out
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0, a1, a2, a3, a4, a5, a6, a7;\n"
+               " st.param.b64 [a0], %1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " st.param.f64 [a2], %3;\n"
+               " st.param.f64 [a3], %4;\n"
+               " st.param.b64 [a4], %5;\n"
+               " st.param.b64 [a5], %6;\n"
+               " st.param.b64 [a6], %7;\n"
+               " st.param.b64 [a7], %8;\n"
+               " targets: .calltargets " GKYL_MOM_GK_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4, a5, a6, a7), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(dxv), "l"(vmap), "d"(mass), "d"(charge), "l"(bmag), "l"(phi),
+                 "l"(f), "l"(out)
+               : "memory");
+}
+
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_mom_gk_set_cu_ker_ptrs(
@@ -75,7 +103,7 @@ gkyl_mom_gk_advance_cu_ker(
     }
 
     // Reduce local f to local mom.
-    kernels->wmom(phase_grid.dx, vmap_c, mass, charge, bmag_c, phi_c, f_c, mom_local);
+    mom_gk_call(kernels->wmom, phase_grid.dx, vmap_c, mass, charge, bmag_c, phi_c, f_c, mom_local);
 
     double *mout_c = (double *)gkyl_array_fetch(mout, linidx_conf);
     for (unsigned int k = 0; k < mout->ncomp; ++k) {

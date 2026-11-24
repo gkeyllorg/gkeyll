@@ -350,7 +350,92 @@ test_source_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
+#ifdef GKYL_HAVE_CUDA
+// Cover every acceleration target, including all directions and tensor p2.
+static void
+test_accel_dispatch_all()
+{
+  for (int tensor = 0; tensor < 2; ++tensor) {
+    for (int cdim = 1; cdim <= 3; ++cdim) {
+      int max_order = cdim == 1 || (tensor && cdim == 2) ? 2 : 1;
+      for (int order = 1; order <= max_order; ++order) {
+        double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.5, 2.0};
+        int cells[] = {3, 2, 2}, ghosts[] = {1, 1, 1};
+        struct gkyl_rect_grid grid;
+        gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+        struct gkyl_range local, extended;
+        gkyl_create_grid_ranges(&grid, ghosts, &extended, &local);
+        struct gkyl_basis basis;
+        if (tensor) {
+          gkyl_cart_modal_tensor(&basis, cdim, order);
+        } else {
+          gkyl_cart_modal_serendip(&basis, cdim, order);
+        }
+        struct gkyl_wv_eqn *eqn[2];
+        struct gkyl_wave_geom *geom[2];
+        struct gkyl_dg_calc_pkpm_vars *up[2];
+        for (int gpu = 0; gpu < 2; ++gpu) {
+          eqn[gpu] = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, gpu);
+          geom[gpu] = gkyl_wave_geom_new(&grid, &extended, 0, 0, gpu);
+          up[gpu] =
+            gkyl_dg_calc_pkpm_vars_new(&grid, &basis, &local, eqn[gpu], geom[gpu], 0.0, gpu);
+        }
+        int nb = basis.num_basis;
+        int sizes[] = {12 * cdim * nb, 6 * nb, 9 * nb, nb, nb, 4 * nb};
+        struct gkyl_array *host[6], *device[6];
+        for (int field = 0; field < 6; ++field) {
+          host[field] = gkyl_array_new(GKYL_DOUBLE, sizes[field], extended.volume);
+          device[field] = gkyl_array_cu_dev_new(GKYL_DOUBLE, sizes[field], extended.volume);
+          for (long cell = 0; cell < extended.volume; ++cell) {
+            double *values = gkyl_array_fetch(host[field], cell);
+            for (int k = 0; k < sizes[field]; ++k) {
+              values[k] = 0.1 + 0.03 * field + 0.002 * cell + 0.005 * k;
+            }
+          }
+          gkyl_array_copy(device[field], host[field]);
+        }
+        struct gkyl_array *actual = gkyl_array_new(GKYL_DOUBLE, 4 * nb, extended.volume);
+        // Test accumulation into nonzero outputs, including unchanged ghost cells.
+        for (int repeat = 0; repeat < 2; ++repeat) {
+          gkyl_dg_calc_pkpm_vars_accel(
+            up[0], &local, host[0], host[1], host[2], host[3], host[4], host[5]
+          );
+          gkyl_dg_calc_pkpm_vars_accel(
+            up[1], &local, device[0], device[1], device[2], device[3], device[4], device[5]
+          );
+          gkyl_array_copy(actual, device[5]);
+          for (long cell = 0; cell < extended.volume; ++cell) {
+            const double *want = gkyl_array_cfetch(host[5], cell);
+            const double *got = gkyl_array_cfetch(actual, cell);
+            for (int k = 0; k < 4 * nb; ++k) {
+              TEST_CHECK(gkyl_compare(got[k], want[k], 1e-11));
+              TEST_MSG(
+                "tensor=%d cdim=%d p=%d cell=%ld component=%d: %.17g != %.17g", tensor, cdim, order,
+                cell, k, got[k], want[k]
+              );
+            }
+          }
+        }
+        gkyl_array_release(actual);
+        for (int field = 0; field < 6; ++field) {
+          gkyl_array_release(host[field]);
+          gkyl_array_release(device[field]);
+        }
+        for (int gpu = 0; gpu < 2; ++gpu) {
+          gkyl_dg_calc_pkpm_vars_release(up[gpu]);
+          gkyl_wave_geom_release(geom[gpu]);
+          gkyl_wv_eqn_release(eqn[gpu]);
+        }
+      }
+    }
+  }
+}
+#endif
+
 TEST_LIST = {
+#ifdef GKYL_HAVE_CUDA
+  {"accel_dispatch_all", test_accel_dispatch_all},
+#endif
   {"pressure_1x_p1", test_pressure_1x_p1},
   {"u_1x_p1", test_u_1x_p1},
   {"integrated_vars_1x_p1", test_integrated_vars_1x_p1},
