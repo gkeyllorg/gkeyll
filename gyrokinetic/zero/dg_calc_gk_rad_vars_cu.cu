@@ -77,11 +77,9 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu(
   );
 }
 
-// Each instantiation has a single direct radiation callee and its own register budget.
-template <int CDIM>
 __global__ void
 gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
-  struct gkyl_range conf_range, struct gkyl_range phase_range,
+  struct gkyl_dg_calc_gk_rad_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_gk_rad_drag *vnu_surf, const struct gkyl_gk_rad_drag *vnu,
   const struct gkyl_gk_rad_drag *vsqnu_surf, const struct gkyl_gk_rad_drag *vsqnu,
   const struct gkyl_array *n_elc_rad, const struct gkyl_array *n_elc, const struct gkyl_array *nI,
@@ -89,7 +87,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
   struct gkyl_array *nvsqnu, struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq
 )
 {
-  const int cdim = CDIM;
+  int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < phase_range.volume;
@@ -126,30 +124,16 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
       double *nvsqnu_surf_d = (double *)gkyl_array_fetch(nvsqnu_surf, loc_phase);
       double *nvsqnu_d = (double *)gkyl_array_fetch(nvsqnu, loc_phase);
 
-      if (CDIM == 1) {
-        rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1(
-          vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d, nvsqnu_surf_d,
-          nvsqnu_d
-        );
-      } else if (CDIM == 2) {
-        rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1(
-          vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d, nvsqnu_surf_d,
-          nvsqnu_d
-        );
-      } else if (CDIM == 3) {
-        rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1(
-          vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d, nvsqnu_surf_d,
-          nvsqnu_d
-        );
-      }
+      up->rad_nI_nu(
+        vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d
+      );
     }
   }
 }
 
 // Host-side wrapper for sum_s n_{i_s} nu_s(v) calculation for a given input n_{i_s} and nu_s(v)
-template <int CDIM>
-static void
-dg_calc_gk_rad_vars_nI_nu_launch(
+void
+gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
   const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
   const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
@@ -164,27 +148,10 @@ dg_calc_gk_rad_vars_nI_nu_launch(
   }
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<CDIM><<<nblocks, nthreads>>>(
-    *conf_range, *phase_range, vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev, vsqnu->on_dev,
-    n_elc_rad->on_dev, n_elc->on_dev, nI->on_dev, nvnu_surf->on_dev, nvnu->on_dev,
+  gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads>>>(
+    up->on_dev, *conf_range, *phase_range, vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev,
+    vsqnu->on_dev, n_elc_rad->on_dev, n_elc->on_dev, nI->on_dev, nvnu_surf->on_dev, nvnu->on_dev,
     nvsqnu_surf->on_dev, nvsqnu->on_dev, vtsq_min_normalized->on_dev, vtsq->on_dev
-  );
-}
-
-void
-gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
-  const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
-  const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
-  const struct gkyl_gk_rad_drag *vsqnu, const struct gkyl_array *n_elc_rad,
-  const struct gkyl_array *n_elc, const struct gkyl_array *nI, struct gkyl_array *nvnu_surf,
-  struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf, struct gkyl_array *nvsqnu,
-  struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq
-)
-{
-  up->rad_nI_nu_launch(
-    up, conf_range, phase_range, vnu_surf, vnu, vsqnu_surf, vsqnu, n_elc_rad, n_elc, nI, nvnu_surf,
-    nvnu, nvsqnu_surf, nvsqnu, vtsq_min_normalized, vtsq
   );
 }
 
@@ -197,7 +164,7 @@ dg_calc_gk_rad_vars_set_cu_dev_ptrs(
 {
   up->rad_nu_vpar = choose_rad_gyrokinetic_nu_vpar_kern(cdim, vdim, poly_order);
   up->rad_nu_mu = choose_rad_gyrokinetic_nu_mu_kern(cdim, vdim, poly_order);
-  up->rad_nI_nu = NULL;
+  up->rad_nI_nu = choose_rad_gyrokinetic_nI_nu_kern(cdim, vdim, poly_order);
 }
 
 gkyl_dg_calc_gk_rad_vars *
@@ -226,8 +193,6 @@ gkyl_dg_calc_gk_rad_vars_cu_dev_new(
   up->gk_geom = geom_ho->on_dev;
   up->vel_map = vel_map_ho->on_dev;
 
-  up->rad_nI_nu = NULL;
-  up->rad_nI_nu_launch = NULL;
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
@@ -239,21 +204,6 @@ gkyl_dg_calc_gk_rad_vars_cu_dev_new(
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
-
-  // Assign the host function pointer after copying the updater to the device.
-  switch (cdim) {
-    case 1:
-      up->rad_nI_nu_launch = dg_calc_gk_rad_vars_nI_nu_launch<1>;
-      break;
-    case 2:
-      up->rad_nI_nu_launch = dg_calc_gk_rad_vars_nI_nu_launch<2>;
-      break;
-    case 3:
-      up->rad_nI_nu_launch = dg_calc_gk_rad_vars_nI_nu_launch<3>;
-      break;
-    default:
-      gkyl_exit("Unsupported radiation configuration dimension.");
-  }
 
   // Updater should store host pointers.
   up->gk_geom = geom_ho;
