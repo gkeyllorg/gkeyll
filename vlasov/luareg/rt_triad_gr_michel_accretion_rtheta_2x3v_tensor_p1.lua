@@ -8,7 +8,7 @@
 -- coarser grid and shorter run (t = 5 M) than the radial driver and must reproduce it at equal
 -- resolution. The accretion rate r^2 n U^r computed from the rest-frame LTE moments must equal the
 -- exact -16 M^2 at every radius, and the profile must stay stationary over the run. Figures of
--- merit (tensor p1 hybrid, 10 x 1 x 6 x 6 x 6 cells on cubic velocity maps, 74 steps): the
+-- merit (tensor p1 hybrid, 10 x 1 x 6 x 6 x 6 cells on cubic velocity maps, 94 steps): the
 -- accretion rate r^2 n U^r from the rest-frame LTE moments is -16.006 at t = 0
 -- (exact -16, constant in r to 3.0e-3) and -16.07 at t = 5 M (constant to 2.9e-2); over the run the
 -- density, temperature and drift profiles change by at most 4.8e-2, 3.5e-2 and 2.4e-2 inside r = 12

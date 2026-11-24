@@ -1,10 +1,12 @@
 -- Drift-wave turbulence with the Hasegawa-Mima system (2x). A Gaussian potential blob of width 2 on
--- a periodic 40 x 40 box with background density gradient kappa = 1
--- (entry JE17 of A. Hakim's simulation journal, ammar-hakim.org/sj/je/je17); the evolved quantity
--- is zeta' = (grad^2 - 1) phi. The exact invariants are E = int (|grad phi|^2 + phi^2) and W = int
--- zeta'^2, and the zeta' centroid moves in y at exactly -kappa. Figures of merit
--- (serendipity p1, 128 x 128 cells): int zeta' is conserved to 1e-15, and over the turbulent run to
--- t = 200 the energy E falls by 4.2% and the enstrophy W by 4.9% through grid-scale dissipation.
+-- a periodic 40 x 40 box with background density gradient kappa = 1 (entry JE17 of A. Hakim's
+-- simulation journal, ammar-hakim.org/sj/je/je17); the evolved quantity is zeta' = (grad^2 - 1)
+-- phi. The exact invariants are E = int (|grad phi|^2 + phi^2) and W = int zeta'^2, and the zeta'
+-- centroid moves in y at exactly -kappa. Figures of merit (serendipity p1, 128 x 128 cells): int
+-- zeta' is conserved to round-off (relative change below 5e-14 in the time series), and over the
+-- turbulent run to t = 200 the energy E, computed from the phi frames at t = 0 and 200, falls by
+-- 4.2% (the time-series component int |grad phi|^2 by 6.6%) and the enstrophy W by 4.9% through
+-- grid-scale dissipation.
 local Vlasov = G0.Vlasov
 local HasegawaMima = G0.Vlasov.Eq.HasegawaMima
 

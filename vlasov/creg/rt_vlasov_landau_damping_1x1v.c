@@ -3,9 +3,9 @@
 // in density at k lambda_D = 0.5 with amplitude 1e-4; the electric field follows from Gauss's law.
 // Collisionless linear theory at k lambda_D = 0.5: omega = 1.4157 omega_pe, damping rate gamma =
 // 0.1533 omega_pe.
-// Figures of merit (serendipity p2, 32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at
-// gamma = 0.1549 and recur at omega = 1.413; the field energy at t = 20 is 0.00091 of its initial
-// value.
+// Figures of merit (serendipity p2, 32 x 32 cells): the field-energy peaks over t = 0.5-12 decay as
+// exp(-2 gamma t) with gamma = 0.1549 and recur at omega = 1.413; the field energy at t = 20 is
+// 0.00091 of its initial value.
 
 #include <math.h>
 #include <stdio.h>
@@ -344,13 +344,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -422,7 +425,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

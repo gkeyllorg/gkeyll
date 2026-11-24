@@ -11,11 +11,13 @@
 // Kinetic linear theory for the counter-streaming beams (electrons and positrons contribute
 // equally): box modes 1-30 are electrostatically unstable, the fastest being mode 18 (k lambda_D =
 // 0.18) with gamma = 0.473 omega_pe, so the electrostatic energy grows at up to 2 gamma = 0.946.
-// Figures of merit (serendipity p2, 64 x 128 cells): the electrostatic energy grows at 0.898 over t
-// = 12-20 and peaks at 2.54e3 at t = 24.2; the gravitational energy then grows at 0.175 over t =
-// 40-85 and peaks at 2.23e5 at t = 94.6; electron and positron numbers conserved to 3e-13 and total
-// energy (kinetic plus epsilon0/2 int |grad phi|^2 minus half the gravitational energy file, int
-// |grad phi_g|^2/alpha_g) to 1e-5.
+// Figures of merit (serendipity p2, 64 x 128 cells; the noise comes from the C library's rand(),
+// whose sequence differs between platforms, and the ranges below cover the glibc and macOS
+// realizations): the electrostatic energy grows at 0.90-0.91 over t = 12-20 (fit of ln E) and first
+// saturates at 2.3e3-2.5e3 near t = 24; the gravitational energy then grows at 0.175-0.183 over t =
+// 40-85 and peaks at 2.2e5-2.6e5 at t = 88-95; electron and positron numbers conserved to 3e-13 and
+// total energy (kinetic plus epsilon0/2 int |grad phi|^2 minus half the gravitational energy file,
+// int |grad phi_g|^2/alpha_g) to 2e-5.
 
 #include <math.h>
 #include <stdio.h>
@@ -437,6 +439,7 @@ main(int argc, char **argv)
 
   // Field: electrostatics and self-gravity.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
     .alpha_g = ctx.alpha_g,
 
@@ -461,23 +464,24 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {{
-         .name = "elc",
-         .charge = ctx.charge_elc,
-         .mass = ctx.mass_elc,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = elc,
-       },
-       {
-         .name = "pos",
-         .charge = ctx.charge_pos,
-         .mass = ctx.mass_pos,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = pos,
-       }},
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+        {
+          .name = "pos",
+          .charge = ctx.charge_pos,
+          .mass = ctx.mass_pos,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = pos,
+        },
+      },
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -547,7 +551,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

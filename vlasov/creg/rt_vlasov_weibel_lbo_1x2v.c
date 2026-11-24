@@ -2,8 +2,10 @@
 // 1x2v: the filamentation mode (k along x, beams along y) is seeded by a magnetic field
 // perturbation. Ions are a neutralizing background.
 // Weak LBO self-collisions act on the electrons.
-// Growth rate of the magnetic energy from linear theory (collisionless): gamma = 0.0985 (measured
-// 0.098-0.101 over t = 20-50); the mode saturates at t = 70.
+// Linear growth rate of the field amplitude (collisionless theory): gamma = 0.0985 (measured 0.0971
+// over t = 20-50 as half the slope of ln W_B, W_B the magnetic energy from the field-energy time
+// series); W_B saturates at its first maximum, at t = 59.4, and reaches its largest value, 0.139,
+// at t = 71.6.
 
 #include <math.h>
 #include <stdio.h>
@@ -400,12 +402,7 @@ main(int argc, char **argv)
         .correct_all_moms = true,
         .use_last_converged = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -439,13 +436,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -517,7 +517,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

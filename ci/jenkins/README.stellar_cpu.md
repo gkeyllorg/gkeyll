@@ -157,12 +157,17 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent C test runs; default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for CI reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
+| `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth` |
+| `CI_JENKINS_LOCAL_URL` | Optional Jenkins API URL reachable from the login-side agent; default `http://127.0.0.1:8080`. Use the server port, not the laptop SSH tunnel port |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its
 `GKEYLL_CI_ROOT` must exactly match the controller's root.
-It retains SHA-addressed baseline and candidate build/result directories; remove
+It retains baseline and latest candidate build/result directories. Cache cleanup
+uses Jenkins build state, Slurm working directories, and a shared-storage
+`flock`; verify the agent can query both services before enabling parallel
+executors. Drain older runs before deploying the new cache layout. Remove
 `baseline-cache/stellar-cpu` manually after an intentional toolchain change.
 
 ### Create the one parameterized Pipeline job
@@ -268,10 +273,9 @@ squeue --me
 scancel <jobid>
 ```
 
-Do not remove a workspace while its Slurm job appears in `squeue`. After it
-stops, it is safe to remove the abandoned workspace below
-`$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins retains 20 recent
-build records and archives artifacts before removing normal completed workspaces.
+Do not remove a workspace while its Slurm job appears in `squeue`. The next
+CI run removes inactive old build-tag workspaces automatically. Jenkins retains
+20 recent build records and archives artifacts separately.
 
 ## Numerical regression differences
 

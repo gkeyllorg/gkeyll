@@ -7,7 +7,7 @@
 -- and 3 where the Boltzmann factor is below 2e-4. Figures of merit
 -- (tensor p1, 20 x 2 x 10 x 8 cells): at t = 2 the azimuthally averaged density profile differs
 -- from its initial projection by 3.8e-2 in relative L1 (4.5e-2 at the peak) and stays azimuthally
--- uniform to 1e-5; mass and energy change by 9e-5 and 5e-5
+-- uniform to round-off; mass and energy change by 9e-5 and 5e-5
 -- (absorption of the Boltzmann tail at the outer wall).
 local Vlasov = G0.Vlasov
 

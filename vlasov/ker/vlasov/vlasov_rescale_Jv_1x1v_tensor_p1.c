@@ -1,19 +1,23 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_rescale_Jv_1x1v_tensor_p1(const double *jacob_vel_gauss, const double *f_no_J, double* GKYL_RESTRICT Jf) 
 { 
-  double Jf_nodal[6] = {0.0};
+  // Velocity-space Jacobian at the velocity Gauss-Legendre nodes; each configuration-space mode
+  // is multiplied by it, evaluated at the nodes and projected back one velocity direction at a time.
+  double ta[3]; 
 
-  Jf_nodal[0] = jacob_vel_gauss[0]*(-(0.44721359549995804*f_no_J[5])+0.4472135954999579*f_no_J[4]+0.6708203932499369*f_no_J[3]-0.6708203932499369*f_no_J[2]-0.5*f_no_J[1]+0.5*f_no_J[0]);
-  Jf_nodal[1] = jacob_vel_gauss[1]*(0.5590169943749476*f_no_J[5]-0.5590169943749475*f_no_J[4]-0.5*f_no_J[1]+0.5*f_no_J[0]);
-  Jf_nodal[2] = jacob_vel_gauss[2]*(-(0.44721359549995804*f_no_J[5])+0.4472135954999579*f_no_J[4]-0.6708203932499369*f_no_J[3]+0.6708203932499369*f_no_J[2]-0.5*f_no_J[1]+0.5*f_no_J[0]);
-  Jf_nodal[3] = jacob_vel_gauss[0]*(0.44721359549995804*f_no_J[5]+0.4472135954999579*f_no_J[4]-0.6708203932499369*f_no_J[3]-0.6708203932499369*f_no_J[2]+0.5*f_no_J[1]+0.5*f_no_J[0]);
-  Jf_nodal[4] = jacob_vel_gauss[1]*(-(0.5590169943749476*f_no_J[5])-0.5590169943749475*f_no_J[4]+0.5*f_no_J[1]+0.5*f_no_J[0]);
-  Jf_nodal[5] = jacob_vel_gauss[2]*(0.44721359549995804*f_no_J[5]+0.4472135954999579*f_no_J[4]+0.6708203932499369*f_no_J[3]+0.6708203932499369*f_no_J[2]+0.5*f_no_J[1]+0.5*f_no_J[0]);
+  // Configuration-space mode 0. 
+  ta[0] = 0.6324555320336759*f_no_J[4]-0.9486832980505137*f_no_J[2]+0.7071067811865475*f_no_J[0]; 
+  ta[1] = 0.7071067811865475*f_no_J[0]-0.7905694150420947*f_no_J[4]; 
+  ta[2] = 0.6324555320336759*f_no_J[4]+0.9486832980505137*f_no_J[2]+0.7071067811865475*f_no_J[0]; 
+  Jf[0] = 0.39283710065919303*jacob_vel_gauss[2]*ta[2]+0.6285393610547091*jacob_vel_gauss[1]*ta[1]+0.39283710065919303*jacob_vel_gauss[0]*ta[0]; 
+  Jf[2] = 0.5270462766947298*jacob_vel_gauss[2]*ta[2]-0.5270462766947298*jacob_vel_gauss[0]*ta[0]; 
+  Jf[4] = 0.35136418446315326*jacob_vel_gauss[2]*ta[2]-0.7027283689263066*jacob_vel_gauss[1]*ta[1]+0.35136418446315326*jacob_vel_gauss[0]*ta[0]; 
 
-  Jf[0] = 0.2777777777777778*Jf_nodal[5]+0.4444444444444444*Jf_nodal[4]+0.2777777777777778*Jf_nodal[3]+0.2777777777777778*Jf_nodal[2]+0.4444444444444444*Jf_nodal[1]+0.2777777777777778*Jf_nodal[0]; 
-  Jf[1] = 0.2777777777777778*Jf_nodal[5]+0.4444444444444444*Jf_nodal[4]+0.2777777777777778*Jf_nodal[3]-0.2777777777777778*Jf_nodal[2]-0.4444444444444444*Jf_nodal[1]-0.2777777777777778*Jf_nodal[0]; 
-  Jf[2] = 0.37267799624996495*Jf_nodal[5]-0.37267799624996495*Jf_nodal[3]+0.37267799624996495*Jf_nodal[2]-0.37267799624996495*Jf_nodal[0]; 
-  Jf[3] = 0.37267799624996495*Jf_nodal[5]-0.37267799624996495*Jf_nodal[3]-0.37267799624996495*Jf_nodal[2]+0.37267799624996495*Jf_nodal[0]; 
-  Jf[4] = 0.24845199749997662*Jf_nodal[5]-0.49690399499995325*Jf_nodal[4]+0.24845199749997662*Jf_nodal[3]+0.24845199749997662*Jf_nodal[2]-0.49690399499995325*Jf_nodal[1]+0.24845199749997662*Jf_nodal[0]; 
-  Jf[5] = 0.24845199749997673*Jf_nodal[5]-0.49690399499995347*Jf_nodal[4]+0.24845199749997673*Jf_nodal[3]-0.24845199749997673*Jf_nodal[2]+0.49690399499995347*Jf_nodal[1]-0.24845199749997673*Jf_nodal[0]; 
+  // Configuration-space mode 1. 
+  ta[0] = 0.6324555320336759*f_no_J[5]-0.9486832980505137*f_no_J[3]+0.7071067811865475*f_no_J[1]; 
+  ta[1] = 0.7071067811865475*f_no_J[1]-0.7905694150420947*f_no_J[5]; 
+  ta[2] = 0.6324555320336759*f_no_J[5]+0.9486832980505137*f_no_J[3]+0.7071067811865475*f_no_J[1]; 
+  Jf[1] = 0.39283710065919303*jacob_vel_gauss[2]*ta[2]+0.6285393610547091*jacob_vel_gauss[1]*ta[1]+0.39283710065919303*jacob_vel_gauss[0]*ta[0]; 
+  Jf[3] = 0.5270462766947298*jacob_vel_gauss[2]*ta[2]-0.5270462766947298*jacob_vel_gauss[0]*ta[0]; 
+  Jf[5] = 0.35136418446315326*jacob_vel_gauss[2]*ta[2]-0.7027283689263066*jacob_vel_gauss[1]*ta[1]+0.35136418446315326*jacob_vel_gauss[0]*ta[0]; 
 } 

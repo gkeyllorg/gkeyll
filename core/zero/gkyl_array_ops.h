@@ -52,6 +52,58 @@ bool gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
 struct gkyl_array *gkyl_array_clear(struct gkyl_array *out, double val);
 
 /**
+ * Fill all entries with repeatable pseudorandom doubles in [lo, hi].
+ * The fixed sequence is reproducible within a backend, not between CPU/CUDA.
+ * Equal bounds fill a constant; an empty array is unchanged.
+ *
+ * @param out Double array to fill on its own backend.
+ * @param lo Finite lower bound, no greater than hi.
+ * @param hi Finite upper bound.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_randomize(struct gkyl_array *out, double lo, double hi);
+
+/**
+ * Apply componentwise algebra: ABS = fabs(a*in1), INV = a/in1,
+ * PROD = a*in1*in2+b, DIV = a*in1/in2+b, AXPBY = a*in1+b*in2.
+ * Participating arrays must be doubles with matching sizes, component counts,
+ * and backends. out may alias either input. Divisors must be nonzero.
+ *
+ * @param out Output array, including all allocated cells.
+ * @param op One of GKYL_ABS, GKYL_INV, GKYL_PROD, GKYL_DIV, GKYL_AXPBY.
+ * @param a Coefficient of the first input.
+ * @param in1 First input array.
+ * @param b Additive constant for PROD/DIV, second coefficient for AXPBY;
+ * ignored for ABS/INV.
+ * @param in2 Second input array; ignored and may be NULL for ABS/INV.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_comp_op(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2
+);
+
+/**
+ * Apply componentwise algebra on a range using the same formulas, matching
+ * array requirements, and aliasing rules as gkyl_array_comp_op.
+ * Cells outside the range are unchanged; an empty range is a no-op.
+ *
+ * @param out Output double array.
+ * @param op One of GKYL_ABS, GKYL_INV, GKYL_PROD, GKYL_DIV, GKYL_AXPBY.
+ * @param a Coefficient of the first input.
+ * @param in1 First input array.
+ * @param b Additive constant for PROD/DIV, second coefficient for AXPBY;
+ * ignored for ABS/INV.
+ * @param in2 Second input array; ignored and may be NULL for ABS/INV.
+ * @param range Range with indexing inherited from the arrays' parent range.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_comp_op_range(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2, const struct gkyl_range *range
+);
+
+/**
  * Compute out = out + a*inp. Returns out.
  *
  * @param out Output array
@@ -91,7 +143,7 @@ struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
- * out->ncomp > inp->ncomp. Returns out.
+ * out->ncomp >= inp->ncomp. Returns out.
  *
  * @param out Output array
  * @param a Factor to multiply input array
@@ -101,6 +153,27 @@ struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct
  */
 struct gkyl_array *gkyl_array_set_offset(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+);
+
+/**
+ * Set ncoeff coefficients per cell: out[out_offset+k] = a*inp[inp_offset+k].
+ * Other coefficients are unchanged. Arrays must have equal sizes, double
+ * elements, and the same memory location (host or device). Counts and offsets
+ * are DG coefficients, not vector component/indices, and both blocks must fit in a
+ * cell. A zero count is a no-op. In-place blocks may be identical or disjoint;
+ * shifted overlapping blocks are unsupported.
+ *
+ * @param out Output array.
+ * @param a Factor to multiply input array.
+ * @param inp Input array.
+ * @param ncoeff Number of coefficients to set per cell.
+ * @param inp_offset Input coefficient offset.
+ * @param out_offset Output coefficient offset.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_set_offset_ncoeff(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
 );
 
 /**
@@ -129,16 +202,6 @@ struct gkyl_array *gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
  * @return out array.
  */
 struct gkyl_array *gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
-
-/**
- * Compute element-wise reciprocal, out = 1/inp. Returns out.
- * For in-place operation, pass out == inp.
- *
- * @param out Output array.
- * @param inp Input array.
- * @return out array.
- */
-struct gkyl_array *gkyl_array_invert_by_cell(struct gkyl_array *out, const struct gkyl_array *inp);
 
 /**
  * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
@@ -235,17 +298,38 @@ struct gkyl_array *gkyl_array_set_range_to_range(
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
- * out->ncomp > inp->ncomp, over a range of indices. Returns out.
+ * out->ncomp >= inp->ncomp, over a range of indices. Returns out.
  *
  * @param out Output array
  * @param a Factor to multiply input array
  * @param inp Input array
- * @return out array
+ * @param coff Component offset
  * @param range Range specifying region to set
+ * @return out array
  */
 struct gkyl_array *gkyl_array_set_offset_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
+);
+
+/**
+ * Set ncoeff coefficients per selected cell:
+ * out[out_offset+k] = a*inp[inp_offset+k]. Other coefficients and cells are
+ * unchanged. Array and coefficient-block requirements are the same as
+ * gkyl_array_set_offset_ncoeff. A zero count or empty range is a no-op.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param ncoeff Number of coefficients to set per cell
+ * @param inp_offset Input component offset
+ * @param out_offset Output component offset
+ * @param range Range specifying region to set (with array-compatible indexing)
+ * @return out array
+ */
+struct gkyl_array *gkyl_array_set_offset_ncoeff_range(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, const struct gkyl_range *range
 );
 
 /**
@@ -408,8 +492,9 @@ void gkyl_array_accumulate_offset_cu(
 
 void gkyl_array_set_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp);
 
-void gkyl_array_set_offset_cu(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+void gkyl_array_set_offset_ncoeff_cu(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
 );
 
 void gkyl_array_scale_cu(struct gkyl_array *out, double a);
@@ -417,8 +502,6 @@ void gkyl_array_scale_cu(struct gkyl_array *out, double a);
 void gkyl_array_scale_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a);
 
 void gkyl_array_divide_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a);
-
-void gkyl_array_invert_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp);
 
 void gkyl_array_shiftc_cu(struct gkyl_array *out, double a, unsigned k);
 
@@ -456,6 +539,11 @@ void gkyl_array_set_offset_range_cu(
   const struct gkyl_range *range
 );
 
+void gkyl_array_set_offset_ncoeff_range_cu(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, const struct gkyl_range *range
+);
+
 void gkyl_array_scale_range_cu(struct gkyl_array *out, double a, const struct gkyl_range *range);
 
 void gkyl_array_min_by_cell_range_cu(
@@ -491,4 +579,44 @@ void gkyl_array_flip_copy_to_buffer_fn_cu(
 
 void gkyl_array_max_by_cell_per_cell_avg_range_cu(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+);
+
+/**
+ * CUDA wrapper for fixed-seed, whole-array randomization.
+ *
+ * @param out Output device array.
+ * @param lo Finite lower bound.
+ * @param hi Finite upper bound, no smaller than lo.
+ */
+void gkyl_array_randomize_cu(struct gkyl_array *out, double lo, double hi);
+
+/**
+ * CUDA wrapper for componentwise algebra; uses gkyl_array_comp_op's contract.
+ *
+ * @param out Output device array.
+ * @param op Algebraic operator.
+ * @param a First coefficient.
+ * @param in1 First device input array.
+ * @param b Second coefficient or additive constant.
+ * @param in2 Second device input array, or NULL for unary operators.
+ */
+void gkyl_array_comp_op_cu(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2
+);
+
+/**
+ * CUDA wrapper for range-based componentwise algebra.
+ *
+ * @param out Output device array.
+ * @param op Algebraic operator.
+ * @param a First coefficient.
+ * @param in1 First device input array.
+ * @param b Second coefficient or additive constant.
+ * @param in2 Second device input array, or NULL for unary operators.
+ * @param range Range with the arrays' parent indexing.
+ */
+void gkyl_array_comp_op_range_cu(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2, const struct gkyl_range *range
 );

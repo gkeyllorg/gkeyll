@@ -33,7 +33,7 @@ GKYL_CU_D static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list
        {bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL}},
-  }
+  },
 };
 
 typedef void (*sheath_vcutsq_const_t)(
@@ -61,7 +61,7 @@ GKYL_CU_D static const edged_sheath_vcutsq_const_kern_list ser_sheath_vcutsq_con
        {bc_sheath_gyrokinetic_vcutsq_const_upper_1x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_vcutsq_const_upper_2x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_vcutsq_const_upper_3x2v_ser_p1, NULL}},
-  }
+  },
 };
 
 // Function pointer type for surrogate sheath BC to determine vcut factor from pre-computed NN output.
@@ -92,7 +92,7 @@ GKYL_CU_D static const edged_sheath_vcutsq_surr_kern_list ser_sheath_vcutsq_surr
        {bc_sheath_gyrokinetic_vcutsq_surr_upper_1x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_vcutsq_surr_upper_2x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1, NULL}},
-  }
+  },
 };
 
 // Function pointer type for the build the KANN input.
@@ -122,7 +122,7 @@ GKYL_CU_D static const edged_sheath_inp_kern_list ser_sheath_vcutsq_input_list[]
        {bc_sheath_gyrokinetic_build_input_upper_1x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_build_input_upper_2x2v_ser_p1, NULL},
        {bc_sheath_gyrokinetic_build_input_upper_3x2v_ser_p1, NULL}},
-  }
+  },
 };
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {

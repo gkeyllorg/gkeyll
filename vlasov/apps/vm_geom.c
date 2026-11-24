@@ -269,7 +269,14 @@ vm_geom_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_
     all_triad = all_triad && (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR);
     num_kinetic += 1;
   }
-  vmg->has_gr_em_triad_coupling = vmg->has_gr_fields && num_kinetic > 0 && all_triad;
+  // GR fields couple only to triad species: any other kinetic species would neither
+  // feel the GR Lorentz force nor deposit a consistent current, so refuse it.
+  if (vmg->has_gr_fields && !all_triad) {
+    gkyl_exit(
+      "vm_geom: GR-Maxwell fields (GKYL_FIELD_GR_D_B) couple only to GKYL_MODEL_TRIAD or GKYL_MODEL_TRIAD_GR kinetic species."
+    );
+  }
+  vmg->has_gr_em_triad_coupling = vmg->has_gr_fields && num_kinetic > 0;
 
   // If the fields are included, and are GR, then build the gr maxwell geometry
   if (vmg->has_gr_fields) {

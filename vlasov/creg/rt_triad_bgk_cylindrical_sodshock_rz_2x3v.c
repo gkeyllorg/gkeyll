@@ -6,7 +6,7 @@
 // velocity space) and must reproduce the 1x3v driver. The reference is a quasi-1D finite-volume
 // Euler solution with the metric determinant as area factor (reflecting walls), and the exact
 // planar Riemann solution is quoted for contrast. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x
-// 6 x 6 cells on cubic velocity maps, 52 steps): density L1 error 0.0365 against the quasi-1D
+// 6 x 6 cells on cubic velocity maps, 62 steps): density L1 error 0.0365 against the quasi-1D
 // reference (0.0356 against the planar exact solution); shock at 1.2031 (reference 1.1821) within
 // one cell; cell-averaged density within 0.028 (relative L1 0.012) of the serendipity p2 1x3v
 // driver at 16 radial cells; mass and energy conserved to round-off.
@@ -338,9 +338,11 @@ main(int argc, char **argv)
     .cells = {NVR, NVZ, NVTHETA},
 
     .mapc2p_vel =
-      {{.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vz},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta}},
+      {
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vz},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta},
+      },
 
     .num_init = 1,
     .projection[0] =
@@ -401,13 +403,16 @@ main(int argc, char **argv)
     .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -480,7 +485,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

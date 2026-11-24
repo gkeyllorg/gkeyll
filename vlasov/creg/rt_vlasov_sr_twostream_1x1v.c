@@ -5,9 +5,9 @@
 // Kinetic linear theory for the 1D Maxwell-Juttner beams at k = 0.5: a purely growing mode with
 // gamma = 0.0416 omega_pe, omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1 with n0 the rest-frame
 // density.
-// Figures of merit (serendipity p2, 64 x 64 cells): the field energy grows at gamma = 0.0419 over t
-// = 110-220 and saturates at t = 254 with energy 1.75 at t = 265; electron number conserved to
-// 4e-13.
+// Figures of merit (serendipity p2, 64 x 64 cells): the field energy W_E grows as exp(2 gamma t)
+// with gamma = 0.0419 (least-squares fit of ln W_E over t = 110-220) and saturates at t = 254
+// (maximum of W_E) with W_E = 1.75 at t = 265; electron number conserved to 4e-13.
 
 #include <math.h>
 #include <stdio.h>
@@ -419,13 +419,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -497,7 +500,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

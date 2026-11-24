@@ -8,7 +8,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_gr_maxwell_kernels.h>
 #include <gkyl_util.h>
-#include <gkyl_vlasov_hyb_build.h>
+#include <gkyl_vlasov_kernel_sets.h>
 
 typedef void (*gr_maxwell_current_deposition_t)(
   const double q_over_eps0, const double *lapse_nodal, const double *shift_nodal,
@@ -61,8 +61,8 @@ GKYL_CU_D static const gkyl_gr_maxwell_current_deposition_kern_list
     }, // 2
     {NULL, gr_maxwell_current_dep_2x_2v_tensor_p1, gr_maxwell_current_dep_2x_2v_tensor_p2, NULL
     }, // 3
-    {NULL, gr_maxwell_current_dep_2x_3v_tensor_p1, GKYL_TEN_2X3V_P2(gr_maxwell_current_dep_2x_3v_tensor_p2), NULL
-    }, // 4
+    {NULL, gr_maxwell_current_dep_2x_3v_tensor_p1,
+     GKYL_TEN_2X3V_P2(gr_maxwell_current_dep_2x_3v_tensor_p2), NULL}, // 4
     {NULL, gr_maxwell_current_dep_3x_3v_tensor_p1, gr_maxwell_current_dep_3x_3v_tensor_p2, NULL
     } // 5
 };

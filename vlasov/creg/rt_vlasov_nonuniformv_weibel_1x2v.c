@@ -2,8 +2,10 @@
 // 1x2v: the filamentation mode (k along x, beams along y) is seeded by a magnetic field
 // perturbation. Ions are a neutralizing background.
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
-// Growth rate of the magnetic energy from linear theory: gamma = 0.0985 (measured 0.098-0.101 over
-// t = 20-50); the mode saturates at t = 70.
+// Linear theory gives the growth rate gamma = 0.0985 of the field amplitude, so the magnetic energy
+// W_B grows as exp(2 gamma t); a least-squares fit of ln W_B over t = 20-50 gives gamma = 0.098.
+// W_B saturates at a first maximum of 0.108 at t = 58.8 and reaches its overall maximum, 0.141, at
+// t = 71.2.
 
 #include <math.h>
 #include <stdio.h>
@@ -454,13 +456,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -532,7 +537,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

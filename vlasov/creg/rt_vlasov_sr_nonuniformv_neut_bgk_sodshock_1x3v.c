@@ -3,12 +3,16 @@
 // collision frequency puts the mean free path at one cell. Temperatures are in units of mc^2, so
 // the gas is relativistically hot; the reference is the exact Riemann solution of the
 // Maxwell-Juttner gas.
-// Note: the relativistic BGK target matches the pressure of f, not its energy, so the post-shock
-// state drifts from the exact one as energy is not conserved (6% over this run).
+// Note: the relativistic BGK target matches the pressure of f, not its energy, so energy is not
+// conserved and the post-shock state drifts from the exact one: the kinetic energy
+// int (gamma - 1) f dx dp (energy minus M0 in the integrated moments, -imom) rises by 1.4% over
+// this run.
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
 // Exact solution at t = 0.2: shock at x = 0.646, contact at 0.588, post-shock lab-frame density
 // 0.313, velocity 0.438.
-// The kinetic shock position agrees within 2%; the measured post-shock lab density is 0.38.
+// Measured at t = 0.2 from frame 1: the post-shock lab-frame density (M0 at x = 0.617, midway
+// between the exact contact and shock) is 0.38, and the shock, where M0 crosses the midpoint
+// between that value and the upstream 0.125, sits at x = 0.640, within 1% of the exact position.
 
 #include <math.h>
 #include <stdio.h>
@@ -419,20 +423,10 @@ main(int argc, char **argv)
         .correct_all_moms = true,
         .use_last_converged = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
@@ -455,13 +449,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge_neut,
-      .mass = ctx.mass_neut,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge_neut,
+          .mass = ctx.mass_neut,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -533,7 +530,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

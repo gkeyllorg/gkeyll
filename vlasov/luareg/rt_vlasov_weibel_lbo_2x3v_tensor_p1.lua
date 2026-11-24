@@ -3,9 +3,9 @@
 -- electric field from Gauss's law in the ratio E_y/E_x of the growing eigenmode, as in the 2x2v
 -- input, with a passive third velocity dimension. Ions are a neutralizing background. Weak LBO
 -- self-collisions act on the electrons.
--- Growth rate of the magnetic energy from linear theory (collisionless): gamma = 0.1828 (measured
--- 0.169 over t = 30-60 with nu = 1e-4, against 0.172 without collisions on the same grid); the mode
--- saturates at t = 80.
+-- Linear growth rate of the field amplitude (collisionless theory): gamma = 0.1828 (measured 0.1692
+-- over t = 30-60 as half the slope of ln W_B, W_B the magnetic energy from the field-energy time
+-- series); W_B is still growing at t_end = 80 (the run ends before saturation).
 
 local Vlasov = G0.Vlasov
 

@@ -12,7 +12,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_vlasov_velocity_map.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
@@ -51,8 +51,7 @@ calc_int_moms(
 )
 {
   // Compute the volume integral of the moments.
-  double *integrated_moms = use_gpu ? gkyl_cu_malloc(num_mom * sizeof(double)) :
-                                      gkyl_malloc(num_mom * sizeof(double));
+  double *integrated_moms = gkyl_calloc_hodev(use_gpu, num_mom, sizeof(double));
 
   struct gkyl_array_integrate *integ_op =
     gkyl_array_integrate_new(confGrid, confBasis, num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
@@ -65,11 +64,7 @@ calc_int_moms(
     memcpy(int_moms, integrated_moms, sizeof(double[num_mom]));
   }
 
-  if (use_gpu) {
-    gkyl_cu_free(integrated_moms);
-  } else {
-    gkyl_free(integrated_moms);
-  }
+  gkyl_free_hodev(use_gpu, integrated_moms);
   gkyl_array_integrate_release(integ_op);
 }
 
@@ -1078,12 +1073,11 @@ calc_moms_gk(
   struct gkyl_array *distf, struct gkyl_array *moms
 )
 {
-  struct gkyl_dg_updater_moment *mom_op = gkyl_dg_updater_moment_gyrokinetic_new(
-    grid, confBasis, basis, confLocal, mass, charge, gvm, gk_geom, 0, GKYL_F_MOMENT_M0M1M2, false,
-    use_gpu
+  struct gkyl_mom_gyrokinetic *mom_op = gkyl_mom_gyrokinetic_new(
+    mass, charge, confBasis, basis, grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, false, use_gpu
   );
-  gkyl_dg_updater_moment_gyrokinetic_advance(mom_op, local, confLocal, distf, moms);
-  gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
+  gkyl_mom_gyrokinetic_advance(mom_op, local, confLocal, 0, distf, moms);
+  gkyl_mom_gyrokinetic_release(mom_op);
 }
 
 void

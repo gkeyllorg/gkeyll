@@ -336,35 +336,6 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Electron/ion equations (Lax fluxes): isothermal, with the thermal velocities of the initial
-  // temperatures.
-  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
-    .vt = sqrt(ctx.T_tot * ctx.Te_frac / ctx.mass_elc),
-    .rp_type = WV_ISO_EULER_RP_LAX,
-    .use_gpu = app_args.use_gpu,
-  });
-  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
-    .vt = sqrt(ctx.T_tot * ctx.Ti_frac / ctx.mass_ion),
-    .rp_type = WV_ISO_EULER_RP_LAX,
-    .use_gpu = app_args.use_gpu,
-  });
-
-  struct gkyl_vlasov_fluid_species elc = {
-    .equation = elc_iso_euler,
-    .init = evalElcInit,
-    .ctx = &ctx,
-
-    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-  };
-
-  struct gkyl_vlasov_fluid_species ion = {
-    .equation = ion_iso_euler,
-    .init = evalIonInit,
-    .ctx = &ctx,
-
-    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-  };
-
   // Field.
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
@@ -421,6 +392,37 @@ main(int argc, char **argv)
 #else
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
+
+  // Electron/ion equations (Lax fluxes): isothermal, with the thermal velocities of the initial
+  // temperatures.
+  // Created after the communicator: on GPUs under MPI the communicator selects this rank's
+  // device, where the equation's device copy must live.
+  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
+    .vt = sqrt(ctx.T_tot * ctx.Te_frac / ctx.mass_elc),
+    .rp_type = WV_ISO_EULER_RP_LAX,
+    .use_gpu = app_args.use_gpu,
+  });
+  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
+    .vt = sqrt(ctx.T_tot * ctx.Ti_frac / ctx.mass_ion),
+    .rp_type = WV_ISO_EULER_RP_LAX,
+    .use_gpu = app_args.use_gpu,
+  });
+
+  struct gkyl_vlasov_fluid_species elc = {
+    .equation = elc_iso_euler,
+    .init = evalElcInit,
+    .ctx = &ctx,
+
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
+  };
+
+  struct gkyl_vlasov_fluid_species ion = {
+    .equation = ion_iso_euler,
+    .init = evalIonInit,
+    .ctx = &ctx,
+
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
+  };
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
@@ -542,7 +544,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

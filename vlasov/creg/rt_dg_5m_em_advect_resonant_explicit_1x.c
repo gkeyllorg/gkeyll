@@ -257,16 +257,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Electron equations (HLLC fluxes).
-  struct gkyl_wv_euler_inp euler_inp = {
-    .gas_gamma = ctx.gas_gamma,
-    .rp_type = WV_EULER_RP_HLLC,
-    .use_gpu = app_args.use_gpu,
-  };
-  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_inew(&euler_inp);
-
-  struct gkyl_vlasov_fluid_species elc = {.equation = elc_euler, .init = evalElcInit, .ctx = &ctx};
-
   // Field.
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
@@ -324,6 +314,18 @@ main(int argc, char **argv)
 #else
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
+
+  // Electron equations (HLLC fluxes).
+  // Created after the communicator: on GPUs under MPI the communicator selects this rank's
+  // device, where the equation's device copy must live.
+  struct gkyl_wv_euler_inp euler_inp = {
+    .gas_gamma = ctx.gas_gamma,
+    .rp_type = WV_EULER_RP_HLLC,
+    .use_gpu = app_args.use_gpu,
+  };
+  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_inew(&euler_inp);
+
+  struct gkyl_vlasov_fluid_species elc = {.equation = elc_euler, .init = evalElcInit, .ctx = &ctx};
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
@@ -439,7 +441,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

@@ -903,8 +903,8 @@ vm_field_complete_update(
     app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   }
 
-  // Accumulate geometric source terms onto the field RHS.
-  if (app->field->use_geom_sources) {
+  // Accumulate geometric source terms onto the field RHS (a static field does not change).
+  if (app->field->use_geom_sources && !app->field->info.is_static) {
     vm_field_accumulate_geom_sources(app, emin, app->vm_geom, emout);
   }
 
@@ -1243,9 +1243,11 @@ vm_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fna
 
   // Recompute the external EM field and applied current: they are not part of
   // the restart file, and the time-stepping loop only recomputes them when they
-  // are time dependent.
-  vm_field_calc_ext_em(app, field, rstat.stime);
-  vm_field_calc_app_current(app, field, rstat.stime);
+  // are time dependent. Since a quantity that is not evolving keeps its initial
+  // value, pass 0.0 for it to guard against static inputs that were specified
+  // as being time-dependent.
+  vm_field_calc_ext_em(app, field, field->ext_em_evolve ? rstat.stime : 0.0);
+  vm_field_calc_app_current(app, field, field->app_current_evolve ? rstat.stime : 0.0);
 
   if (field->has_bvar && rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // b of the restart field (which includes the external field, so after it), over the

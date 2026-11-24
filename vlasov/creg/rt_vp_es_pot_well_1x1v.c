@@ -3,10 +3,10 @@
 // i.e. the field E = -sin(x) of the original Vlasov-Maxwell test, and the self-consistent potential
 // of the plasma response (omega_p = 1, Debye length 1) is solved from Poisson's equation on top of
 // it. Electrons bunch at the bottom of the well and partially screen it. Particle number is
-// conserved to round-off and the total energy (kinetic, external potential and self-
-// consistent field) to 1e-4. By t = 3 the density ranges from 0.65 to 1.37 and the self-consistent
-// potential reaches 0.37 of the external one. The run reproduces the Vlasov-Maxwell evolution of
-// the same initial field to 1e-4 in f, the two being equivalent in one-dimensional electrostatics.
+// conserved to round-off and the total energy (kinetic, external potential q int n phi_ext from
+// frames 0 and 1, and self-consistent field energy epsilon0/2 int |grad phi|^2) to 1e-8 relative.
+// By t = 3 the density ranges from 0.65 to 1.37 and the peak-to-peak self-consistent potential
+// reaches 0.37 of the external one.
 
 #include <math.h>
 #include <stdio.h>
@@ -286,13 +286,10 @@ main(int argc, char **argv)
   // Field.
   // Field: Poisson solve with the external potential well.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
-    .poisson_bcs =
-      {
-        .lo_type = {GKYL_POISSON_PERIODIC},
-        .up_type = {GKYL_POISSON_PERIODIC},
-      },
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
 
     .external_potentials = evalExtPotInit,
     .external_potentials_ctx = &ctx,
@@ -301,7 +298,6 @@ main(int argc, char **argv)
 
   // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
-    .is_electrostatic = true,
 
     .cdim = 1,
     .vdim = 1,
@@ -317,13 +313,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -395,7 +394,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

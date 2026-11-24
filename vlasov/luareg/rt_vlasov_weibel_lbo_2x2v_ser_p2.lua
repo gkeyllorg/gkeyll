@@ -3,8 +3,9 @@
 -- electric field from Gauss's law in the ratio E_y/E_x of the growing eigenmode. Ions are a
 -- neutralizing background.
 -- Weak LBO self-collisions act on the electrons.
--- Growth rate of the magnetic energy from linear theory (collisionless): gamma = 0.1828 (measured
--- 0.183 over t = 30-60); the mode saturates at t = 75.
+-- Linear growth rate of the field amplitude (collisionless theory): gamma = 0.1828 (measured 0.1795
+-- over t = 30-60 as half the slope of ln W_B, W_B the magnetic energy from the field-energy time
+-- series); W_B saturates at its first maximum, at t = 76.6.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

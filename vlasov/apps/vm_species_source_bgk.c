@@ -32,7 +32,7 @@ source_bgk_target_moms(
 static void
 source_bgk_target(gkyl_vlasov_app *app, struct vm_species *vms, struct vm_source_bgk *src)
 {
-  vm_species_lte_from_moms(app, vms, &vms->lte, src->moms);
+  vm_species_lte_from_moms(app, vms, &vms->lte, src->moms, src->corr_channel);
   gkyl_dg_mul_conf_phase_op_range(
     &app->basis, &vms->basis, src->nu_f_lte, src->nu, vms->lte.f_lte, &app->local, &vms->local
   );
@@ -198,6 +198,9 @@ vm_species_source_bgk_init(
   src->nu_f_lte = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);
 
   src->up_bgk = gkyl_bgk_collisions_new(&app->basis, &vms->basis, app->use_gpu);
+
+  // Correction status of the target Maxwellian.
+  src->corr_channel = vm_species_lte_add_corr_channel(&vms->lte, "source-bgk");
 
   // A static species does not take its source.
   src->is_implicit = info->is_implicit && !vms->info.is_static;

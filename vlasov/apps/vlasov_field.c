@@ -105,14 +105,40 @@ null_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   return f;
 }
 
+// Whether the field input defines a field (anything beyond a null field_id).
+static bool
+vlasov_field_inp_is_set(const struct gkyl_vlasov_field *inp)
+{
+  return (inp->field_id != GKYL_FIELD_E_B && inp->field_id != GKYL_FIELD_NULL) || inp->init ||
+         inp->ext_em || inp->app_current || inp->external_potentials || inp->sigma ||
+         inp->epsilon0 != 0.0 || inp->mu0 != 0.0;
+}
+
 struct vm_field *
 vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
   // A field object is always created: the null field when no field is present.
   if (vm->skip_field) {
+    if (vlasov_field_inp_is_set(&vm->field)) {
+      gkyl_exit(
+        "vlasov_field_new: skip_field is set together with a field input; give one or the other."
+      );
+    }
     return null_field_new(vm, app);
   }
-  return vm->is_electrostatic ? vp_field_new(vm, app) : vm_field_new(vm, app);
+  // The field type selects the solver.
+  switch (vm->field.field_id) {
+    case GKYL_FIELD_E_B:
+    case GKYL_FIELD_GR_D_B:
+      return vm_field_new(vm, app);
+    case GKYL_FIELD_PHI:
+      return vp_field_new(vm, app);
+    case GKYL_FIELD_NULL:
+      return null_field_new(vm, app);
+    default:
+      gkyl_exit("vlasov_field_new: unknown field_id.");
+      return 0;
+  }
 }
 
 double

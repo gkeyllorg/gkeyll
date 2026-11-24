@@ -17,7 +17,7 @@
 -- the gravitational energy peaks at 3.45e3 at t = 300; electron and positron numbers conserved to
 -- 3e-13 and total energy (kinetic plus epsilon0/2 of the electrostatic energy file, int |grad
 -- phi|^2 + mu_sq phi^2, minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) to
--- 1e-5.
+-- 7e-6.
 
 local Vlasov = G0.Vlasov
 
@@ -203,10 +203,9 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field: screened electrostatics and self-gravity.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     epsilon0 = epsilon0,
     alphaG = alpha_g,
     muSq = mu_sq,

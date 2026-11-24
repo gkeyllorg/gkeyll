@@ -228,21 +228,21 @@ intPsi(double r0, double r, double theta, void *ctx)
 }
 
 double
-compute_alpha_integral(double r, double twrap, void *ctx)
+compute_alpha_integral(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
 
-  if (twrap == 0.0) {
+  if (theta == 0.0) {
     return 0.0;
   }
 
-  if (0. < twrap) {
-    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., twrap, 7, 1e-10);
+  if (0. < theta) {
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., theta, 7, 1e-10);
     return integral.res;
   } else {
-    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, twrap, 0., 7, 1e-10);
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, theta, 0., 7, 1e-10);
     return -integral.res;
   }
 }
@@ -250,16 +250,9 @@ compute_alpha_integral(double r, double twrap, void *ctx)
 double
 alpha(double r, double theta, double phi, void *ctx)
 {
-  struct gk_app_ctx *app = ctx;
-  double twrap = theta;
-  while (twrap < -M_PI) {
-    twrap = twrap + 2. * M_PI;
-  }
-  while (M_PI < twrap) {
-    twrap = twrap - 2. * M_PI;
-  }
-
-  double integral_val = compute_alpha_integral(r, twrap, ctx);
+  // Keep the field-line angle continuous across +/-pi: periodic geometry
+  // uses centered finite differences with samples just outside the domain.
+  double integral_val = compute_alpha_integral(r, theta, ctx);
 
   double R = R_rtheta(r, theta, ctx);
   double Bt = Bphi(R, ctx);
@@ -431,10 +424,6 @@ eval_canon_maxwellian_e(
   double xb = rb - app->r0;
   double dens = density_init(xb, ctx);
   double temp = temp_init_elc(xb, ctx);
-
-  double envelope =
-    exp(-pow(xb / (app->Lx / 4.0), 2)) * exp(-pow((theta - M_PI) / (M_PI / 4.0), 2));
-  dens = dens * envelope;
 
   double energy = 0.5 * m * pow(vpar, 2) + mu * Bmag(r, theta, ctx);
 
@@ -645,7 +634,7 @@ create_ctx(void)
   double mu_max_elc = 7 * Te0 / B0;
   double vpar_max_ion = 4. * vti;
   double mu_max_ion = 7 * Ti0 / B0;
-  double t_end = 0.001 * t_itg;
+  double t_end = 0.01 * t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
@@ -803,18 +792,20 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+      },
 
     .anomalous_diffusion =
       {
@@ -833,6 +824,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // ions
@@ -869,18 +862,20 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+      },
 
     .anomalous_diffusion =
       {
@@ -900,14 +895,18 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -945,6 +944,9 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
+
     .num_species = 2,
     .species = {elc, ion},
 
@@ -969,7 +971,6 @@ main(int argc, char **argv)
         .restart_frame = app_args.restart_frame,
         .num_steps = app_args.num_steps,
       },
-    .print_verbosity = {.disable_timings = true, .enabled = true, .frequency = 0.01},
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

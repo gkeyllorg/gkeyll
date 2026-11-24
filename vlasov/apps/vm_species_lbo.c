@@ -388,10 +388,11 @@ vm_species_lbo_init(
     bool computed_cross = vms->info.collisions.num_cross_collisions > 0 &&
                           !vms->info.collisions.cross_nu[0];
     if (!vms->info.collisions.self_nu || computed_cross) {
-      // Compute a minimum representable temperature based on the smallest dv in the grid.
+      // Compute a minimum representable temperature based on the smallest physical dv
+      // (with a velocity map the computational grid spacing is not a velocity).
       double vtsq_min = 0.0;
       for (int d = 0; d < vdim; ++d) {
-        vtsq_min += (1.0 / 6.0) * pow(vms->grid.dx[cdim + d], 2);
+        vtsq_min += (1.0 / 6.0) * pow(gkyl_vlasov_velocity_map_min_dv(vms->vel_map, d), 2);
       }
       lbo->vtsq_min = vtsq_min / vdim;
 

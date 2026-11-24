@@ -4,9 +4,10 @@
 // by a magnetic field perturbation. Ions are a neutralizing background.
 // A quadratic momentum map clusters the cells at the origin of p_x; p_y (the beam direction) and
 // p_z keep uniform cells.
-// Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency
-// sqrt(gamma_drift)): gamma = 0.525 (measured 0.53-0.54 over t = 5-15); the mode saturates at t =
-// 27.
+// Linear theory (lab-frame plasma frequency sqrt(gamma_drift)) gives the growth rate gamma = 0.525
+// of the field amplitude, so the magnetic energy W_B grows as exp(2 gamma t); a least-squares fit
+// of ln W_B over t = 5-15 gives gamma = 0.529. W_B saturates at a first maximum of 7.38 at t = 21.6
+// and reaches its overall maximum, 12.7, at t = 27.0.
 
 #include <math.h>
 #include <stdio.h>
@@ -490,13 +491,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -568,7 +572,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

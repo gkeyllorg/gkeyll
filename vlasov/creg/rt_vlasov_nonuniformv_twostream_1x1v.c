@@ -5,8 +5,9 @@
 // v_lin) vc |vc| with v_lin = 8 vt, so the cells are finest near v = 0.
 // Kinetic linear theory: a purely growing mode with gamma = 0.2770 omega_pe (cold-beam limit
 // 0.308).
-// Figures of merit (serendipity p2, 64 x 32 cells): the field energy grows at gamma = 0.2778 over t
-// = 20-40 and saturates at t = 45.2 with energy 57.1 at t = 50; electron number conserved to 4e-13.
+// Figures of merit (serendipity p2, 64 x 32 cells): the field energy W_E grows as exp(2 gamma t)
+// with gamma = 0.2778 (least-squares fit of ln W_E over t = 20-40) and saturates at t = 45.2
+// (maximum of W_E) with W_E = 57.1 at t = 50; electron number conserved to 4e-13.
 
 #include <math.h>
 #include <stdio.h>
@@ -440,13 +441,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -518,7 +522,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

@@ -6,15 +6,16 @@
 // dependent emission model of Bradshaw and Srinivasan (2024, PSST 33, 035008) with the copper
 // fits of Furman and Pivi (true secondaries with a Gaussian spectrum, elastic backscattering)
 // scaled to Te = 10 eV.
-// Figures of merit at steady state (serendipity p2, 16 x 24 cells, t = 4000/omega_pe): the flux-
-// weighted true-secondary yield is 0.188 and the total yield (emitted over incoming electron flux,
-// from the net electron wall flux) 0.59, below the Hobbs-Wesson critical yield 1 - 8.3 sqrt(me/mi)
-// = 0.81, so the sheath stays monotonic; the midplane-to-wall potential drop e*dphi/Te = 2.30
-// against 3.23 without emission, a reduction of 0.93 where the Hobbs-Wesson floating-potential
-// shift -ln(1 - delta) gives 0.89; ion wall flux / (n_mid c_s) = 0.72, ion speed at the wall / c_s
-// = 2.34; the net electron and ion wall fluxes balance to 1e-4. The emitted distribution and the
-// yield diagnostic (<species>_bc_up_yield.gkyl: yield and incoming flux) are written at every
-// frame.
+// Figures of merit at steady state (serendipity p2, 16 x 24 cells, t = 4000/omega_pe): the
+// flux-weighted true-secondary yield (yield diagnostic at t_end) is 0.188 and the total yield
+// (emitted over incoming electron flux, from the net electron wall flux and the incoming flux of
+// the yield diagnostic) 0.62, below the Hobbs-Wesson critical yield 1 - 8.3 sqrt(me/mi) = 0.81, so
+// the sheath stays monotonic; the midplane-to-wall potential drop e*dphi/Te = phi(0) - phi(Lx) is
+// 2.27, and the Hobbs-Wesson floating-potential shift -ln(1 - delta) for this yield is 0.96; with
+// wall-cell averages of the moments, ion wall flux / (n_mid c_s) = 0.72 (n_mid the first-cell
+// average, c_s = sqrt(Te/m_i)), ion speed at the wall / c_s = 2.33, and the net electron and ion
+// wall fluxes balance to 1e-4. The emitted distribution and the yield diagnostic
+// (<species>_bc_up_yield.gkyl: yield and incoming flux) are written at every frame.
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -568,13 +569,11 @@ main(int argc, char **argv)
   // scaled to Te and Te = 1 in code units, that charge is 1.
   char impact_species[1][128] = {"elc"};
   struct gkyl_emission_spectrum_model *spectrum_model[1] = {
-    gkyl_emission_spectrum_gaussian_new(1.0, ctx.E_0, ctx.tau, app_args.use_gpu),
+    gkyl_emission_spectrum_gaussian_new(1.0, ctx.E_0, ctx.tau, app_args.use_gpu)
   };
-  struct gkyl_emission_yield_model *yield_model[1] = {
-    gkyl_emission_yield_furman_pivi_new(
-      1.0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu
-    ),
-  };
+  struct gkyl_emission_yield_model *yield_model[1] = {gkyl_emission_yield_furman_pivi_new(
+    1.0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu
+  )};
   struct gkyl_emission_elastic_model *elastic_model = gkyl_emission_elastic_furman_pivi_new(
     1.0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu
   );
@@ -690,6 +689,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
     .poisson_bcs =
@@ -721,23 +721,24 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {{
-         .name = "elc",
-         .charge = ctx.charge_elc,
-         .mass = ctx.mass_elc,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = elc,
-       },
-       {
-         .name = "ion",
-         .charge = ctx.charge_ion,
-         .mass = ctx.mass_ion,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = ion,
-       }},
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+        {
+          .name = "ion",
+          .charge = ctx.charge_ion,
+          .mass = ctx.mass_ion,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = ion,
+        },
+      },
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -807,7 +808,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

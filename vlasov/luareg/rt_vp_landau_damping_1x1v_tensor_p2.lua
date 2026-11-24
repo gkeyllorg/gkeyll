@@ -95,10 +95,9 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     epsilon0 = epsilon0,
 
     poissonBcs = {

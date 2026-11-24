@@ -3,7 +3,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_gk_geometry.h>
@@ -228,21 +228,17 @@ test_1x2v(int poly_order, bool use_gpu)
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Compute the integrated moments of the original f.
-  struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, proj_ctx.mass, 0, gvm, gk_geom, NULL,
-    GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu
+  struct gkyl_mom_gyrokinetic *int_mom_up = gkyl_mom_gyrokinetic_new(
+    proj_ctx.mass, 0, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2PARM2PERP, true,
+    use_gpu
   );
 
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(int_mom_up);
+  int num_mom = gkyl_mom_gyrokinetic_num_mom(int_mom_up);
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   double *red_intmom;
-  if (use_gpu) {
-    red_intmom = gkyl_cu_malloc(sizeof(double[2 + vdim]));
-  } else {
-    red_intmom = gkyl_malloc(sizeof(double[2 + vdim]));
-  }
+  red_intmom = gkyl_calloc_hodev(use_gpu, 2 + vdim, sizeof(double));
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
+  gkyl_mom_gyrokinetic_advance(int_mom_up, &local, &confLocal, NULL, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_pre[2 + vdim];
   if (use_gpu) {
@@ -278,7 +274,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_accumulate(deltaf, 1.0, distf);
 
   // Compute the integrated moments after the positivity shift.
-  gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
+  gkyl_mom_gyrokinetic_advance(int_mom_up, &local, &confLocal, NULL, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_post[2 + vdim];
   if (use_gpu) {
@@ -289,7 +285,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the integrated moments of the shift.
   struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, deltaf, ps_intmom_grid);
+  gkyl_mom_gyrokinetic_advance(int_mom_up, &local, &confLocal, NULL, deltaf, ps_intmom_grid);
   gkyl_array_reduce_range(red_intmom, ps_intmom_grid, GKYL_SUM, &confLocal);
   double intmom_shift[2 + vdim];
   if (use_gpu) {
@@ -333,13 +329,11 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu) {
     gkyl_array_release(bmag_ho);
     gkyl_array_release(distf_ho);
-    gkyl_cu_free(red_intmom);
-  } else {
-    gkyl_free(red_intmom);
   }
+  gkyl_free_hodev(use_gpu, red_intmom);
   gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
-  gkyl_dg_updater_moment_gyrokinetic_release(int_mom_up);
+  gkyl_mom_gyrokinetic_release(int_mom_up);
   gkyl_positivity_shift_gyrokinetic_release(pos_shift);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_velocity_map_release(gvm);

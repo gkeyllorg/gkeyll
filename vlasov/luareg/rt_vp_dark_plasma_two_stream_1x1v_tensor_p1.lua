@@ -12,10 +12,10 @@
 -- equally): box modes 1-30 are electrostatically unstable, the fastest being mode 18 (k lambda_D =
 -- 0.18) with gamma = 0.473 omega_pe, so the electrostatic energy grows at up to 2 gamma = 0.946.
 -- Figures of merit (tensor p1 (hybrid), 64 x 128 cells; the Lua noise realization differs from the
--- C one): the electrostatic energy grows at 0.833 over t = 12-20 and peaks at 2.20e3 at t = 25.7;
+-- C one): the electrostatic energy grows at 0.833 over t = 12-20 and peaks at 2.20e3 at t = 25.6;
 -- the gravitational energy then grows at 0.177 over t = 40-85 and peaks at 2.68e5 at t = 89.8;
 -- electron and positron numbers conserved to 2e-13 and total energy (kinetic plus epsilon0/2 int
--- |grad phi|^2 minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) to 1e-5.
+-- |grad phi|^2 minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) to 7e-6.
 
 local Vlasov = G0.Vlasov
 
@@ -200,10 +200,9 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field: electrostatics and self-gravity.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     epsilon0 = epsilon0,
     alphaG = alpha_g,
 

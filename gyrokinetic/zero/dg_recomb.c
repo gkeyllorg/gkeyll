@@ -231,5 +231,8 @@ void
 gkyl_dg_recomb_release(struct gkyl_dg_recomb *up)
 {
   gkyl_array_release(up->recomb_data);
-  free(up);
+  if (up->use_gpu) {
+    gkyl_cu_free(up->basis_on_dev);
+  }
+  gkyl_free(up);
 }

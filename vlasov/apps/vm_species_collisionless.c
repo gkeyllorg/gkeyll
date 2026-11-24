@@ -163,8 +163,8 @@ vm_species_collisionless_init(
   // Determine which forces we need based on combination of field ID and presence
   // of applied accelerations and external fields/potentials.
   // A field object always exists (a null field with field_id == GKYL_FIELD_NULL
-  // when none is present), so dispatch on the field type. With no field force
-  // (GKYL_FIELD_NULL), an applied acceleration still acts as an electric force.
+  // when none is present), so dispatch on the field type. An applied acceleration
+  // acts as an electric force with any field type.
   cls->has_E = false;
   cls->has_B = false;
   cls->has_phi = false;
@@ -178,7 +178,10 @@ vm_species_collisionless_init(
   if (vms->field_id == GKYL_FIELD_PHI) {
     cls->has_phi = true;
   }
-  if (vms->field_id == GKYL_FIELD_NULL && cls->has_app_accel) {
+  // The applied acceleration is accumulated into the electric-force slot of qmem
+  // (see vm_species_collisionless_calc_force), so it needs the E-force kernels
+  // whatever the field type.
+  if (cls->has_app_accel) {
     cls->has_E = true;
   }
 
@@ -302,13 +305,18 @@ vm_species_collisionless_init(
   }
   int num_up_dirs = pdim;
 
-  // Default: no zero-flux BCs in any configuration-space direction.
+  // Default: no zero-flux BCs in any configuration-space direction. hyper_dg drops
+  // the flux on the faces at the edges of its (local) update range, so only a rank
+  // whose local range reaches the physical boundary sets the flag; the other ranks
+  // keep the flux across their inter-rank faces.
   int zero_flux_flags[2 * GKYL_MAX_DIM] = {false};
   for (int dir = 0; dir < cdim; ++dir) {
-    if (vms->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+    if (vms->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX &&
+        app->local.lower[dir] == app->global.lower[dir]) {
       zero_flux_flags[dir] = true;
     }
-    if (vms->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+    if (vms->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX &&
+        app->local.upper[dir] == app->global.upper[dir]) {
       zero_flux_flags[dir + pdim] = true;
     }
   }

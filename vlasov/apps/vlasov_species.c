@@ -719,13 +719,16 @@ void
 vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
   if (sp->kinetic) {
-    vm_species_lte_write_max_corr_status(app, sp->kinetic);
+    vm_species_lte_write_corr_status(app, sp->kinetic);
   }
 }
 
 // Read the evolved state of the species from the named file through the method
 // of its aspect, which also rebuilds what a restart does not carry (the file of a
 // PKPM species holds its distributions; its fluid state is read with a frame).
+// The boundary fluxes and BCs of a kinetic or a fluid species are rebuilt
+// separately (vlasov_species_restart_bflux/_bc), after every species is read,
+// since an emitting wall reads the boundary fluxes of its impact species.
 struct gkyl_app_restart_status
 vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const char *fname)
 {
@@ -737,6 +740,40 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
     rstat = vm_fluid_species_from_file(app, sp->fluid, fname);
   }
   return rstat;
+}
+
+void
+vlasov_species_restart_bflux(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  // A static species computes its (fixed) boundary fluxes with its initial condition.
+  if (sp->type == GKYL_SPECIES_VLASOV) {
+    struct vm_species *vms = sp->kinetic;
+    if (!vms->info.is_static && vms->calc_bflux) {
+      vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
+    }
+  }
+}
+
+void
+vlasov_species_restart_bc(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  // The read of a PKPM species applies its BCs (they read b of the restart field).
+  if (sp->type == GKYL_SPECIES_PKPM) {
+    return;
+  }
+  vlasov_species_apply_bc(
+    app, sp, sp->kinetic ? sp->kinetic->f : 0, sp->fluid ? sp->fluid->fluid : 0, app->tcurr
+  );
+  // The ghost cells of an emitting wall are those of the frame, not the ones the BC rebuilds.
+  if (sp->type == GKYL_SPECIES_VLASOV) {
+    struct vm_species *vms = sp->kinetic;
+    if (vms->emit_lo) {
+      vm_species_emission_restart_bc(app, vms, &vms->bc_emission_lo, vms->f);
+    }
+    if (vms->emit_up) {
+      vm_species_emission_restart_bc(app, vms, &vms->bc_emission_up, vms->f);
+    }
+  }
 }
 
 // Restart a species from a frame. Every aspect is seeded from the initial
@@ -775,9 +812,48 @@ vlasov_species_gather_dist(gkyl_vlasov_app *app, const struct gkyl_array *fin[])
   }
 }
 
+// Flag the species whose boundary fluxes another species uses (the source species of
+// a boundary-flux source, and the impact species of an emitting wall): each species
+// allocates its boundary-flux objects in its own initialization, so the flag must be set
+// before the kinetic aspects are initialized. Missing names are reported by the source and
+// emission initializations.
+static void
+vlasov_species_flag_bflux_providers(gkyl_vlasov_app *app)
+{
+  for (int i = 0; i < app->num_species; ++i) {
+    if (app->species[i].type != GKYL_SPECIES_VLASOV) {
+      continue;
+    }
+    struct vm_species *vms = app->species[i].kinetic;
+    if (vms->info.source.source_id == GKYL_BFLUX_SOURCE) {
+      struct vm_species *provider = vm_find_species(app, vms->info.source.source_species);
+      if (provider) {
+        provider->calc_bflux = true;
+      }
+    }
+    const struct gkyl_vlasov_bcs *bcs[3] = {&vms->info.bcx, &vms->info.bcy, &vms->info.bcz};
+    for (int d = 0; d < app->cdim; ++d) {
+      const struct gkyl_vlasov_bc *edge_bcs[2] = {&bcs[d]->lower, &bcs[d]->upper};
+      for (int e = 0; e < 2; ++e) {
+        if (edge_bcs[e]->type != GKYL_SPECIES_EMISSION) {
+          continue;
+        }
+        const struct gkyl_bc_emission_ctx *emit_ctx = edge_bcs[e]->aux_ctx;
+        for (int k = 0; k < emit_ctx->num_species; ++k) {
+          struct vm_species *provider = vm_find_species(app, emit_ctx->in_species[k]);
+          if (provider) {
+            provider->calc_bflux = true;
+          }
+        }
+      }
+    }
+  }
+}
+
 void
 vlasov_species_init_kinetic_aspects(struct gkyl_vm *vm, gkyl_vlasov_app *app)
 {
+  vlasov_species_flag_bflux_providers(app);
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].type == GKYL_SPECIES_VLASOV) {
       vm_species_init(vm, app, app->species[i].kinetic);
@@ -812,7 +888,7 @@ vlasov_species_link_kinetic_aspects(gkyl_vlasov_app *app)
     vm_species_bgk_cross_init(app, vms, &vms->bgk);
   }
 
-  // Sources may create a boundary-flux updater on their source species.
+  // Sources read their source species' boundary fluxes (flagged before the kinetic init).
   for (int i = 0; i < app->num_species; ++i) {
     struct vm_species *vms = app->species[i].kinetic;
     if (app->species[i].type == GKYL_SPECIES_VLASOV && vms->source_id) {

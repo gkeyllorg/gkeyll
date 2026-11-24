@@ -4,10 +4,12 @@
 // E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x; omega = 1.0
 // Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the resonant case. The fields are
 // external and the species does not feed back on them; the 3V setup mirrors the PKPM test of the
-// same name. Momenta are in units of mc and the temperature is 0.25 mc^2, so the bulk reaches gamma
-// ~ 1.5 and the relativistic cyclotron frequency Omega_c / gamma detunes the drive. With the
-// detuning, the bulk velocity saturates at |<v>| = 0.77 instead of growing secularly, and follows
-// the characteristics to 2% (at t = 10, <v_y> = 0.273 and <v_z> = -0.029 against 0.274 and -0.029).
+// same name. Momenta are in units of mc and the temperature is 0.25 mc^2. As the drive accelerates
+// the bulk, the relativistic cyclotron frequency Omega_c / gamma detunes it, so the bulk speed
+// |<v>| = |M1| / M0 from the integrated moments does not grow secularly: it peaks at 0.782 at t =
+// 4.7 (1 / sqrt(1 - |<v>|^2) = 1.60) and then oscillates. <v> follows the relativistic
+// single-particle characteristics (a quadrature over the initial Maxwell-Juttner) to 0.001 c over
+// the run (at t = 10, <v_y> = 0.273 and <v_z> = -0.029 against 0.274 and -0.029).
 
 #include <math.h>
 #include <stdio.h>
@@ -424,13 +426,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -502,7 +507,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

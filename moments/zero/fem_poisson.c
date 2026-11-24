@@ -348,8 +348,10 @@ gkyl_fem_poisson_new(
   // reliable (an exactly zero pivot leaves the solve undone), so fix the gauge by
   // replacing the equation of global node 0 with phi_0 = 0 (its right side is zeroed
   // in set_rhs). The constant is removed again after the solve, so the returned
-  // zero-mean potential is unchanged.
-  if (up->isdomperiodic && !(up->ishelmholtz)) {
+  // zero-mean potential is unchanged. A bias plane already fixes the potential (the
+  // system is not singular), so a biased problem keeps its prescribed values.
+  up->pin_gauge = up->isdomperiodic && !(up->ishelmholtz) && up->num_bias_plane == 0;
+  if (up->pin_gauge) {
     long ncol = 0;
     long *cols = gkyl_malloc(sizeof(long) * gkyl_mat_triples_size(tri[0]));
     struct gkyl_mat_triples_iter *it = gkyl_mat_triples_iter_new(tri[0]);
@@ -450,7 +452,7 @@ gkyl_fem_poisson_set_rhs(
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, phibc_p, up->globalidx, brhs_p);
   }
-  if (up->isdomperiodic && !(up->ishelmholtz)) {
+  if (up->pin_gauge) {
     brhs_p[0] = 0.0; // gauge equation phi_0 = 0 (see the matrix assembly).
   }
 
@@ -467,7 +469,7 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
     gkyl_fem_poisson_solve_cu(up, phiout);
-    if (up->isdomperiodic && !(up->ishelmholtz)) {
+    if (up->pin_gauge) {
       fem_poisson_subtract_vol_avg(up, phiout);
     }
     return;
@@ -497,7 +499,7 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   // In a fully periodic (non-Helmholtz) problem the potential is only defined up
   // to a constant, and the constant returned by the direct solve of the singular
   // system is arbitrary. Fix the gauge by removing the volume average of phi.
-  if (up->isdomperiodic && !(up->ishelmholtz)) {
+  if (up->pin_gauge) {
     fem_poisson_subtract_vol_avg(up, phiout);
   }
 }

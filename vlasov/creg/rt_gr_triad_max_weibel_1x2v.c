@@ -4,10 +4,9 @@
 // mc^2, filamentation mode k = 0.5 along x seeded by a magnetic field perturbation, ions as a
 // neutralizing background), so the general-relativistic current coupling and field evolution must
 // reduce to special relativity.
-// Figures of merit (serendipity p2, 24 x 20 x 20 cells, 579 steps): magnetic-energy growth rate
-// 0.5235 over t = 5-20 against the kinetic theory value 0.525, saturation at t = 32, identical to
-// the special-relativistic driver (same growth rate and saturation time; field energies within 2
-// percent up to t = 20, the field solvers differ).
+// Figures of merit (serendipity p2, 24 x 20 x 20 cells, 579 steps): the magnetic energy (B_z^2)
+// grows at twice 0.5235 over t = 5-20, a mode growth rate of 0.5235 against the kinetic theory
+// value 0.525; it first peaks at t = 26.2 and reaches its maximum at t = 32.2.
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -420,7 +419,6 @@ main(int argc, char **argv)
   struct gkyl_vm app_inp = {
     .geom = geom,
 
-
     .cdim = 1,
     .vdim = 2,
     .lower = {0.0},
@@ -435,13 +433,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -513,7 +514,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

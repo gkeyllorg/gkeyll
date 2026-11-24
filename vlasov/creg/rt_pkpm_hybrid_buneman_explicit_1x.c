@@ -17,7 +17,7 @@
 // omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
 // Figures of merit (16 cells, 64 in w): the field-energy history int E_x^2 dx grows at gamma =
 // 0.1896 over t = 20-65 (both species PKPM: 0.1895; kinetic electrons with the same ion fluid:
-// 0.1947). It peaks at 3.4e-3 at t = 72.3 (both PKPM: 3.2e-3 at t = 72.3) and is 1.8e-3 at t = 80.
+// 0.1946). It peaks at 3.4e-3 at t = 72.3 (both PKPM: 3.2e-3 at t = 72.3) and is 1.8e-3 at t = 80.
 // Electron and ion number are conserved to 1e-12. The total energy (field and the fluid energies of
 // both species from the histories) changes by 7e-14 of itself up to t = 40 and by 5e-13 up to t =
 // 80. The mean of E_x is at round-off (below 1e-15) at t = 80, where the largest cell average of
@@ -559,7 +559,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

@@ -6,8 +6,7 @@
 -- 0.1533 omega_pe.
 -- Figures of merit (tensor p1 (hybrid), 32 x 32 cells): the field-energy peaks over t = 0.5-12
 -- decay at gamma = 0.1239 and recur at omega = 1.403; the field energy at t = 20 is 0.0019 of its
--- initial value. The collisions slow the damping from the collisionless 0.155 measured on this
--- grid.
+-- initial value. The fitted rate is below the collisionless linear-theory rate 0.1533.
 
 local Vlasov = G0.Vlasov
 
@@ -106,10 +105,9 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     epsilon0 = epsilon0,
 
     poissonBcs = {

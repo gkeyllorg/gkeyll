@@ -41,21 +41,18 @@ gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(
 }
 
 struct gkyl_prim_lbo_type *
-gkyl_prim_lbo_gyrokinetic_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis
+gkyl_prim_lbo_gyrokinetic_cu_dev_new_with_vdim(
+  const struct gkyl_basis *cbasis, int vdim, int num_phase
 )
 {
-  assert(cbasis->poly_order == pbasis->poly_order);
-
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic =
     (struct prim_lbo_type_gyrokinetic *)gkyl_malloc(sizeof(struct prim_lbo_type_gyrokinetic));
 
   int cdim = prim_gyrokinetic->prim.cdim = cbasis->ndim;
-  int pdim = prim_gyrokinetic->prim.pdim = pbasis->ndim;
-  int vdim = pdim - cdim;
+  int pdim = prim_gyrokinetic->prim.pdim = cdim + vdim;
   int poly_order = prim_gyrokinetic->prim.poly_order = cbasis->poly_order;
   prim_gyrokinetic->prim.num_config = cbasis->num_basis;
-  prim_gyrokinetic->prim.num_phase = pbasis->num_basis;
+  prim_gyrokinetic->prim.num_phase = num_phase;
   prim_gyrokinetic->prim.udim = 1;
 
   prim_gyrokinetic->prim.flag = 0;
@@ -77,4 +74,15 @@ gkyl_prim_lbo_gyrokinetic_cu_dev_new(
   prim_gyrokinetic->prim.on_dev = &prim_gyrokinetic_cu->prim;
 
   return &prim_gyrokinetic->prim;
+}
+
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_gyrokinetic_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis
+)
+{
+  assert(cbasis->poly_order == pbasis->poly_order);
+  return gkyl_prim_lbo_gyrokinetic_cu_dev_new_with_vdim(
+    cbasis, pbasis->ndim - cbasis->ndim, pbasis->num_basis
+  );
 }

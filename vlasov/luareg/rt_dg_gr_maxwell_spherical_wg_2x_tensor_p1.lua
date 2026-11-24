@@ -4,7 +4,9 @@
 -- a combination of spherical Bessel functions of order 2 vanishing at both walls, at frequency
 -- 2.2281. It is advanced for two periods, after which the field must coincide with its initial
 -- state. The mode frequency is reproduced to 0.1% and after two periods the field returns to its
--- initial state to 1e-2 in the relative L2 norm, with the energy conserved to 6e-3.
+-- initial state to 1e-2 in the relative L2 norm. The field-energy time series sums the squared
+-- coordinate components of the fields without the metric, so it is not the conserved energy and
+-- swings by up to 6% within the run; after two periods it returns to its initial value to 6e-3.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

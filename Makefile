@@ -41,23 +41,13 @@ else
 endif
 -include alltargets.mak
 
-# Optional heavy kernel set (tensor p=1 hybrid basis in 3x3v). Off by default:
-# it adds tens of MB of generated kernels and, under nvcc, tens of minutes of
-# compile time. Set the knobs in config.mak (see ./configure --help). The
-# corresponding kernel tables get NULL rows when the set is not built, and the
-# apps refuse such configurations with a message pointing here. 
-BUILD_VLASOV_HYB_3X3V ?=
-BUILD_VLASOV_HYB_3X3V_PHASE ?=
 # Optional tensor p=2 kernel set in 2x3v (velocity-space Hamiltonian Vlasov,
-# moments, LBO; no phase-space Hamiltonian or triads). Off by default.
+# moments, LBO; no phase-space Hamiltonian or triads). Off by default: set the
+# knob in config.mak (see ./configure --help). The corresponding kernel tables
+# get NULL rows when the set is not built, and the apps refuse such
+# configurations with a message pointing here.
 BUILD_VLASOV_TEN_2X3V_P2 ?=
-
-ifeq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
-ifneq ($(BUILD_VLASOV_HYB_3X3V),1)
-$(error BUILD_VLASOV_HYB_3X3V_PHASE=1 requires BUILD_VLASOV_HYB_3X3V=1: the 3x3v phase-space Hamiltonian kernels run on top of the 3x3v hybrid velocity-map, moment and flux kernels. Reconfigure with --build-vlasov-hyb-3x3v=yes as well)
-endif
-endif
-# (the -D flags for these knobs are added to CFLAGS below, after the compiler
+# (the -D flag for this knob is added to CFLAGS below, after the compiler
 # specific CFLAGS are set, since the nvcc branch reassigns CFLAGS)
 
 # Default lapack include and libraries: we prefer linking to static library
@@ -156,13 +146,7 @@ CFLAGS += ${HAVE_APP_FLAGS}
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
 
-# Optional heavy kernel set defines (knobs resolved above)
-ifeq ($(BUILD_VLASOV_HYB_3X3V),1)
-	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V
-endif
-ifeq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
-	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V_PHASE
-endif
+# Optional heavy kernel set define (knob resolved above)
 ifeq ($(BUILD_VLASOV_TEN_2X3V_P2),1)
 	CFLAGS += -DGKYL_BUILD_VLASOV_TEN_2X3V_P2
 endif
@@ -280,7 +264,7 @@ export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
 export MKDIR_P GKYL_SHARE_DIR BUILD_APP
 export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
 export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
-export BUILD_VLASOV_HYB_3X3V BUILD_VLASOV_HYB_3X3V_PHASE BUILD_VLASOV_TEN_2X3V_P2
+export BUILD_VLASOV_TEN_2X3V_P2
 export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
 export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
 export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
@@ -333,8 +317,9 @@ SED_REPS_STR2=s,MAKEFILE_FOR_EXT_C_INP_PHONY_TAG,${MAKEFILE_FOR_EXT_C_INP_PHONY}
 everything: regression unit gkeyll ## Build everything, including unit, regression and gkeyll exectuable
 
 ## Core infrastructure targets
+# Set LIBRARY_TARGET=library to build without installing runtime data.
 core:  ## Build core infrastructure code
-	cd core && $(MAKE) -f Makefile-core
+	cd core && $(MAKE) -f Makefile-core ${LIBRARY_TARGET}
 
 core-unit: core ## Build core unit tests
 	cd core && $(MAKE) -f Makefile-core unit
@@ -361,7 +346,7 @@ core-valcheck: core ## Run valgrind on unit tests in core
 
 ## Moments infrastructure targets
 moments: core  ## Build moments infrastructure code
-	cd moments && $(MAKE) -f Makefile-moments
+	cd moments && $(MAKE) -f Makefile-moments ${LIBRARY_TARGET}
 
 moments-unit: moments core-unit ## Build moments unit tests
 	cd moments && $(MAKE) -f Makefile-moments unit
@@ -390,7 +375,7 @@ moments-valcheck: moments ## Run valgrind on unit tests in moments
 
 ## Vlasov infrastructure targets
 vlasov: moments  ## Build Vlasov infrastructure code
-	cd vlasov && $(MAKE) -f Makefile-vlasov
+	cd vlasov && $(MAKE) -f Makefile-vlasov ${LIBRARY_TARGET}
 
 vlasov-unit: vlasov moments-unit ## Build Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit
@@ -419,7 +404,7 @@ vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 
 ## Gyrokinetic infrastructure targets
 gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
-	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ${LIBRARY_TARGET}
 
 gyrokinetic-unit: gyrokinetic vlasov-unit ## Build Gyrokinetic unit tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit
@@ -486,6 +471,28 @@ unit-run: ## Run all unit tests without (re)building them
 	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
 	fi; \
 	[ $$keep -eq 1 ] || rm -f "$$GKYL_TEST_LOG"; \
+	[ $$nfail -eq 0 ]
+
+# Run the MPI unit tests (mctest_*) on each rank count in MPI_UNIT_NP; tests
+# written for another rank count return without checking anything. Set MPIEXEC
+# for the local launcher, e.g. MPIEXEC=srun or MPIEXEC="mpirun --oversubscribe".
+MPIEXEC ?= mpirun
+MPI_UNIT_NP ?= 1 2 4
+mpi-unit-run: ## Run MPI unit tests on 1, 2 and 4 ranks without (re)building them
+	@if [ "${USE_MPI}" != "1" ]; then echo "Not built with MPI: no MPI unit tests to run."; exit 0; fi; \
+	log=$$(mktemp); npass=0; nfail=0; \
+	for unit in $(filter-out %.d %.dSYM,$(wildcard ${BUILD_DIR}/*/unit/mctest_*)); do \
+	  for np in ${MPI_UNIT_NP}; do \
+	    if ${MPIEXEC} -np $$np $$unit > "$$log" 2>&1; then \
+	      npass=$$((npass+1)); echo "PASS (np=$$np): $$unit"; \
+	    else \
+	      nfail=$$((nfail+1)); echo "FAIL (np=$$np): $$unit"; cat "$$log"; \
+	    fi; \
+	  done; \
+	done; \
+	rm -f "$$log"; \
+	echo "==================== gkeyll MPI unit test summary ===================="; \
+	echo "Passed: $$npass   Failed: $$nfail"; \
 	[ $$nfail -eq 0 ]
 
 # From: https://www.client9.com/self-documenting-makefiles/

@@ -509,8 +509,12 @@ vm_species_apply_ic_static(gkyl_vlasov_app *app, struct vm_species *vms, double 
     vm_species_projection_calc(app, vms, &vms->proj_init[0], vms->f, tm);
   }
 
-  // Project the source at the initial time (re-projected every stage if time-dependent).
-  vm_species_source_calc(app, vms, &vms->src, tm);
+  // The boundary fluxes of the static f are fixed, so compute them once. f1 aliases f
+  // here: its ghost cells are cleared before the calculation (a static species has no
+  // boundary conditions to keep in them).
+  if (vms->calc_bflux) {
+    vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f1);
+  }
 }
 
 static double
@@ -738,9 +742,11 @@ vm_species_write_source_and_emission(
   });
   if (vms->emit_lo) {
     vm_species_emission_write(app, vms, &vms->bc_emission_lo, mt, frame);
+    vm_species_emission_write_restart(app, vms, &vms->bc_emission_lo, vms->f, mt, frame);
   }
   if (vms->emit_up) {
     vm_species_emission_write(app, vms, &vms->bc_emission_up, mt, frame);
+    vm_species_emission_write_restart(app, vms, &vms->bc_emission_up, vms->f, mt, frame);
   }
   vlasov_array_meta_release(mt);
 }
@@ -891,7 +897,7 @@ vm_species_write_lte_enabled(gkyl_vlasov_app *app, struct vm_species *vms, doubl
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
-  vm_species_lte(app, vms, &vms->lte, vms->f);
+  vm_species_lte(app, vms, &vms->lte, vms->f, vms->lte.corr_channel_diag);
 
   // Divide out the velocity space Jacobian from LTE distribution if present
   // We do the division before I/O to increase the accuracy since we know
@@ -1164,12 +1170,6 @@ vm_species_release_dynamic(const gkyl_vlasov_app *app, const struct vm_species *
     vm_species_source_release(app, &vms->src);
   }
 
-  if (vms->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-    vm_species_lbo_release(app, &vms->lbo);
-  } else if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    vm_species_bgk_release(app, &vms->bgk);
-  }
-
   if (vms->calc_bflux) {
     vm_species_bflux_release(app, &vms->bflux);
   }
@@ -1201,6 +1201,9 @@ vm_species_release_dynamic(const gkyl_vlasov_app *app, const struct vm_species *
 static void
 vm_species_release_static(const gkyl_vlasov_app *app, const struct vm_species *vms)
 {
+  if (vms->calc_bflux) {
+    vm_species_bflux_release(app, &vms->bflux);
+  }
 }
 
 // A reflecting wall mirrors the cells of the velocity grid normal to it, so that grid (and its
@@ -1402,6 +1405,12 @@ vm_species_new_static(
   vms->f1 = vms->f;
   vms->fnew = vms->f;
 
+  // Boundary fluxes another species uses (a boundary-flux source or an emitting wall);
+  // computed once from the initial condition since f never changes.
+  if (vms->calc_bflux) {
+    vm_species_bflux_init(app, vms, &vms->bflux);
+  }
+
   // Set function pointers.
   vms->apply_ic_func = vm_species_apply_ic_static;
   vms->rhs_func = vm_species_rhs_static;
@@ -1495,18 +1504,6 @@ vm_species_rhs_source_enabled(
   vm_species_source_rhs(app, vms, &vms->src, rhs);
 }
 
-// Static species: the source is not added to the RHS; a time-dependent source is
-// projected at the stage time for its diagnostics.
-static void
-vm_species_rhs_source_static(
-  gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
-)
-{
-  if (vms->src.evolve_source) {
-    vm_species_source_calc(app, vms, &vms->src, tcurr);
-  }
-}
-
 static void
 vm_species_rhs_source_disabled(
   gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
@@ -1515,9 +1512,10 @@ vm_species_rhs_source_disabled(
 }
 
 // Read the distribution function from a file and rebuild what a restart does
-// not carry: the velocity- and configuration-space Jacobian rescale, the
-// boundary fluxes, the BCs, and the source and the applied acceleration
-// evaluated at the time of the file.
+// not carry: the velocity- and configuration-space Jacobian rescale, and the
+// source and the applied acceleration. The boundary fluxes and the BCs are
+// rebuilt separately (vlasov_species_restart_bflux/_bc), after every species is
+// read, since an emitting wall reads the boundary fluxes of its impact species.
 static struct gkyl_app_restart_status
 vm_species_from_file_distf(gkyl_vlasov_app *app, struct vm_species *vms, const char *fname)
 {
@@ -1544,49 +1542,34 @@ vm_species_from_file_distf(gkyl_vlasov_app *app, struct vm_species *vms, const c
       );
       gkyl_array_copy(vms->f, vms->f_no_J);
 
-      if (vms->calc_bflux) {
-        vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
-      }
-      vm_species_apply_bc(app, vms, vms->f, rstat.stime);
+      // The time-stepping loop re-evaluates the source only when it evolves. Since the
+      // quantity is not evolving, pass 0.0 to guard against static sources that were
+      // specified as being time-dependent.
       if (vms->source_id) {
-        vm_species_source_calc(app, vms, &vms->src, rstat.stime);
+        vm_species_source_calc(app, vms, &vms->src, vms->src.evolve_source ? rstat.stime : 0.0);
       }
     }
   }
-  vm_species_collisionless_app_accel(app, &vms->collisionless, rstat.stime);
+  // As for the source: a non-evolving applied acceleration keeps its value at 0.0.
+  vm_species_collisionless_app_accel(
+    app, &vms->collisionless, vms->collisionless.app_accel_evolve ? rstat.stime : 0.0
+  );
 
   return rstat;
 }
 
 // Exit with a message if the kernels of the requested basis were not built: the
-// 3x3v tensor p=1 hybrid kernels and the 2x3v tensor p=2 kernels are optional
-// build sets (see ./configure --help and the top-level Makefile).
+// 2x3v tensor p=2 kernels are an optional build set (see ./configure --help and
+// the top-level Makefile).
 static void
-vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
+vm_species_check_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
-  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
 #ifndef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
   if (vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR && vms->basis.poly_order == 2 && cdim == 2 &&
       vdim == 3) {
     gkyl_exit(
       "vm_species: the 2x3v tensor p=2 kernels were not built. Reconfigure with --build-vlasov-ten-2x3v-p2=yes."
-    );
-  }
-#endif
-  if (vms->basis.b_type != GKYL_BASIS_MODAL_HYBRID) {
-    return;
-  }
-#ifndef GKYL_BUILD_VLASOV_HYB_3X3V
-  if (cdim == 3 && vdim == 3) {
-    gkyl_exit(
-      "vm_species: the 3x3v tensor p=1 hybrid kernels were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes."
-    );
-  }
-#endif
-#ifndef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
-  if (cdim == 3 && vdim == 3 && vms->hamil_id == GKYL_HAMIL_PHASE) {
-    gkyl_exit(
-      "vm_species: the 3x3v tensor p=1 hybrid phase-space Hamiltonian kernels were not built. Reconfigure with --build-vlasov-hyb-3x3v-phase=yes (and --build-vlasov-hyb-3x3v=yes)."
     );
   }
 #endif
@@ -1760,7 +1743,17 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Construct Hamiltonian.
   vm_species_new_hamil(vm_app_inp, app, vms);
-  vm_species_check_hyb_build(app, vms);
+  vm_species_check_build(app, vms);
+
+  // Only the tensor p=1 hybrid has distinct low-order surface kernels (p+1 velocity
+  // nodes). A pure tensor p>=2 basis has just the (p+2)-node kernels, which the low-order
+  // surface layout of the velocity map does not match.
+  if (vms->info.use_lo && vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR &&
+      vms->basis.poly_order > 1) {
+    gkyl_exit(
+      "vm_species: use_lo is only available for the tensor p=1 (hybrid) basis; tensor p>=2 has only the higher-order surface kernels."
+    );
+  }
 
   // Determine whether we have radiation.
   vm_species_new_radiation(vm_app_inp, app, vms);
@@ -1859,6 +1852,20 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     vms->calc_bflux = true;
   }
 
+  if (vms->info.is_static) {
+    // A static species is never updated: it can provide its moments (e.g. as a cross
+    // collision partner) and boundary fluxes to other species, but nothing may add to it.
+    if (vms->source_id) {
+      gkyl_exit("vm_species: a static species cannot have a source.");
+    }
+    for (int d = 0; d < cdim; ++d) {
+      if (vms->lower_bc[d].type == GKYL_SPECIES_EMISSION ||
+          vms->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
+        gkyl_exit("vm_species: a static species cannot have an emitting wall.");
+      }
+    }
+  }
+
   if (!vms->info.is_static) {
     vm_species_new_dynamic(vm_app_inp, app, vms);
   } else {
@@ -1869,8 +1876,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->calc_implicit_moms_func = vm_species_calc_implicit_moms_bgk;
   if (vms->source_id) {
     vms->calc_source_moms_func = vm_species_calc_source_moms_enabled;
-    vms->rhs_source_func = vms->info.is_static ? vm_species_rhs_source_static :
-                                                 vm_species_rhs_source_enabled;
+    vms->rhs_source_func = vm_species_rhs_source_enabled;
   } else {
     vms->calc_source_moms_func = vm_species_calc_source_moms_disabled;
     vms->rhs_source_func = vm_species_rhs_source_disabled;
@@ -2012,6 +2018,8 @@ void
 vm_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_species *vms, double tm)
 {
   vms->calc_integrated_mom_func(app, vms, tm);
+  // The LTE correction status is snapshotted at the same cadence.
+  vm_species_lte_calc_corr_status(app, &vms->lte, tm);
 }
 
 // Write integrated moments.
@@ -2019,6 +2027,7 @@ void
 vm_species_write_integrated_mom(gkyl_vlasov_app *app, struct vm_species *vms)
 {
   vms->write_integrated_mom_func(app, vms);
+  vm_species_lte_write_corr_status(app, vms);
 }
 
 // Calculate integrated f^2.
@@ -2056,12 +2065,16 @@ vm_species_read_from_frame(gkyl_vlasov_app *app, struct vm_species *vms, int fra
   vms->is_first_integ_write_call = false;
   vms->is_first_integ_L2_write_call = false;
   vms->src.is_first_integ_write_call = false;
-  vms->lte.is_first_corr_status_write_call = false;
+  for (int c = 0; c < vms->lte.num_corr_channels; ++c) {
+    vms->lte.corr_channels[c].is_first_write_call = false;
+  }
   if (vms->emit_lo) {
     vms->bc_emission_lo.is_first_yield_write_call = false;
+    vm_species_emission_read_restart(app, vms, &vms->bc_emission_lo, frame);
   }
   if (vms->emit_up) {
     vms->bc_emission_up.is_first_yield_write_call = false;
+    vm_species_emission_read_restart(app, vms, &vms->bc_emission_up, frame);
   }
 
   return rstat;
@@ -2152,6 +2165,14 @@ vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *vms)
 
   vm_species_lte_release(app, &vms->lte);
   vm_species_source_bgk_release(app, &vms->src_bgk);
+
+  // Collision objects are created for static species too (they provide moments to
+  // cross-collision partners), so release them here rather than in release_func.
+  if (vms->lbo.collision_id == GKYL_LBO_COLLISIONS) {
+    vm_species_lbo_release(app, &vms->lbo);
+  } else if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_release(app, &vms->bgk);
+  }
 
   vms->release_func(app, vms);
 }

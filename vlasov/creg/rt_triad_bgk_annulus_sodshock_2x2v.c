@@ -413,13 +413,16 @@ main(int argc, char **argv)
     .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -492,7 +495,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

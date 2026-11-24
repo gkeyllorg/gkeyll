@@ -169,7 +169,7 @@ vmbgk_target_enabled(
       lte->moms.marr, 1.0, bgk->fixed_temp, (app->vdim + 1) * app->basis.num_basis, &app->local
     );
   }
-  vm_species_lte_from_moms(app, vms, lte, lte->moms.marr);
+  vm_species_lte_from_moms(app, vms, lte, lte->moms.marr, bgk->corr_channel_self);
 
   // Multiply the Maxwellian by self-species collision frequency.
   gkyl_dg_mul_conf_phase_op_range(
@@ -182,7 +182,7 @@ vmbgk_target_enabled(
     bgk->cross_moms_func(app, vms, bgk, i);
 
     // Compute the cross-collisions Maxwellian.
-    vm_species_lte_from_moms(app, vms, lte, bgk->cross_prim_moms);
+    vm_species_lte_from_moms(app, vms, lte, bgk->cross_prim_moms, bgk->corr_channel_cross[i]);
 
     // Compute and accumulate nu*fmax.
     gkyl_dg_mul_conf_phase_op_range(
@@ -290,6 +290,23 @@ vm_species_bgk_init(
     bgk->implicit_step = vms->info.collisions.is_implicit;
     bgk->num_cross_collisions = vms->info.collisions.num_cross_collisions;
 
+    // The implicit step builds the cross Maxwellians from the cross primitive moments
+    // before the step (they are not solved for at the new time), so the momentum and
+    // energy exchanged between species do not cancel. Cross collisions are declared
+    // symmetrically, so this also excludes an implicit partner of an explicit species.
+    if (bgk->implicit_step && bgk->num_cross_collisions > 0) {
+      gkyl_exit(
+        "vm_species_bgk: implicit BGK collisions do not support cross collisions yet (the cross moments are not solved for at the new time, which breaks conservation)."
+      );
+    }
+    // The fixed temperature is an upstream thermostat for self collisions; it has no
+    // meaning for the exchange with another species.
+    if (vms->info.collisions.fixed_temp_relax && bgk->num_cross_collisions > 0) {
+      gkyl_exit(
+        "vm_species_bgk: fixed_temp_relax applies to self collisions only; remove the cross collisions."
+      );
+    }
+
     int cdim = app->cdim, vdim = app->vdim;
 
     // Allocate self-species collision frequency and sum of collision frequencies.
@@ -306,10 +323,11 @@ vm_species_bgk_init(
     bool computed_cross = vms->info.collisions.num_cross_collisions > 0 &&
                           !vms->info.collisions.cross_nu[0];
     if (!vms->info.collisions.self_nu || computed_cross) {
-      // Compute a minimum representable temperature based on the smallest dv in the grid.
+      // Compute a minimum representable temperature based on the smallest physical dv
+      // (with a velocity map the computational grid spacing is not a velocity).
       double vtsq_min = 0.0;
       for (int d = 0; d < vdim; ++d) {
-        vtsq_min += (1.0 / 6.0) * pow(vms->grid.dx[cdim + d], 2);
+        vtsq_min += (1.0 / 6.0) * pow(gkyl_vlasov_velocity_map_min_dv(vms->vel_map, d), 2);
       }
       bgk->vtsq_min = vtsq_min / vdim;
 
@@ -372,6 +390,9 @@ vm_species_bgk_init(
 
     // BGK updater.
     bgk->up_bgk = gkyl_bgk_collisions_new(&app->basis, &vms->basis, app->use_gpu);
+
+    // Correction status of the self Maxwellian (the cross ones are added in cross_init).
+    bgk->corr_channel_self = vm_species_lte_add_corr_channel(&vms->lte, "bgk-self");
 
     // Is the temperature being relaxed to fixed in time?
     bgk->fixed_temp_relax = vms->info.collisions.fixed_temp_relax;
@@ -443,6 +464,10 @@ vm_species_bgk_cross_init(
       bgk->cross_prim_moms =
         mkarr(app->use_gpu, (app->vdim + 2) * app->basis.num_basis, app->local_ext.volume);
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
+        // Correction status of the cross Maxwellian with this partner.
+        char channel_name[sizeof vms->lte.corr_channels[0].name];
+        snprintf(channel_name, sizeof channel_name, "bgk-cross-%s", bgk->collide_with[i]->name);
+        bgk->corr_channel_cross[i] = vm_species_lte_add_corr_channel(&vms->lte, channel_name);
         // Cross-species collision frequency, nu_sr.
         bgk->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
         bgk->other_m[i] = bgk->collide_with[i]->mass;

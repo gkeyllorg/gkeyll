@@ -5,7 +5,7 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h>
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
-#include <gkyl_vlasov_hyb_build.h>
+#include <gkyl_vlasov_kernel_sets.h>
 
 typedef void (*vlasov_self_prim_t)(
   struct gkyl_mat *A, struct gkyl_mat *rhs, const double *moms, const double *boundary_corrections,
@@ -91,7 +91,7 @@ GKYL_CU_D static const gkyl_prim_lbo_vlasov_self_kern_list ten_self_prim_kernels
   {NULL, vlasov_self_prim_moments_2x3v_tensor_p1,
    GKYL_TEN_2X3V_P2(vlasov_self_prim_moments_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
-  {NULL, GKYL_HYB_3X3V(vlasov_self_prim_moments_3x3v_tensor_p1), NULL, NULL} // 6
+  {NULL, vlasov_self_prim_moments_3x3v_tensor_p1, NULL, NULL} // 6
 };
 
 // cross-primitive moment kernel list
@@ -111,7 +111,7 @@ GKYL_CU_D static const gkyl_prim_lbo_vlasov_cross_kern_list ten_cross_prim_kerne
   {NULL, vlasov_cross_prim_moments_2x3v_tensor_p1,
    GKYL_TEN_2X3V_P2(vlasov_cross_prim_moments_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
-  {NULL, GKYL_HYB_3X3V(vlasov_cross_prim_moments_3x3v_tensor_p1), NULL, NULL} // 6
+  {NULL, vlasov_cross_prim_moments_3x3v_tensor_p1, NULL, NULL} // 6
 };
 
 struct prim_lbo_type_vlasov {

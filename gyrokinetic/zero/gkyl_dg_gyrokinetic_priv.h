@@ -87,7 +87,7 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(
     gyrokinetic->mass, (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx), qIn, qRhsOut
   );
 }
@@ -114,7 +114,7 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(
     gyrokinetic->mass, (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx), qIn, qRhsOut
   );
 }
@@ -141,7 +141,7 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(
     gyrokinetic->mass, (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx), qIn, qRhsOut
   );
 }
@@ -168,7 +168,7 @@ kernel_dg_gyrokinetic_vol_3x2v_ser_p1(
     gyrokinetic->mass, (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx), qIn, qRhsOut
   );
 }
@@ -211,7 +211,7 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(
     gyrokinetic->mass, (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx), qIn, qRhsOut
   );
 }
@@ -238,7 +238,7 @@ kernel_dg_gyrokinetic_no_by_vol_3x2v_ser_p1(
     gyrokinetic->mass, (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx),
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx), qIn, qRhsOut
   );
 }

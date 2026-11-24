@@ -57,6 +57,9 @@ LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/core
 unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} ## Build regression tests
 
+.PHONY: library
+library: $(LLIB) $(SLLIB) ## Build only the shared library, without installing data
+
 .PHONY: all
 all: $(LLIB) ## Build all targets
 .DEFAULT_GOAL := all

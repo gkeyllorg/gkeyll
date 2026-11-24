@@ -39,7 +39,6 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
   GKYL_GK_FIELD_BOLTZMANN =
     1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
-  GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_EM = 4 // Electromagnetic GK.
 };
 
@@ -108,7 +107,8 @@ enum gkyl_source_id {
   GKYL_FUNC_SOURCE, // Function source.
   GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id.
   GKYL_PROJ_ADAPT_DENSITY_SOURCE, // Projected source with time-dependent density scaling.
-  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes.
+  GKYL_BFLUX_SOURCE, // Source which scales to boundary fluxes.
+  GKYL_SOURCE_FROMFILE // Source shape imported directly from a file.
 };
 
 // Identifiers for specific bgk source object types.
@@ -191,7 +191,20 @@ enum gkyl_geometry_id {
   GKYL_GEOMETRY_TOKAMAK, // Tokamak Geometry from Efit.
   GKYL_GEOMETRY_MIRROR, // Mirror Geometry from Efit.
   GKYL_GEOMETRY_MAPC2P, // General geometry from user provided mapc2p.
+  GKYL_GEOMETRY_MILLER, // Generate a Miller GEQDSK, then use tokamak geometry.
   GKYL_GEOMETRY_FROMFILE // Geometry from file.
+};
+
+// Representation of configuration-domain endpoints supplied to geometry initialization.
+enum gkyl_gk_geometry_coord_type {
+  GKYL_GK_GEOMETRY_COORD_UNSPECIFIED = 0, // Use the computational coordinate for this direction.
+  GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL, // Poloidal flux divided by 2*pi [Wb/rad].
+  GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, // Normalized poloidal radius.
+  GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP, // Outboard-midplane major radius [m].
+  GKYL_GK_GEOMETRY_COORD_BINORMAL_ALPHA, // Field-line label angle [rad].
+  GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH, // Binormal length [m].
+  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA, // Normalized poloidal arc coordinate [rad].
+  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER // Miller poloidal angle [rad].
 };
 
 // type of quadrature to use

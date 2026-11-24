@@ -1,10 +1,14 @@
-// Relaxation of a waterbag and of a bump-on-tail distribution under LBO self-collisions
-// (Vlasov, 1x3v). Two homogeneous species: a square (waterbag) distribution, |v_i| < 1 in every
-// velocity direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal
-// speeds along v_x. Collision frequency 1, run for 3 collision times. Density, momentum and energy
-// are conserved to 1e-13. The LBO relaxes the Hermite modes at k nu: the heat flux decays at 3 nu
-// (measured 3.3); the kurtosis mode is under-resolved on this grid and decays at 2.4 nu instead of
-// 4 nu.
+// Relaxation of a waterbag and of a bump-on-tail distribution under LBO self-collisions (Vlasov,
+// 1x3v). Two homogeneous species: a square (waterbag) distribution, |v_i| < 1 in every velocity
+// direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal speeds
+// along v_x. Collision frequency 1, run for 3 collision times. Density, momentum and energy are
+// conserved to 1e-13 (largest change of the integrated M0, M1 and M2 over the run, relative to M0,
+// M0 v_rms and M2). The LBO damps the k-th Hermite moment of each velocity component at k nu. The
+// temperature anisotropy of the bump, T_x - T_y with n T_i = int (v_i - u_i)^2 f from frames 0 and
+// 1, falls to 2.479e-3 of its initial value by t_end, against exp(-2 nu t_end) = 2.479e-3. The heat
+// flux q_x = (1/2) int (v_x - u_x) |v - u|^2 f of the bump falls to 1.7e-3 of its initial value,
+// above the continuum exp(-3 nu t_end) = 1.2e-4: on this coarse velocity grid (12 cells across 10
+// units of v) the discrete steady state keeps a small heat flux.
 
 #include <math.h>
 #include <stdio.h>
@@ -330,12 +334,7 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalSquareInit, .ctx_func = &ctx},
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -350,12 +349,7 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalBumpInit, .ctx_func = &ctx},
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -466,7 +460,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

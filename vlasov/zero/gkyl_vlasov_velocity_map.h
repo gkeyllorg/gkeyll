@@ -155,6 +155,16 @@ void gkyl_vlasov_velocity_map_eval_c2p(
 );
 
 /**
+ * Smallest physical cell width in a velocity direction, from the (DG) map the
+ * operators use. Exactly the grid spacing for an identity map. Host-side only.
+ *
+ * @param vvm Velocity map object.
+ * @param dir Velocity direction (0 to vdim-1).
+ * @return Minimum over the velocity cells of the physical width in direction dir.
+ */
+double gkyl_vlasov_velocity_map_min_dv(const struct gkyl_vlasov_velocity_map *vvm, int dir);
+
+/**
  * Write the velocity map to %s-%s_vmap.gkyl and its cell average to
  * %s-%s_vmap_avg.gkyl, on rank 0 of comm. The map is static in time so this is
  * intended to be called once (e.g. at frame 0); it is always written, uniform

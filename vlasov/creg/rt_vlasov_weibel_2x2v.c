@@ -2,8 +2,9 @@
 // 2x2v: the oblique mode at 45 degrees (k0 = 1) is seeded through a density perturbation with the
 // electric field from Gauss's law in the ratio E_y/E_x of the growing eigenmode. Ions are a
 // neutralizing background.
-// Growth rate of the magnetic energy from linear theory: gamma = 0.1828 (measured 0.183 over
-// t = 30-60); the mode saturates at t = 75.
+// Linear theory gives the growth rate gamma = 0.1828 of the field amplitude, so the magnetic energy
+// W_B grows as exp(2 gamma t); a least-squares fit of ln W_B over t = 30-60 gives gamma = 0.183.
+// The mode saturates at t = 75.5, the maximum of W_B (0.152).
 
 #include <math.h>
 #include <stdio.h>
@@ -443,13 +444,16 @@ main(int argc, char **argv)
     .periodic_dirs = {0, 1},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
@@ -522,7 +526,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

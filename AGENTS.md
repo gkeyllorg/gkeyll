@@ -22,6 +22,8 @@ of its software, identify bugs and other issues, troubleshoot and make suggestio
 - Test and verify new and edited code.
 - Take into consideration the ideas and guidelines colleagues give you, but be
   creative and suggest alternative approaches.
+- Do not commit code changes yourself; let your human colleagues review the
+  code first, and let them commit it when they are satisfied.
 
 ## Skills and detailed instructions
 
@@ -39,4 +41,3 @@ working directory. Links inside a skill are relative to that skill's directory.
 | Compile libraries, tests, or input files | [Compiling](.agents/skills/compiling/SKILL.md) |
 | Run tests, simulations, or memory checks | [Testing and verification](.agents/skills/testing-and-verification/SKILL.md) |
 | Work on the gyrokinetic solver or its input files | [Gyrokinetic details](.agents/skills/gyrokinetic-details/SKILL.md) |
-

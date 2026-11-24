@@ -11,7 +11,6 @@ properties([
         numToKeepStr: '20',
         artifactNumToKeepStr: '20'
     )),
-    disableConcurrentBuilds(),
     parameters([
         string(
             name: 'CANDIDATE_PR',
@@ -45,6 +44,43 @@ def requireValue(String name, String value) {
         error("${name} is not configured. See ci/jenkins/README.stellar_cpu.md.")
     }
     return value
+}
+
+def prepareTrustedCacheTools(String root) {
+    def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    def control = "${root}/cache-control/${env.BUILD_TAG}"
+    withEnv(["CI_CONTROL_DIR=${control}", "CI_TRUSTED_CACHE_REF=${ref}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            mkdir -p "$CI_CONTROL_DIR"
+            git init -q "$CI_CONTROL_DIR"
+            git -C "$CI_CONTROL_DIR" fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CACHE_REF"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/cache_manager.py > "$CI_CONTROL_DIR/cache_manager.py"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/baseline_cache.sh > "$CI_CONTROL_DIR/baseline_cache.sh"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:machines/module_load.stellar-intel.sh > "$CI_CONTROL_DIR/module_load.sh"
+            test -s "$CI_CONTROL_DIR/module_load.sh"
+            chmod +x "$CI_CONTROL_DIR/baseline_cache.sh"
+            rm -rf "$CI_CONTROL_DIR/.git"
+        '''
+    }
+    env.CI_CACHE_MANAGER = "${control}/cache_manager.py"
+    env.CI_BASELINE_CACHE_TOOL = "${control}/baseline_cache.sh"
+}
+
+def cacheManager(String command, String sha = '') {
+    withEnv(["CI_CACHE_COMMAND=${command}", "CI_CACHE_SHA=${sha}"]) {
+        return sh(returnStdout: true, script: '''#!/bin/bash -l
+            set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            if [[ "$CI_CACHE_COMMAND" == begin ]]; then python3 --version >&2; fi
+            python3 "$CI_CACHE_MANAGER" "$CI_CACHE_COMMAND" \
+                --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
+                --url "$BUILD_URL" --controller-url "${CI_JENKINS_LOCAL_URL:-http://127.0.0.1:8080}" \
+                --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
+                --sha "${CI_CACHE_SHA:-}"
+        ''').trim()
+    }
 }
 
 def buildJobs() {
@@ -144,8 +180,9 @@ def baselineBehindCount(String statusCredentialsId, String baseline, String cand
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
         withEnv(["CI_BASELINE_COMMIT=${baseline}", "CI_CANDIDATE_COMMIT=${candidate}"]) {
-            return sh(returnStdout: true, script: '''#!/bin/bash
+            return sh(returnStdout: true, script: '''#!/bin/bash -l
                 set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --header 'Accept: application/vnd.github+json' \
@@ -165,8 +202,9 @@ def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
         withEnv(["GITHUB_PR_NUMBER=${prNumber}"]) {
-            baseRef = sh(returnStdout: true, script: '''#!/bin/bash
+            baseRef = sh(returnStdout: true, script: '''#!/bin/bash -l
                 set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --header 'Accept: application/vnd.github+json' \
@@ -263,14 +301,22 @@ def publishGitHubReport(String statusCredentialsId, String commit, String state,
     // pull-request comment (or commit comment) that later runs update in place.
     def script = trustedReportScript()
     withEnv(["CI_REPORT_CONTEXT=continuous-integration/jenkins/stellar_cpu", "CI_REPORT_PLATFORM=stellar_cpu", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}"]) {
-        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
+             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}", "CI_REPORT_SCRIPT=${script}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            python3 "$CI_REPORT_SCRIPT" build --platform "$CI_REPORT_PLATFORM" --context "$CI_REPORT_CONTEXT" --result "$CI_REPORT_RESULT" --pr "${CI_REPORT_PR:-}" --output ci-report.md
+        '''
         withCredentials([usernamePassword(
             credentialsId: statusCredentialsId,
             usernameVariable: 'GITHUB_USERNAME',
             passwordVariable: 'GITHUB_TOKEN'
         )]) {
-            sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
+            sh '''#!/bin/bash -l
+                set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+                python3 "$CI_REPORT_SCRIPT" publish --report ci-report.md --commit "$CI_REPORT_COMMIT" --context "$CI_REPORT_CONTEXT" --pr "${CI_REPORT_PR:-}"
+            '''
         }
     }
 }
@@ -643,6 +689,10 @@ def failureMessage = ''
 def baselineDir = ''
 def baselineStage = ''
 def baselineCacheHit = false
+def baselinePublished = false
+def cacheStarted = false
+env.CI_CACHE_PLATFORM = 'stellar-cpu'
+env.CI_JENKINS_READ_AUTH_FILE = env.CI_JENKINS_READ_AUTH_FILE?.trim() ?: "${gkeyllCiRoot}/jenkins_home/jenkins-cli.auth"
 
 def ciStage(String stageName, Closure body) {
     env.CI_FAILURE_STAGE = stageName
@@ -659,6 +709,8 @@ node(nodeLabel) {
     // filesystem such as the project's /scratch/gpfs location, never /tmp.
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
         try {
+            ciStage('Prepare trusted cache tools') { prepareTrustedCacheTools(gkeyllCiRoot) }
+            ciStage('Clean inactive CI caches') { cacheManager('begin'); cacheStarted = true }
             ciStage('Resolve candidate and baseline') {
                 currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
                 if (candidatePr) {
@@ -695,12 +747,19 @@ node(nodeLabel) {
                 if (behind > 0) echo("WARNING: allowing candidate behind baseline by ${behind} commit(s).")
             }
             ciStage('Prepare candidate build') {
-                candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+                candidateDir = sh(returnStdout: true, script: "'${env.CI_BASELINE_CACHE_TOOL}' prepare-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
             }
             ciStage('Resolve baseline cache') {
-                baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
-                baselineCacheHit = sh(returnStatus: true, script: "ci/jenkins/baseline_cache.sh valid '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'") == 0
-                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
+                baselineDir = sh(returnStdout: true, script: "'${env.CI_BASELINE_CACHE_TOOL}' baseline-path '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
+                def disposition = ''
+                timeout(time: 12, unit: 'HOURS') {
+                    while (!(disposition in ['hit', 'build'])) {
+                        disposition = cacheManager('claim-baseline', baselineCommit)
+                        if (disposition == 'wait') sleep time: 15, unit: 'SECONDS'
+                    }
+                }
+                baselineCacheHit = disposition == 'hit'
+                if (!baselineCacheHit) baselineStage = baselineDir
                 writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=stellar-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
             }
             ciStage('Report pending to GitHub') {
@@ -833,7 +892,8 @@ created_utc=\$(date -u +%Y-%m-%dT%H:%M:%SZ)
 serial_c_results=present
 parallel_c_4_results=present
 EOF"""
-                    baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh publish-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}' '${baselineStage}'").trim()
+                    cacheManager('publish-baseline', baselineCommit)
+                    baselinePublished = true
                     writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=stellar-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                 }
             }
@@ -894,7 +954,7 @@ EOF"""
                             terminalDescription = "${terminalDescription} (report not posted)".take(140)
                         }
                     }
-                    if (candidateDir) sh "ci/jenkins/baseline_cache.sh stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}'"
+                    if (candidateDir) sh "'${env.CI_BASELINE_CACHE_TOOL}' stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}'"
                     archiveArtifacts allowEmptyArchive: true,
                         artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report.md,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
@@ -903,8 +963,16 @@ EOF"""
                     throw err
                 } finally {
                     try {
-                        if (candidateDir && baselineCommit) {
-                            sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                        try {
+                            if (cacheStarted && baselineStage && !baselinePublished) cacheManager('abort-baseline', baselineCommit)
+                        } finally {
+                            try {
+                                if (candidateDir && baselineCommit) {
+                                    sh "'${env.CI_BASELINE_CACHE_TOOL}' finalize-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                                }
+                            } finally {
+                                if (cacheStarted) cacheManager('finish')
+                            }
                         }
                         if (candidateCommit) {
                             publishGitHubCommitStatus(

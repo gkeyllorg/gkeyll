@@ -1,7 +1,7 @@
 #include <gkyl_dg_gyrokinetic_passive_kernels.h> 
 GKYL_CU_DH double dg_gyrokinetic_passive_vol_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
     const double q_, const double m_, const double *bmag, const double *speeds,
-    const double *dualcurlbhatoverB, const double *rtg33inv, const double *bioverJB,
+    const double *dualcurlbhatoverB, const double *B3overB, const double *bioverJB,
     const double *fin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.

@@ -3,9 +3,11 @@
 // source replaces the particles lost to the wall. LBO self-collisions act upstream (x < L_nu) and
 // electron-ion collisions use Spitzer frequencies computed from the local moments. Unlike the
 // fixed-temperature BGK version, nothing holds the upstream temperature, so the electrons cool as
-// their tail escapes, equilibrate with the ions and the sheath is weaker. The position map clusters
-// the cells at the wall.
-// Figures of merit at steady state: midplane-to-wall potential drop
+// their tail escapes and equilibrate with the ions: at t_end the midplane temperatures are Te =
+// 0.33 and Ti = 0.34 (both start at 1), and the sheath drop is correspondingly small. The position
+// map clusters the cells at the wall.
+// Figures of merit at steady state (serendipity p2; DG moments evaluated at x = 0 and at the wall,
+// c_s = sqrt((Te + Ti)/m_i) with the initial temperatures): midplane-to-wall potential drop
 // e*dphi/Te = 0.47, ion wall flux / (n_mid c_s) = 0.35, ion speed at the wall / c_s = 0.87.
 
 #include <math.h>
@@ -612,6 +614,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
     .poisson_bcs =
@@ -643,23 +646,24 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {{
-         .name = "elc",
-         .charge = ctx.charge_elc,
-         .mass = ctx.mass_elc,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = elc,
-       },
-       {
-         .name = "ion",
-         .charge = ctx.charge_ion,
-         .mass = ctx.mass_ion,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = ion,
-       }},
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+        {
+          .name = "ion",
+          .charge = ctx.charge_ion,
+          .mass = ctx.mass_ion,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = ion,
+        },
+      },
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -729,7 +733,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

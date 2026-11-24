@@ -8,9 +8,10 @@
 // is an exact stationary state, the relativistic analogue of the Newtonian ring test; its density
 // profile must be unchanged after t = 50 M, a quarter of the orbital period, with absorbing walls
 // at r = 5 M and 15 M, beyond the pericentres and apocentres of the ring's eccentric edge orbits.
-// Figures of merit (serendipity p2, 25 x 16 x 36 cells, 1117 steps): at t = 50 M the density
-// profile differs from its initial projection by 6.6e-3 in relative L1 (1.4e-2 at the peak); mass
-// and energy change by 7.7e-3 and 7.5e-3 as the eccentric edge orbits reach the absorbing walls.
+// Figures of merit (serendipity p2, 25 x 16 x 36 cells, 1117 steps): at t = 50 M the density n = M0
+// / sqrt(h), sqrt(h) = r sqrt(1 + 2M/r), differs from its initial projection by 6.6e-3 in relative
+// L1 (int |n - n_0| dr / int n_0 dr) and by at most 1.6e-2 of the peak density (pointwise); mass
+// and energy change by -7.7e-3 and -7.5e-3 as the eccentric edge orbits reach the absorbing walls.
 
 #include <math.h>
 #include <stdio.h>
@@ -349,13 +350,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -427,7 +431,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

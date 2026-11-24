@@ -1,11 +1,12 @@
 -- Resistive drift-wave turbulence with the Hasegawa-Wakatani system (2x). Adiabaticity alpha and
 -- density gradient kappa = 1 on a periodic 40 x 40 box seeded by a Gaussian density and potential
 -- blob of width 2 (entry JE17 of A. Hakim's simulation journal, ammar-hakim.org/sj/je/je17). The
--- exact balances are dW/dt = Gamma_n and dE/dt = Gamma_n - Gamma_alpha with W = 1/2 int
--- (n - zeta)^2, E = 1/2 int (n^2 + |grad phi|^2), Gamma_n = -kappa int n d_y phi and Gamma_alpha =
--- alpha int (phi - n)^2. Figures of merit (serendipity p1, 40 x 40 cells, alpha = 1, 13056 steps):
--- at t = 200 the fluctuation kinetic energy int |grad phi|^2 is 1.1e4 with a zonal share of 0.07, W
--- has grown from 7.85 to 3.4e4 and E from 4.43 to 1.9e4.
+-- exact balances are dW/dt = Gamma_n and dE/dt = Gamma_n - Gamma_alpha with W = 1/2 int (n -
+-- zeta)^2, E = 1/2 int (n^2 + |grad phi|^2), Gamma_n = -kappa int n d_y phi and Gamma_alpha = alpha
+-- int (phi - n)^2. Figures of merit (serendipity p1, 40 x 40 cells, alpha = 1), from the time
+-- series of the fluctuation kinetic energy int |grad phi|^2: it starts at 2.96, grows as exp(0.139
+-- t) over t = 10-30 (least-squares fit of its logarithm) and saturates, averaging 1.3e4 over t =
+-- 100-200 (a turbulent statistic: CPU, GPU and MPI runs differ by a few percent).
 local Vlasov = G0.Vlasov
 local HasegawaWakatani = G0.Vlasov.Eq.HasegawaWakatani
 

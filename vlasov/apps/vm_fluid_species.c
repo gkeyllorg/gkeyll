@@ -597,6 +597,19 @@ vm_fluid_species_can_pb_fluid_init(
       fmax(app->grid.upper[0] - app->grid.lower[0], app->grid.upper[1] - app->grid.lower[1]);
     double k_min_sq = pow(2.0 * M_PI / L_max, 2);
     f->can_pb_alpha_cfl_rate = alpha * (1.0 + k_min_sq) / k_min_sq;
+
+    // The modified system subtracts the zonal components (1/Ly int dy) of n and phi, which
+    // gkyl_dg_calc_canonical_pb_fluid_vars averages over the rank-local y range only, so a
+    // decomposition in y would silently subtract partial averages.
+    if (gkyl_wv_can_pb_hasegawa_wakatani_is_modified(f->equation)) {
+      for (int r = 0; r < app->decomp->ndecomp; ++r) {
+        if (gkyl_range_shape(&app->decomp->ranges[r], 1) != gkyl_range_shape(&app->global, 1)) {
+          gkyl_exit(
+            "vm_fluid_species: the modified Hasegawa-Wakatani system does not support a decomposition in y."
+          );
+        }
+      }
+    }
   }
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set
@@ -623,7 +636,7 @@ vm_fluid_species_can_pb_fluid_init(
 
   // Initialize alpha_surf calculator and source functions for different canonical PB fluids.
   // NOTE: If solving the modified Hasegawa-Wakatani system which subtracts the zonal components
-  // of n and phi, the simulation *must not* have any decomposition in y.
+  // of n and phi, the simulation *must not* have any decomposition in y (checked above).
   f->calc_can_pb_fluid_vars = gkyl_dg_calc_canonical_pb_fluid_vars_new(
     &app->grid, &app->basis, &app->local, &app->local_ext, f->equation, app->use_gpu
   );
@@ -920,8 +933,8 @@ vm_fluid_species_apply_bc_enabled(
 }
 
 // Read the fluid state from a file and rebuild what a restart does not carry:
-// the BCs, and the source and the applied acceleration evaluated at the time of
-// the file.
+// the source and the applied acceleration. The BCs are rebuilt separately
+// (vlasov_species_restart_bc), after every species is read.
 static struct gkyl_app_restart_status
 vm_fluid_species_from_file_enabled(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const char *fname
@@ -935,14 +948,16 @@ vm_fluid_species_from_file_enabled(
     if (app->use_gpu) {
       gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
     }
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_fluid_species_apply_bc(app, fluid_species, fluid_species->fluid);
-      if (fluid_species->source_id) {
-        vm_fluid_species_source_calc(app, fluid_species, rstat.stime);
-      }
+    // Fluid sources never evolve. Since the quantity is not evolving, pass 0.0 to
+    // guard against static sources that were specified as being time-dependent.
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status && fluid_species->source_id) {
+      vm_fluid_species_source_calc(app, fluid_species, 0.0);
     }
   }
-  vm_fluid_species_calc_app_accel(app, fluid_species, rstat.stime);
+  // A non-evolving applied acceleration likewise keeps its value at 0.0.
+  vm_fluid_species_calc_app_accel(
+    app, fluid_species, fluid_species->app_accel_evolve ? rstat.stime : 0.0
+  );
 
   return rstat;
 }

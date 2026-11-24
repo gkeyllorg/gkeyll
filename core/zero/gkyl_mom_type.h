@@ -25,11 +25,11 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_M1_FROM_H, // dH/dv / m moment.
   GKYL_F_MOMENT_ENERGY, // H moment.
   GKYL_F_MOMENT_ENERGY_FLUX, // H*dH/dv /m moment.
-  GKYL_F_MOMENT_M0ENERGYM3, // M0, Energy (H) and M3 moments.
-  GKYL_F_MOMENT_NI, // M0, M1i for-vector.
-  GKYL_F_MOMENT_TIJ, // Stress-energy tensor.
   GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane.
-  GKYL_F_MOMENT_M0_LOWER // M0 integrated over (part of) the lower half-plane.
+  GKYL_F_MOMENT_M0_LOWER, // M0 integrated over (part of) the lower half-plane.
+  GKYL_F_MOMENT_M0M1M2M3, // Density, momentum, energy and energy flux.
+  GKYL_F_MOMENT_M0M1M2PARM2PERPM3PARM3PERP, // Six raw moments.
+  GKYL_F_MOMENT_COUNT // Number of options (for internal use).
 };
 
 // String names corresponding to the enum options above.
@@ -53,11 +53,10 @@ static const char *gkyl_distribution_moments_strs[] = {
   "M1_from_H",
   "EnergyMoment",
   "EnergyFlux",
-  "M0EnergyM3",
-  "Ni",
-  "Tij",
   "M0_upper",
-  "M0_lower"
+  "M0_lower",
+  "M0M1M2M3",
+  "M0M1M2parM2perpM3parM3perp"
 };
 
 // Descriptions for each distribution moment.
@@ -81,10 +80,26 @@ static const char *gkyl_distribution_moments_descriptions[] = {
   "Number density, momentum density, and Hamiltonian energy density.",
   "Momentum density (divided by mass) from the velocity gradient of the Hamiltonian.",
   "Hamiltonian energy density (for neutrals).",
-  "Number density, Hamiltonian energy density, and heat flux density times 2/mass.",
-  "4-momentum (M0, M1).",
-  "Stress-energy tensor."
+  "Energy flux density: the Hamiltonian times its velocity gradient, divided by the mass.",
+  "Partial number density from velocities above a threshold velocity (vdim = 1 only).",
+  "Partial number density from velocities below a threshold velocity (vdim = 1 only).",
+  "Number density, parallel momentum divided by mass, second and third velocity moments.",
+  "Number density, parallel momentum divided by mass, parallel/perpendicular second and third moments."
 };
+
+// Each moment above needs both a name and a description.
+#ifdef __cplusplus
+static_assert(
+#else
+_Static_assert(
+#endif
+  sizeof(gkyl_distribution_moments_strs) / sizeof(gkyl_distribution_moments_strs[0]) ==
+      GKYL_F_MOMENT_COUNT &&
+    sizeof(gkyl_distribution_moments_descriptions) /
+        sizeof(gkyl_distribution_moments_descriptions[0]) ==
+      GKYL_F_MOMENT_COUNT,
+  "gkyl_distribution_moments_strs/_descriptions out of sync with gkyl_distribution_moments"
+);
 
 // Forward declare for use in function pointers
 struct gkyl_mom_type;

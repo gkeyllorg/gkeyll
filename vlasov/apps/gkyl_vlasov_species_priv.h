@@ -194,6 +194,28 @@ struct vm_proj {
   };
 };
 
+// Correction-status channels of an LTE object: the LTE diagnostic, the BGK self
+// collisions, the temperature source, and the BGK cross collisions with each partner.
+#define VM_LTE_MAX_CORR_CHANNELS (3 + GKYL_MAX_SPECIES)
+// Columns of a correction-status row: number of corrections, maximum iterations,
+// 1 if any correction did not converge (0 otherwise), the maximum error of each LTE
+// moment (vdim + 2 <= 5 used), and the cells that fell back to the uncorrected
+// projection (summed).
+#define VM_LTE_CORR_STAT_NCOMP 9
+
+// Status of the LTE moment corrections one user of the LTE object (e.g. the BGK self
+// collisions) made since the last snapshot, and the snapshots not yet written.
+struct vm_lte_corr_channel {
+  char name[128]; // Tag in the output file name, e.g. "bgk-self".
+  long num_corr; // Corrections since the last snapshot (this rank).
+  double max_iter; // Maximum number of iterations of a correction.
+  bool not_converged; // Did any correction fail to converge?
+  double max_error[5]; // Maximum error in each LTE moment.
+  double num_dropped; // Cells that fell back to the uncorrected projection.
+  gkyl_dynvec stats; // Snapshots (VM_LTE_CORR_STAT_NCOMP columns), reduced over ranks.
+  bool is_first_write_call; // Write a new file (true) or append to it.
+};
+
 struct vm_lte {
   struct gkyl_array *f_lte;
 
@@ -210,8 +232,11 @@ struct vm_lte {
   long n_iter; // total number of iterations from correcting moments
   long num_corr; // total number of times the correction updater is called
   bool correct_all_moms; // boolean if we are correcting all the moments
-  gkyl_dynvec corr_stat;
-  bool is_first_corr_status_write_call;
+
+  // Correction status of each user of this LTE object (see vm_lte_corr_channel).
+  int num_corr_channels;
+  struct vm_lte_corr_channel corr_channels[VM_LTE_MAX_CORR_CHANNELS];
+  int corr_channel_diag; // Channel of the LTE diagnostic (vm_species_lte).
 };
 
 struct vm_collisionless {
@@ -390,6 +415,10 @@ struct vm_bgk_collisions {
 
   bool implicit_step; // Whether or not to take an implicit BGK step.
 
+  // LTE correction-status channels of the self and cross Maxwellians.
+  int corr_channel_self;
+  int corr_channel_cross[GKYL_MAX_SPECIES];
+
   // Pointers to methods chosen at runtime.
   void (*moms_func)(
     gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_bgk_collisions *bgk,
@@ -441,6 +470,7 @@ struct vm_source_bgk {
   struct gkyl_array *moms; // LTE moments (n, V_drift, T_Q/m) of the target
   struct gkyl_array *nu_f_lte; // source rate times the target Maxwellian
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+  int corr_channel; // LTE correction-status channel of the target Maxwellian
 
   // Implicit source only.
   bool has_implicit_coll; // the species also has implicit BGK collisions (taken in the same step)
@@ -501,6 +531,13 @@ struct vm_emitting_wall {
   struct gkyl_bc_emission_elastic *elastic_update;
   struct gkyl_array *f_emit;
   struct gkyl_array *f_emit_host;
+  // Ghost cells of the emitting species at the wall, written with every frame and restored on
+  // a restart. Every stage applies this BC before the stages are combined, over the extended
+  // range, so the ghost cells are a running average over stages and steps that the frame of
+  // the distribution (interior cells only) does not hold.
+  struct gkyl_array *ghost_restart;
+  struct gkyl_array *ghost_restart_ho;
+  bool has_ghost_restart; // Were the ghost cells read from the file of the restart frame?
   struct gkyl_array *buffer;
   struct gkyl_array *elastic_yield;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
@@ -1806,8 +1843,10 @@ void vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_sp
 
 /**
  * Read each present aspect's evolved state from the named file and rebuild what
- * a restart does not carry (Jacobian rescales, boundary fluxes, BCs, sources,
- * applied accelerations at the time of the file), through the aspect's own method.
+ * a restart does not carry (Jacobian rescales, sources, applied accelerations),
+ * through the aspect's own method. The boundary fluxes and BCs of a kinetic or a
+ * fluid species are rebuilt separately (vlasov_species_restart_bflux/_bc), after
+ * every species is read; a PKPM species applies its BCs with the read.
  *
  * @param app Vlasov app object
  * @param sp Species container
@@ -1817,6 +1856,27 @@ void vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_sp
 struct gkyl_app_restart_status vlasov_species_from_file(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const char *fname
 );
+
+/**
+ * Rebuild the boundary fluxes of a species read from a restart file (no-op for
+ * species without them, and for static species, which compute theirs with the
+ * initial condition). Call for every species before any restart BCs, since an
+ * emitting wall reads its impact species' boundary fluxes.
+ *
+ * @param app Vlasov app object.
+ * @param sp Species container.
+ */
+void vlasov_species_restart_bflux(gkyl_vlasov_app *app, struct vlasov_species *sp);
+
+/**
+ * Apply the boundary conditions of a species read from a restart file, at the app
+ * time (no-op for a PKPM species, whose read applies them). Call after
+ * vlasov_species_restart_bflux on every species.
+ *
+ * @param app Vlasov app object.
+ * @param sp Species container.
+ */
+void vlasov_species_restart_bc(gkyl_vlasov_app *app, struct vlasov_species *sp);
 
 /**
  * Restart a species from a frame: project the initial conditions of each
@@ -2091,16 +2151,27 @@ void vm_species_lte_moms(
 );
 
 /**
+ * Register a user of the LTE object for its own correction status (a separate
+ * '<app>-<species>-<name>-corr-stat.gkyl' file), e.g. the BGK self collisions.
+ *
+ * @param lte Pointer to lte object
+ * @param name Tag of the channel in the output file name
+ * @return Index of the channel, passed to vm_species_lte_from_moms
+ */
+int vm_species_lte_add_corr_channel(struct vm_lte *lte, const char *name);
+
+/**
  * Compute LTE distribution from input moments
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param lte Pointer to lte object
  * @param moms_lte Input LTE moments
+ * @param corr_channel Correction-status channel of the caller (vm_species_lte_add_corr_channel)
  */
 void vm_species_lte_from_moms(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
-  const struct gkyl_array *moms_lte
+  const struct gkyl_array *moms_lte, int corr_channel
 );
 
 /**
@@ -2113,16 +2184,28 @@ void vm_species_lte_from_moms(
  */
 void vm_species_lte(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
-  const struct gkyl_array *fin
+  const struct gkyl_array *fin, int corr_channel
 );
 
 /**
- * Write the LTE correction status.
+ * Snapshot the correction status of each channel: reduce the corrections made since
+ * the last snapshot over ranks and append a row at time tm (channels without
+ * corrections append nothing). Called at the integrated-moment cadence.
+ *
+ * @param app Vlasov app object.
+ * @param lte Pointer to lte object.
+ * @param tm Time of the snapshot.
+ */
+void vm_species_lte_calc_corr_status(gkyl_vlasov_app *app, struct vm_lte *lte, double tm);
+
+/**
+ * Write the correction-status snapshots of each channel to
+ * '<app>-<species>-<channel>-corr-stat.gkyl' and clear them.
  *
  * @param app Vlasov app object.
  * @param vms Pointer to species.
  */
-void vm_species_lte_write_max_corr_status(gkyl_vlasov_app *app, struct vm_species *vms);
+void vm_species_lte_write_corr_status(gkyl_vlasov_app *app, struct vm_species *vms);
 
 /**
  * Release species lte object.
@@ -2603,6 +2686,50 @@ void vm_species_emission_apply_bc(
 void vm_species_emission_write(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit,
   struct gkyl_msgpack_data *mt, int frame
+);
+
+/**
+ * Write the ghost cells of the emitting species at the wall, as the stepper holds them, to
+ * '<app>-<species>_bc_{lo,up}_restart_<frame>.gkyl', for a restart. As the emitted
+ * distribution, they are written by the rank that owns the wall (1x only).
+ *
+ * @param app Vlasov app object.
+ * @param s Species object.
+ * @param emit Pointer to emission object.
+ * @param f Distribution function of the species.
+ * @param mt Write meta.
+ * @param frame Current frame.
+ */
+void vm_species_emission_write_restart(
+  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit,
+  const struct gkyl_array *f, struct gkyl_msgpack_data *mt, int frame
+);
+
+/**
+ * Read the ghost cells of the emitting species at the wall written with a frame. A frame
+ * without the file leaves the ghost cells to the BC of the restart, as a new run does.
+ *
+ * @param app Vlasov app object.
+ * @param s Species object.
+ * @param emit Pointer to emission object.
+ * @param frame Frame to restart from.
+ */
+void vm_species_emission_read_restart(
+  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit, int frame
+);
+
+/**
+ * Put the ghost cells read from a restart frame (if any) into the distribution function.
+ * Call after the BCs of the restart, which rebuild them from the restart state alone.
+ *
+ * @param app Vlasov app object.
+ * @param s Species object.
+ * @param emit Pointer to emission object.
+ * @param f Distribution function of the species.
+ */
+void vm_species_emission_restart_bc(
+  struct gkyl_vlasov_app *app, const struct vm_species *s, struct vm_emitting_wall *emit,
+  struct gkyl_array *f
 );
 
 /**

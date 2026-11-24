@@ -5,8 +5,9 @@
 // reflecting walls must match the exact free-streaming solution of the same initial state in the
 // plane (quadrature over the Maxwellian), which tests the inertial (Coriolis and centrifugal) terms
 // of the triad bracket. Figures of merit (serendipity p2, 24 x 6 x 6 x 6 cells on cubic velocity
-// maps, 130 steps): density within 0.014 (relative L1 0.0058) of the exact free-streaming solution
-// on |r - 1| < 0.4 at t = 0.1; mass and energy conserved to round-off.
+// maps, 130 steps): on |r - 1| < 0.4 at t = 0.1 the density n = M0 / r differs from the exact
+// free-streaming solution n_ex by at most 0.018 pointwise, with relative L1 error (int |n - n_ex|
+// dr / int n_ex dr) 0.0056; mass and energy conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>
@@ -394,9 +395,11 @@ main(int argc, char **argv)
     .cells = {NVR, NVTHETA, NVZ},
 
     .mapc2p_vel =
-      {{.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vz}},
+      {
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vz},
+      },
 
     // Geometry from the covariant tangent basis e_i and the orthonormal triad sigma_a.
     .cov_tangent_basis = evalCovTangentBasis,
@@ -444,13 +447,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -522,7 +528,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

@@ -5,8 +5,11 @@
 -- grid scale.
 -- Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204,
 -- velocity 0.760.
--- The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1
--- error is 0.005.
+-- Measured at t = 0.1 from the density n of frame 1: the shock and the contact, located where n
+-- crosses the midpoint of its exact jump, sit at x = 0.696 and 0.574; the mean of n over the middle
+-- half of each plateau (bounded by the exact wave positions) is 0.5% low on the rarefaction side
+-- (exact 0.535) and 0.03% high behind the shock (exact 0.204); the density L1 error
+-- int |n - n_exact| dx is 0.0047.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

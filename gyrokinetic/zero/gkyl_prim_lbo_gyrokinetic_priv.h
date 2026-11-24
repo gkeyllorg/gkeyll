@@ -100,8 +100,32 @@ cross_prim(
 
 #ifdef GKYL_HAVE_CUDA
 
+/**
+ * Create a gyrokinetic Lenard-Bernstein collision primitive moment object
+ * for self- and cross-species calculations on the GPU.
+ *
+ * @param cbasis Configuration-space basis object.
+ * @param pbasis Phase-space basis object.
+ * @return Host-side primitive moment object with a device counterpart;
+ *   release with gkyl_prim_lbo_type_release.
+ */
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis
+);
+
+/**
+ * Create a gyrokinetic Lenard-Bernstein collision primitive moment object
+ * on the GPU without a phase-space basis, allowing fluid collision partners.
+ *
+ * @param cbasis Configuration-space basis object.
+ * @param vdim Number of gyrokinetic velocity coordinates (1 for v_parallel,
+ *   2 for v_parallel and mu).
+ * @param num_phase Number of phase-space basis functions; use 0 for fluid species.
+ * @return Host-side primitive moment object with a device counterpart;
+ *   release with gkyl_prim_lbo_type_release.
+ */
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new_with_vdim(
+  const struct gkyl_basis *cbasis, int vdim, int num_phase
 );
 
 #endif

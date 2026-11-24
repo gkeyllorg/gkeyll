@@ -14,14 +14,14 @@
 -- (omega^2 - gamma k^2 vti^2) of the adiabatic fluid gives the growth rate 0.19764 omega_pe and
 -- omega_r = 0.14251 omega_pe at k = 2 pi (0.19758 and 0.14254 with kinetic ions).
 --
--- Figures of merit (tensor p1, hybrid basis of the electrons, 16 x 64 cells, 3981 steps, omega_pe
--- dt = 0.021, the CFL limit of the electrons): the field energy epsilon_0 / 2 int E^2 dx grows at
--- 0.1974 omega_pe over t = 20-50 (-0.1%; 0.1971 over t = 25-55), and at 0.1947 over t = 20-65, the
--- window of the kinetic test, as the tensor p1 twin of that test does on the same grid. It peaks at
--- 3.2e-3 at t = 72.6 and is 4.4e-4 at t = 80 (that twin: 3.1e-3 at t = 72.1 and 6.4e-4). The total
--- energy (field and electrons from the histories, ion fluid from the frames) changes by 3e-10 up to
--- t = 40 and by 6.1e-6 up to t = 80, the electron number by 3e-13, and the mean of E_x stays below
--- 1e-13 of its maximum. The total momentum changes by 2e-4 up to t = 60 and by +6.7% through
+-- Figures of merit (tensor p1, hybrid basis of the electrons, 16 x 64 cells, 4118 steps, omega_pe
+-- dt = 0.021, the CFL limit of the light wave): the field energy epsilon_0 / 2 int E^2 dx grows at
+-- 0.1974 omega_pe over t = 20-50 (-0.1%; 0.1971 over t = 25-55), and at 0.1946 over t = 20-65, the
+-- window of the kinetic test (0.1945 in the tensor p1 twin of that test on the same grid). It peaks
+-- at 3.2e-3 at t = 72.6 and is 4.4e-4 at t = 80 (that twin: 3.1e-3 at t = 72.1 and 6.4e-4). The
+-- total energy (field and electrons from the histories, ion fluid from the frames) changes by 3e-10
+-- up to t = 40 and by 4.8e-6 up to t = 80, the electron number by 3e-13, and the mean of E_x stays
+-- below 1e-13 of its maximum. The total momentum changes by 2e-4 up to t = 60 and by +6.7% through
 -- saturation (+0.4% in the kinetic twin).
 
 local Vlasov = G0.Vlasov

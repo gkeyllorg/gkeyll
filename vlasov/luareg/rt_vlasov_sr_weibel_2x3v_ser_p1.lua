@@ -2,8 +2,10 @@
 -- (special-relativistic Vlasov-Maxwell, 2x3v): the 1x3v setup (beams at +-0.9 c along y,
 -- filamentation mode k = 0.5 along x seeded by a magnetic field perturbation, ions as a
 -- neutralizing background) with a single periodic cell in y.
--- Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency
--- sqrt(gamma_drift)): gamma = 0.525 (measured 0.508 over t = 5-15); the mode saturates at t = 23.
+-- Linear theory (lab-frame plasma frequency sqrt(gamma_drift)) gives the growth rate gamma = 0.525
+-- of the field amplitude, so the magnetic energy W_B grows as exp(2 gamma t); a least-squares fit
+-- of ln W_B over t = 5-15 gives gamma = 0.508. W_B saturates at a first maximum of 7.27 at t = 22.8
+-- and reaches its overall maximum, 9.48, at t = 28.0.
 
 local Vlasov = G0.Vlasov
 

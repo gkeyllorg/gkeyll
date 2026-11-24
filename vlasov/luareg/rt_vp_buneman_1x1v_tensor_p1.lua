@@ -5,7 +5,7 @@
 -- 1e-5 with the electric field from Gauss's law.
 -- Kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425 omega_pe (cold-beam
 -- maximum 0.235).
--- Figures of merit (tensor p1 (hybrid), 16 x 64 cells): the field energy grows at gamma = 0.1946
+-- Figures of merit (tensor p1 (hybrid), 16 x 64 cells): the field energy grows at gamma = 0.1945
 -- over t = 20-65 and saturates at t = 72.3 with energy 1.0e-03 at t = 80; electron number conserved
 -- to 2e-13.
 
@@ -142,10 +142,9 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     epsilon0 = epsilon0,
 
     poissonBcs = {

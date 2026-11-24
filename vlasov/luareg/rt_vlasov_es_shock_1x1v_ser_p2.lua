@@ -2,9 +2,11 @@
 -- Half domain: a plasma flowing toward a reflecting wall at x = 0 piles up against its own
 -- reflection and launches a shock back upstream. The inflow boundary at x = Lx holds the upstream
 -- Maxwellians fixed (reservoir). Ions slower than the shock potential are reflected ahead of it.
--- Figures of merit at t_end (serendipity p2): shock front at x = 68 lambda_D (speed 1.14 c_s),
--- downstream density 2.2 n0, potential jump across the front e*dphi/Te = 3.2, reflected ions ahead
--- of the front 0.25 n0 at 3.4 c_s.
+-- Figures of merit at t_end = 600 / omega_pe (serendipity p2, 96 cells): the ion density (M0
+-- interpolated within cells) crosses the midpoint between its downstream (x = 10-60 lambda_D) and
+-- upstream (x = 80-140 lambda_D) averages, 2.20 n0 and 1.27 n0, at x = 66.7 lambda_D, a mean front
+-- speed x / t_end = 1.11 c_s; the potential jump between the same two windows is e*dphi/Te = 3.3;
+-- the reflected ions (v > 0) in the upstream window have density 0.26 n0 and mean velocity 3.4 c_s.
 
 local Vlasov = G0.Vlasov
 

@@ -1,5 +1,6 @@
 #include <string.h>
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 
 #include <gkyl_alloc.h>
@@ -435,6 +436,37 @@ gkyl_vlasov_velocity_map_eval_c2p(
     double vlog = (vc[d] - vc_cc[d]) / (0.5 * vvm->grid_vel.dx[d]);
     vp[d] = b1.eval_expand(&vlog, &vmap_c[d * 4]);
   }
+}
+
+double
+gkyl_vlasov_velocity_map_min_dv(const struct gkyl_vlasov_velocity_map *vvm, int dir)
+{
+  // Identity map: return the grid spacing exactly (bitwise), so uniform grids are
+  // unaffected by the map machinery.
+  if (vvm->is_identity) {
+    return vvm->grid_vel.dx[dir];
+  }
+
+  struct gkyl_basis b1;
+  gkyl_cart_modal_tensor(&b1, 1, 3);
+
+  // The map is separable, so walk the cells along dir with the other indices fixed,
+  // and difference the map's 1D expansion (4-slot layout) at each cell's edges.
+  int idx_vc[GKYL_MAX_VDIM];
+  for (int d = 0; d < vvm->grid_vel.ndim; ++d) {
+    idx_vc[d] = vvm->local_vel.lower[d];
+  }
+  double vlog_lo = -1.0, vlog_up = 1.0;
+  double dv_min = DBL_MAX;
+  for (int i = vvm->local_vel.lower[dir]; i <= vvm->local_vel.upper[dir]; ++i) {
+    idx_vc[dir] = i;
+    long lidx_vc = gkyl_range_idx(&vvm->local_vel, idx_vc);
+    const double *vmap_c = gkyl_array_cfetch(vvm->vmap_host, lidx_vc);
+    double dv =
+      b1.eval_expand(&vlog_up, &vmap_c[dir * 4]) - b1.eval_expand(&vlog_lo, &vmap_c[dir * 4]);
+    dv_min = fmin(dv_min, dv);
+  }
+  return dv_min;
 }
 
 void

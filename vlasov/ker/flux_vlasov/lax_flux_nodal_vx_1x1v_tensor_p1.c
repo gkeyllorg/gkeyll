@@ -55,7 +55,7 @@ GKYL_CU_DH double lax_flux_nodal_vx_1x1v_tensor_p1_cfl(const double *dxv, const 
 { 
   double dv10 = 2.0/dxv[1]; 
   const double *jacob_vel_surf_vx = &jacob_vel_surf_r[0]; 
-  return 1.5*dv10*alpha_max/(0.18783610896543046*jacob_vel_surf_vx[2]-0.6666666666666666*jacob_vel_surf_vx[1]+1.4788305577012362*jacob_vel_surf_vx[0]);
+  return 2.5*dv10*alpha_max/(0.18783610896543046*jacob_vel_surf_vx[2]-0.6666666666666666*jacob_vel_surf_vx[1]+1.4788305577012362*jacob_vel_surf_vx[0]);
 } 
 
 GKYL_CU_DH double lax_flux_nodal_vx_1x1v_tensor_p1(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r,

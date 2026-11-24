@@ -3,9 +3,12 @@
 // reflection and launches a shock back upstream. The inflow boundary at x = Lx holds the upstream
 // Maxwellians fixed (reservoir). Ions slower than the shock potential are reflected ahead of it.
 // Weak LBO self-collisions act on both species.
-// Figures of merit at t_end: shock front at x = 58 lambda_D (speed 0.97 c_s), downstream density
-// 2.4 n0, potential jump across the front e*dphi/Te = 1.3-1.4, reflected ions ahead of the front
-// 0.25 n0 at 3.0 c_s.
+// Figures of merit at t_end from frame 1 (serendipity p2; units lambda_D, n0, the upstream Te and
+// c_s = sqrt(Te/mi)): the shock front, located at the maximum of E_x, sits at x_f = 54 lambda_D;
+// the mean ion density between the wall and x_f/2 is 2.46 n0; the potential drop across the front,
+// phi(x_f - 10) - phi(x_f + 10) with phi = -int E_x dx, is e*dphi/Te = 1.54; the ions moving away
+// from the wall (v > 0) average 0.29 n0 over x_f + 10 <= x <= x_f + 50, at a mean velocity of
+// 2.8 c_s.
 
 #include <math.h>
 #include <stdio.h>
@@ -432,12 +435,7 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalElcNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_FIXED_FUNC}},
 
@@ -463,12 +461,7 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalIonNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalIonNu, .self_nu_ctx = &ctx},
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_FIXED_FUNC}},
 
@@ -507,20 +500,22 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {{
-         .name = "elc",
-         .charge = ctx.charge_elc,
-         .mass = ctx.mass_elc,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = elc,
-       },
-       {
-         .name = "ion",
-         .charge = ctx.charge_ion,
-         .mass = ctx.mass_ion,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = ion,
-       }},
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+        {
+          .name = "ion",
+          .charge = ctx.charge_ion,
+          .mass = ctx.mass_ion,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = ion,
+        },
+      },
 
     .field = field,
 
@@ -592,7 +587,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

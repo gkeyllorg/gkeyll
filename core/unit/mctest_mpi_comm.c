@@ -1,3 +1,4 @@
+#define TEST_MPI // initialize MPI in the acutest main()
 #include <acutest.h>
 
 #ifdef GKYL_HAVE_MPI
@@ -382,6 +383,94 @@ mpi_n4_allgather_2d_host_ho()
   gkyl_comm_release(comm);
   gkyl_array_release(arr_local);
   gkyl_array_release(arr_global);
+}
+
+// Allgather with a decomposition that does not split the cells evenly, so
+// ranks contribute different numbers of cells. The first component depends
+// only on the global cell and the second records the rank that owns it.
+static void
+mpi_allgather_uneven_test(int ndim, const int *cells, const int *cuts, bool use_host)
+{
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_range global;
+  gkyl_create_global_range(ndim, cells, &global);
+
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(ndim, cuts, &global);
+
+  struct gkyl_comm *comm =
+    gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp});
+
+  int nghost[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; ++d) {
+    nghost[d] = 1;
+  }
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
+  gkyl_array_clear(arr_local, 200005.0);
+  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, 2, global.volume);
+  gkyl_array_clear(arr_global, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    double *f = gkyl_array_fetch(arr_local, gkyl_range_idx(&local, iter.idx));
+    f[0] = gkyl_range_idx(&global, iter.idx) + 1.0;
+    f[1] = -(rank + 1.0);
+  }
+
+  if (use_host) {
+    gkyl_comm_array_allgather_host(comm, &local, &global, arr_local, arr_global);
+  } else {
+    gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
+  }
+
+  gkyl_range_iter_init(&iter, &global);
+  while (gkyl_range_iter_next(&iter)) {
+    long gidx = gkyl_range_idx(&global, iter.idx);
+    const double *f = gkyl_array_cfetch(arr_global, gidx);
+
+    int owner = -1;
+    for (int r = 0; r < decomp->ndecomp; ++r) {
+      if (gkyl_range_contains_idx(&decomp->ranges[r], iter.idx)) {
+        owner = r;
+      }
+    }
+
+    TEST_CHECK(gidx + 1.0 == f[0]);
+    TEST_MSG("rank:%d | gidx=%ld | Expected: %g | Produced: %g", rank, gidx, gidx + 1.0, f[0]);
+    TEST_CHECK(-(owner + 1.0) == f[1]);
+    TEST_MSG(
+      "rank:%d | gidx=%ld | Expected owner: %d | Produced: %g", rank, gidx, owner, -f[1] - 1.0
+    );
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr_local);
+  gkyl_array_release(arr_global);
+}
+
+static void
+mpi_allgather_uneven_ho()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+
+  for (int h = 0; h < 2; ++h) {
+    bool use_host = h == 1;
+    // One cell more than two per rank along the cut direction.
+    mpi_allgather_uneven_test(1, (int[]){2 * m_sz + 1}, (int[]){m_sz}, use_host);
+    mpi_allgather_uneven_test(2, (int[]){2 * m_sz + 1, 3}, (int[]){m_sz, 1}, use_host);
+    mpi_allgather_uneven_test(2, (int[]){3, 2 * m_sz + 1}, (int[]){1, m_sz}, use_host);
+    if (m_sz == 4) {
+      // Uneven in both directions.
+      mpi_allgather_uneven_test(2, (int[]){7, 5}, (int[]){2, 2}, use_host);
+    }
+  }
 }
 
 static void
@@ -1583,6 +1672,7 @@ TEST_LIST = {
 
   {"mpi_n2_allgather_1d_host_ho", mpi_n2_allgather_1d_host_ho},
   {"mpi_n4_allgather_2d_host_ho", mpi_n4_allgather_2d_host_ho},
+  {"mpi_allgather_uneven_ho", mpi_allgather_uneven_ho},
 
   {"mpi_n2_sync_1d_ho", mpi_n2_sync_1d_ho},
   {"mpi_n4_sync_2d_no_corner_ho", mpi_n4_sync_2d_no_corner_ho},

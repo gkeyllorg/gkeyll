@@ -3,9 +3,12 @@
 -- in every velocity direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5
 -- thermal speeds along v_x. Collision frequency 1, run for 5 collision times. Momenta are in units
 -- of mc, so both distributions are mildly relativistic and relax to Maxwell-Juttner distributions.
--- Particle number is conserved to round-off and the distance to the final state decays at the
--- collision frequency (measured 1.1). The pressure-matched target does not conserve energy: +0.9%
--- (waterbag) and -1.0% (bump) over the run.
+-- Particle number is conserved to 1e-13 (largest relative change of the integrated M0 over the
+-- run). A least-squares fit of A + B exp(-r t) + C exp(-2 r t), the form int f^2 takes for
+-- exponential relaxation to a fixed target, to the L2 time series of each species gives r = 1.006:
+-- the distribution relaxes at the collision frequency, up to the RK3 time-step error. The
+-- pressure-matched target does not conserve energy: the integrated energy int gamma m c^2 f (rest
+-- mass included) changes by +0.95% (waterbag) and -1.01% (bump) from t = 0 to t_end.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

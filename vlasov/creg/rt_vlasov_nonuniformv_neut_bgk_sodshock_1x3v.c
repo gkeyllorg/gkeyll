@@ -6,8 +6,11 @@
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
 // Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 // velocity 0.841.
-// The kinetic shock position agrees within 2% and the plateaus within 1%; the density L1 error is
-// 0.02.
+// Measured at t = 0.1 from the density n of frame 1: the shock and the contact, located where n
+// crosses the midpoint of its exact jump, sit at x = 0.678 and 0.573; the mean of n over the middle
+// half of each plateau (bounded by the exact wave positions) is 6.6% low on the rarefaction side
+// (exact 0.480) and 1.2% high behind the shock (exact 0.230); the density L1 error
+// int |n - n_exact| dx is 0.018.
 
 #include <math.h>
 #include <stdio.h>
@@ -418,20 +421,10 @@ main(int argc, char **argv)
         .correct_all_moms = true,
         .use_last_converged = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
@@ -454,13 +447,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge_neut,
-      .mass = ctx.mass_neut,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge_neut,
+          .mass = ctx.mass_neut,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -532,7 +528,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

@@ -20,7 +20,7 @@ gkbgk_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_neut_species_moment_calc(&gkns->lte.moms, gkns->local, app->local, fin);
+  gk_neut_species_moment_calc(app, &gkns->lte.moms, gkns->local, app->local, fin);
   gkyl_dg_div_op_range(
     gkns->lte.moms.mem_geo, &app->basis, 0, gkns->lte.moms.marr, 0, gkns->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local
@@ -98,11 +98,13 @@ gkbgk_write_mom_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Sum of collision frequencies for BGK collisions.",
-  }};
+  struct gkyl_msgpack_map_elem desc[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Sum of collision frequencies for BGK collisions.",
+    },
+  };
   int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc

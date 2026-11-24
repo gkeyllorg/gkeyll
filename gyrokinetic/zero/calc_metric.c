@@ -6,6 +6,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
 
+#include <float.h>
+
 gkyl_calc_metric *
 gkyl_calc_metric_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
@@ -43,6 +45,20 @@ calc_metric(double dxdz[3][3], int i, int j)
     sum += dxdz[k][i - 1] * dxdz[k][j - 1];
   }
   return sum;
+}
+
+static inline double
+calc_bimpactangle(double g33, double dual3)
+{
+  double arg = 1.0 / (sqrt(g33) * dual3);
+  // The exact metric gives |arg| <= 1; preserve invalid metrics beyond roundoff.
+  const double roundoff = 64.0 * DBL_EPSILON;
+  if (arg > 1.0 && arg <= 1.0 + roundoff) {
+    arg = 1.0;
+  } else if (arg < -1.0 && arg >= -1.0 - roundoff) {
+    arg = -1.0;
+  }
+  return asin(arg);
 }
 
 // Calculates e^1 = e_2 x e_3 /J
@@ -515,6 +531,13 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -666,10 +689,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2] / bmag_n[0];
 
         // set B^3/B = 1/sqrt(g_33)
-        double *rtg33inv_n = gkyl_array_fetch(
-          gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        double *B3overB_n = gkyl_array_fetch(
+          gk_geom->geo_int.B3overB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        B3overB_n[0] = 1.0 / sqrt(gFld_n[5]);
 
         // set b_i/JB
         double *bioverJB_n = gkyl_array_fetch(
@@ -719,7 +742,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-    gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true
+    gk_geom->geo_int.B3overB_nodal, gk_geom->geo_int.B3overB, true
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
@@ -796,6 +819,13 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -966,7 +996,7 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = calc_bimpactangle(gFld_n[5], norm3);
       }
     }
   }
@@ -1830,14 +1860,15 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         };
         check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
 
-        // Store the Cartesian components of bhat at the nodes (this provider
-        // otherwise only computes the modal bcart via advance_bcart).
+        // Match the discrete field-aligned direction used by the metric-only
+        // derived geometry and modal bcart. The check above compares it with
+        // the independent input field, allowing for finite-difference error.
         double *bcartFld_n = gkyl_array_fetch(
           gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        bcartFld_n[0] = bhat_vec[0];
-        bcartFld_n[1] = bhat_vec[1];
-        bcartFld_n[2] = bhat_vec[2];
+        bcartFld_n[0] = e_3_norm[0];
+        bcartFld_n[1] = e_3_norm[1];
+        bcartFld_n[2] = e_3_norm[2];
 
         double norm1 = sqrt(
           dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]
@@ -1910,10 +1941,10 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2] / bmag_n[0];
 
         // set B^3/B = 1/sqrt(g_33)
-        double *rtg33inv_n = gkyl_array_fetch(
-          gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        double *B3overB_n = gkyl_array_fetch(
+          gk_geom->geo_int.B3overB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        B3overB_n[0] = 1.0 / sqrt(gFld_n[5]);
 
         // set b_i/JB
         double *bioverJB_n = gkyl_array_fetch(
@@ -1958,7 +1989,7 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-    gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true
+    gk_geom->geo_int.B3overB_nodal, gk_geom->geo_int.B3overB, true
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
@@ -1975,6 +2006,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  // One-sided stencils are used at domain boundaries except in periodic directions.
+  // One-sided stencils are used at domain boundaries except in periodic directions.
   int cidx[3];
 
   for (int ia = gk_geom->nrange_surf[dir].lower[AL_IDX];
@@ -1998,7 +2031,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
         double dbhatdz[3][3]; // tan vecs at node
 
         if ((ip == gk_geom->nrange_surf[dir].lower[PSI_IDX]) &&
-            (up->local.lower[PSI_IDX] == up->global.lower[PSI_IDX]) && dir == 0) {
+            (up->local.lower[PSI_IDX] == up->global.lower[PSI_IDX]) && dir == 0 &&
+            !gk_geom->is_periodic[PSI_IDX]) {
           dxdz[0][0] =
             (-3 * mc2p_n[X_IDX] + 4 * mc2p_n[6 + X_IDX] - mc2p_n[12 + X_IDX]) / gk_geom->dzc[0] / 2;
           dxdz[1][0] =
@@ -2013,7 +2047,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           dbhatdz[2][0] =
             (-3 * bhat_n[Z_IDX] + 4 * bhat_n[6 + Z_IDX] - bhat_n[12 + Z_IDX]) / gk_geom->dzc[0] / 2;
         } else if ((ip == gk_geom->nrange_surf[dir].upper[PSI_IDX]) &&
-                   (up->local.upper[PSI_IDX] == up->global.upper[PSI_IDX]) && dir == 0) {
+                   (up->local.upper[PSI_IDX] == up->global.upper[PSI_IDX]) && dir == 0 &&
+                   !gk_geom->is_periodic[PSI_IDX]) {
           dxdz[0][0] =
             (3 * mc2p_n[X_IDX] - 4 * mc2p_n[3 + X_IDX] + mc2p_n[9 + X_IDX]) / gk_geom->dzc[0] / 2;
           dxdz[1][0] =
@@ -2028,6 +2063,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           dbhatdz[2][0] =
             (3 * bhat_n[Z_IDX] - 4 * bhat_n[3 + Z_IDX] + bhat_n[9 + Z_IDX]) / gk_geom->dzc[0] / 2;
         } else {
+          // Centered stencil for interior nodes and periodic boundaries.
           dxdz[0][0] = -(mc2p_n[3 + X_IDX] - mc2p_n[6 + X_IDX]) / 2 / gk_geom->dzc[0];
           dxdz[1][0] = -(mc2p_n[3 + Y_IDX] - mc2p_n[6 + Y_IDX]) / 2 / gk_geom->dzc[0];
           dxdz[2][0] = -(mc2p_n[3 + Z_IDX] - mc2p_n[6 + Z_IDX]) / 2 / gk_geom->dzc[0];
@@ -2038,7 +2074,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
         }
 
         if ((ia == gk_geom->nrange_surf[dir].lower[AL_IDX]) &&
-            (up->local.lower[AL_IDX] == up->global.lower[AL_IDX]) && dir == 1) {
+            (up->local.lower[AL_IDX] == up->global.lower[AL_IDX]) && dir == 1 &&
+            !gk_geom->is_periodic[AL_IDX]) {
           dxdz[0][1] = (-3 * mc2p_n[X_IDX] + 4 * mc2p_n[18 + X_IDX] - mc2p_n[24 + X_IDX]) /
                        gk_geom->dzc[1] / 2;
           dxdz[1][1] = (-3 * mc2p_n[Y_IDX] + 4 * mc2p_n[18 + Y_IDX] - mc2p_n[24 + Y_IDX]) /
@@ -2053,7 +2090,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           dbhatdz[2][1] = (-3 * bhat_n[Z_IDX] + 4 * bhat_n[18 + Z_IDX] - bhat_n[24 + Z_IDX]) /
                           gk_geom->dzc[1] / 2;
         } else if ((ia == gk_geom->nrange_surf[dir].upper[AL_IDX]) &&
-                   (up->local.upper[AL_IDX] == up->global.upper[AL_IDX]) && dir == 1) {
+                   (up->local.upper[AL_IDX] == up->global.upper[AL_IDX]) && dir == 1 &&
+                   !gk_geom->is_periodic[AL_IDX]) {
           dxdz[0][1] =
             (3 * mc2p_n[X_IDX] - 4 * mc2p_n[15 + X_IDX] + mc2p_n[21 + X_IDX]) / gk_geom->dzc[1] / 2;
           dxdz[1][1] =
@@ -2068,6 +2106,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           dbhatdz[2][1] =
             (3 * bhat_n[Z_IDX] - 4 * bhat_n[15 + Z_IDX] + bhat_n[21 + Z_IDX]) / gk_geom->dzc[1] / 2;
         } else {
+          // Centered stencil for interior nodes and periodic boundaries.
           dxdz[0][1] = -(mc2p_n[15 + X_IDX] - mc2p_n[18 + X_IDX]) / 2 / gk_geom->dzc[1];
           dxdz[1][1] = -(mc2p_n[15 + Y_IDX] - mc2p_n[18 + Y_IDX]) / 2 / gk_geom->dzc[1];
           dxdz[2][1] = -(mc2p_n[15 + Z_IDX] - mc2p_n[18 + Z_IDX]) / 2 / gk_geom->dzc[1];
@@ -2078,7 +2117,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
         }
 
         if ((it == gk_geom->nrange_surf[dir].lower[TH_IDX]) &&
-            (up->local.lower[TH_IDX] == up->global.lower[TH_IDX]) && dir == 2) {
+            (up->local.lower[TH_IDX] == up->global.lower[TH_IDX]) && dir == 2 &&
+            !gk_geom->is_periodic[TH_IDX]) {
           dxdz[0][2] = (-3 * mc2p_n[X_IDX] + 4 * mc2p_n[30 + X_IDX] - mc2p_n[36 + X_IDX]) /
                        gk_geom->dzc[2] / 2;
           dxdz[1][2] = (-3 * mc2p_n[Y_IDX] + 4 * mc2p_n[30 + Y_IDX] - mc2p_n[36 + Y_IDX]) /
@@ -2093,7 +2133,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           dbhatdz[2][2] = (-3 * bhat_n[Z_IDX] + 4 * bhat_n[30 + Z_IDX] - bhat_n[36 + Z_IDX]) /
                           gk_geom->dzc[2] / 2;
         } else if ((it == gk_geom->nrange_surf[dir].upper[TH_IDX]) &&
-                   (up->local.upper[TH_IDX] == up->global.upper[TH_IDX]) && dir == 2) {
+                   (up->local.upper[TH_IDX] == up->global.upper[TH_IDX]) && dir == 2 &&
+                   !gk_geom->is_periodic[TH_IDX]) {
           dxdz[0][2] =
             (3 * mc2p_n[X_IDX] - 4 * mc2p_n[27 + X_IDX] + mc2p_n[33 + X_IDX]) / gk_geom->dzc[2] / 2;
           dxdz[1][2] =
@@ -2107,7 +2148,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
             (3 * bhat_n[Y_IDX] - 4 * bhat_n[27 + Y_IDX] + bhat_n[33 + Y_IDX]) / gk_geom->dzc[2] / 2;
           dbhatdz[2][2] =
             (3 * bhat_n[Z_IDX] - 4 * bhat_n[27 + Z_IDX] + bhat_n[33 + Z_IDX]) / gk_geom->dzc[2] / 2;
-        } else {
+        } // Centered stencil for interior nodes and periodic boundaries.
+        else {
           dxdz[0][2] = -(mc2p_n[27 + X_IDX] - mc2p_n[30 + X_IDX]) / 2 / gk_geom->dzc[2];
           dxdz[1][2] = -(mc2p_n[27 + Y_IDX] - mc2p_n[30 + Y_IDX]) / 2 / gk_geom->dzc[2];
           dxdz[2][2] = -(mc2p_n[27 + Z_IDX] - mc2p_n[30 + Z_IDX]) / 2 / gk_geom->dzc[2];
@@ -2271,7 +2313,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = calc_bimpactangle(gFld_n[5], norm3);
       }
     }
   }
@@ -2328,8 +2370,10 @@ gkyl_calc_metric_advance_bcart(
       }
     }
   }
+  // The m2n calls above evaluate at interior Gauss nodes; use the matching
+  // quadrature projection here, rather than treating these as corner values.
   gkyl_nodal_ops_n2m(
-    up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, false
+    up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, true
   );
   gkyl_array_release(bcartFld_nodal);
   gkyl_array_release(biFld_nodal);

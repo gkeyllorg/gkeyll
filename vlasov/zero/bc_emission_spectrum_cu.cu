@@ -90,7 +90,8 @@ gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
     const double *boundary_flux = (const double *)gkyl_array_cfetch(flux, lincC);
     double *fac = (double *)gkyl_array_fetch(k, lincC);
     double *out = (double *)gkyl_array_fetch(f_emit, lincP);
-    double effective_delta = w[0] / w[1];
+    // With no incident flux there is nothing to emit (and the mean yield is 0/0).
+    double effective_delta = w[1] != 0.0 ? w[0] / w[1] : 0.0;
     spectrum_model->normalization(fac, spectrum_model, boundary_flux, effective_delta);
 
     for (int c = 0; c < spectrum->ncomp; ++c) {

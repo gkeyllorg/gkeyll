@@ -31,7 +31,7 @@ write_geometry(
 )
 {
   const char *fmt = "%s-%s.gkyl";
-  int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
+  int sz = gkyl_calc_strlen(fmt, name, "bmag_inv_corn"); // longest suffix written below
   char fileNm[sz + 1]; // ensure no buffer overflow
 
   sprintf(fileNm, fmt, name, "mapc2p");
@@ -668,10 +668,6 @@ test_tok_3x_p1_straight_cylinder_ho()
 
   // Check normals
   // Plus 3 away from axis to avoid errors
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
-  double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
-  double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
   struct gkyl_array *normals_nodal =
     gkyl_array_new(GKYL_DOUBLE, 9 * basis.num_basis, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(
@@ -689,12 +685,15 @@ test_tok_3x_p1_straight_cylinder_ho()
         cidx[TH_IDX] = it;
         double *normals_n =
           gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, alpha, theta};
         double fout[9];
         exact_normals(0.0, xn, fout, 0);
@@ -723,6 +722,37 @@ test_tok_3x_p1_straight_cylinder_ho()
   gkyl_nodal_ops_release(n2m);
   gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
+}
+
+// Compare signed closed-surface q against the unwrapped toroidal advance of the map.
+static void
+tok_check_q_phase(const struct gk_geometry *geo)
+{
+  const struct gkyl_range *faces = &geo->nrange_surf[2];
+  int spsi = geo->geqdsk_sign_convention ? -1 : 1;
+  double max_error = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &geo->local);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *coeff =
+      gkyl_array_cfetch(geo->geo_int.qprofile, gkyl_range_idx(&geo->local, iter.idx));
+    for (int node = 0; node < 2; ++node) {
+      int idx[] = {
+        faces->lower[0] + 2 * (iter.idx[0] - geo->local.lower[0]) + node, faces->lower[1],
+        faces->lower[2]
+      };
+      const double *lower =
+        gkyl_array_cfetch(geo->geo_surf[2].mc2p_nodal_fd, gkyl_range_idx(faces, idx));
+      idx[2] = faces->upper[2];
+      const double *upper =
+        gkyl_array_cfetch(geo->geo_surf[2].mc2p_nodal_fd, gkyl_range_idx(faces, idx));
+      double eta[] = {(2 * node - 1) / sqrt(3.0), 0, 0};
+      double q = geo->basis.eval_expand(eta, coeff);
+      max_error = fmax(max_error, fabs(q - spsi * (upper[2] - lower[2]) / (2 * M_PI)));
+    }
+  }
+  TEST_CHECK(max_error < 2e-4);
+  TEST_MSG("q versus full circuit error=%.9g", max_error);
 }
 
 void
@@ -782,7 +812,7 @@ test_tok_asdex_qprofile_core_ho()
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
-  write_geometry(gk_geom, cgrid, clocal, "asdex_core");
+  tok_check_q_phase(gk_geom);
 
   //  // Create Nodal Range and Grid and Write Nodal Coordinates
   //  struct gkyl_range nrange;
@@ -860,14 +890,344 @@ test_tok_asdex_qprofile_sol_ho()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
   write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
+  // q is the signed toroidal advance over the complete plate-to-plate path.
+  tok_check_q_phase(gk_geom);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
 }
 
+struct quadratic_map_ctx {
+  double shift, scale, curvature;
+};
+
+static void
+quadratic_map(double t, const double *xn, double *out, void *ctx)
+{
+  const struct quadratic_map_ctx *map = ctx;
+  out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
+}
+
+static void
+quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
+{
+  const struct quadratic_map_ctx *map = ctx;
+  out[0] = map->scale + 2.0 * map->curvature * xn[0];
+}
+
+// Independent global-index construction of P1 corners and Gauss nodes.
+static double
+node_coordinate(double lower, double dx, int node, bool quadrature)
+{
+  return lower +
+         dx * (quadrature ? node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0)) : node);
+}
+
+static void
+compare_nodes(
+  const struct gkyl_array *actual, const struct gkyl_array *expected,
+  const struct gkyl_range *nodes, const struct gkyl_range *full_nodes, int split_dim,
+  int node_offset, double *error, const char *name
+)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, nodes);
+  while (gkyl_range_iter_next(&iter)) {
+    int index[3] = {iter.idx[0], iter.idx[1], iter.idx[2]};
+    index[split_dim] += node_offset;
+    const double *value = gkyl_array_cfetch(actual, gkyl_range_idx(nodes, iter.idx));
+    const double *ref = gkyl_array_cfetch(expected, gkyl_range_idx(full_nodes, index));
+    for (int comp = 0; comp < actual->ncomp; ++comp) {
+      bool finite = gkyl_is_dfinite(value[comp]) && gkyl_is_dfinite(ref[comp]);
+      TEST_CHECK(finite);
+      TEST_MSG(
+        "%s at %d %d %d component %d: actual %g reference %g", name, iter.idx[0], iter.idx[1],
+        iter.idx[2], comp, value[comp], ref[comp]
+      );
+      if (!finite) {
+        return;
+      }
+      *error = fmax(*error, fabs(value[comp] - ref[comp]) / fmax(1.0, fabs(ref[comp])));
+    }
+  }
+}
+
+struct node_field_comparison {
+  const struct gkyl_array *actual, *expected;
+  const char *name;
+};
+
+static void
+compare_interior_geometry(
+  const struct gk_geometry *geom, const struct gk_geometry *full, int split_dim, int offset,
+  double *error
+)
+{
+  const struct node_field_comparison fields[] = {
+    {geom->geo_int.mc2p_nodal, full->geo_int.mc2p_nodal, "interior mc2p_nodal"},
+    {geom->geo_int.jacobgeo_nodal, full->geo_int.jacobgeo_nodal, "interior jacobgeo_nodal"},
+    {geom->geo_int.g_ij_nodal, full->geo_int.g_ij_nodal, "interior g_ij_nodal"},
+    {geom->geo_int.dxdz_nodal, full->geo_int.dxdz_nodal, "interior dxdz_nodal"},
+    {geom->geo_int.dzdx_nodal, full->geo_int.dzdx_nodal, "interior dzdx_nodal"},
+    {geom->geo_int.bmag_nodal, full->geo_int.bmag_nodal, "interior bmag_nodal"},
+    {geom->geo_int.curlbhat_nodal, full->geo_int.curlbhat_nodal, "interior curlbhat_nodal"},
+    {geom->geo_int.B3_nodal, full->geo_int.B3_nodal, "interior B3_nodal"}
+  };
+  for (int i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i) {
+    compare_nodes(
+      fields[i].actual, fields[i].expected, &geom->nrange_int, &full->nrange_int, split_dim,
+      2 * offset, error, fields[i].name
+    );
+  }
+}
+
+static void
+compare_surface_geometry(
+  const struct gk_geometry *geom, const struct gk_geometry *full, int dir, int split_dim,
+  int offset, double *error
+)
+{
+  const struct node_field_comparison fields[] = {
+    {geom->geo_surf[dir].jacobgeo_nodal, full->geo_surf[dir].jacobgeo_nodal,
+     "surface jacobgeo_nodal"},
+    {geom->geo_surf[dir].g_ij_nodal, full->geo_surf[dir].g_ij_nodal, "surface g_ij_nodal"},
+    {geom->geo_surf[dir].dxdz_nodal, full->geo_surf[dir].dxdz_nodal, "surface dxdz_nodal"},
+    {geom->geo_surf[dir].dzdx_nodal, full->geo_surf[dir].dzdx_nodal, "surface dzdx_nodal"},
+    {geom->geo_surf[dir].bmag_nodal, full->geo_surf[dir].bmag_nodal, "surface bmag_nodal"},
+    {geom->geo_surf[dir].curlbhat_nodal, full->geo_surf[dir].curlbhat_nodal,
+     "surface curlbhat_nodal"},
+    {geom->geo_surf[dir].B3_nodal, full->geo_surf[dir].B3_nodal, "surface B3_nodal"},
+    {geom->geo_surf[dir].lenr_nodal, full->geo_surf[dir].lenr_nodal, "surface lenr_nodal"}
+  };
+  int node_offset = (dir == split_dim ? 1 : 2) * offset;
+  for (int i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i) {
+    compare_nodes(
+      fields[i].actual, fields[i].expected, &geom->nrange_surf[dir], &full->nrange_surf[dir],
+      split_dim, node_offset, error, fields[i].name
+    );
+  }
+}
+
+static void
+check_tokamak_partitions(bool analytic)
+{
+  struct gkyl_rect_grid grid;
+  double pi = M_PI;
+  gkyl_rect_grid_init(
+    &grid, 3, (double[]){0.1, -0.4, -pi + 1e-14}, (double[]){0.2, 0.4, pi - 1e-14},
+    (int[]){4, 2, 16}
+  );
+  struct gkyl_range global, global_ext;
+  gkyl_create_grid_ranges(&grid, (int[]){1, 1, 1}, &global_ext, &global);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 3, 1);
+  struct quadratic_map_ctx maps[] = {{0.02, 0.8, 0.2}, {0.05, 0.8, 0.2}, {0.0, 0.7, 0.03}};
+  struct gkyl_position_map_inp map_inp = {
+    .id = analytic ? GKYL_PMAP_USER_INPUT_W_DERIVATIVE : GKYL_PMAP_USER_INPUT,
+    .maps = {quadratic_map, 0, quadratic_map},
+    .map_derivs = {quadratic_map_deriv, quadratic_map_deriv, quadratic_map_deriv},
+    .ctxs = {&maps[0], &maps[1], &maps[2]},
+  };
+  struct gkyl_position_map *pmap =
+    gkyl_position_map_new(map_inp, grid, global, global_ext, global, global_ext, basis);
+  struct gkyl_gk_geometry_inp inp = {
+    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+    .position_map = pmap,
+    .efit_info =
+      {
+        .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
+        .rz_poly_order = 2,
+        .flux_poly_order = 1,
+        .reflect = true,
+      },
+    .tok_grid_info =
+      {.rclose = 0.5, .zmin = -1.0, .zmax = 1.0, .rleft = 0.001, .rmax = 1.0, .rright = 1.0},
+    .grid = grid,
+    .basis = basis,
+    .global = global,
+    .global_ext = global_ext,
+    .geo_grid = grid,
+    .geo_basis = basis,
+    .geo_global = global,
+    .geo_global_ext = global_ext,
+    .local = global,
+    .local_ext = global_ext,
+    .geo_local = global,
+    .geo_local_ext = global_ext,
+  };
+  struct gk_geometry *full = gkyl_gk_geometry_tok_new(&inp);
+  double error = 0.0, slope_error = 0.0, curl_error = 0.0;
+  for (int split_dim = 0; split_dim < 3; ++split_dim) {
+    for (int cuts = 2; cuts <= grid.cells[split_dim] && cuts <= 8; cuts *= 2) {
+      for (int rank = 0; rank < cuts; ++rank) {
+        int lower[3], upper[3], elo[3], eup[3];
+        for (int dim = 0; dim < 3; ++dim) {
+          lower[dim] = global.lower[dim];
+          upper[dim] = global.upper[dim];
+          if (dim == split_dim) {
+            lower[dim] += rank * grid.cells[dim] / cuts;
+            upper[dim] = lower[dim] + grid.cells[dim] / cuts - 1;
+          }
+          elo[dim] = lower[dim] - 1;
+          eup[dim] = upper[dim] + 1;
+        }
+        struct gkyl_range local, ext;
+        gkyl_range_init(&ext, 3, elo, eup);
+        gkyl_sub_range_init(&local, &ext, lower, upper);
+        inp.local = inp.geo_local = local;
+        inp.local_ext = inp.geo_local_ext = ext;
+        struct gk_geometry *geom = gkyl_gk_geometry_tok_new(&inp);
+        int offset = rank * grid.cells[split_dim] / cuts;
+        compare_nodes(
+          geom->geo_corn.mc2p_nodal, full->geo_corn.mc2p_nodal, &geom->nrange_corn,
+          &full->nrange_corn, split_dim, offset, &error, "corners"
+        );
+        compare_nodes(
+          geom->geo_corn.mc2nu_pos_nodal, full->geo_corn.mc2nu_pos_nodal, &geom->nrange_corn,
+          &full->nrange_corn, split_dim, offset, &error, "corners"
+        );
+        compare_interior_geometry(geom, full, split_dim, offset, &error);
+        compare_nodes(
+          geom->geo_int.bcart, full->geo_int.bcart, &geom->local, &full->local, split_dim, 0,
+          &error, "modal Cartesian b"
+        );
+        for (int dir = 0; dir < 3; ++dir) {
+          compare_surface_geometry(geom, full, dir, split_dim, offset, &error);
+          // Independent axial derivative and vanishing curl in a straight cylinder.
+          struct gkyl_range_iter iter;
+          gkyl_range_iter_init(&iter, &geom->nrange_surf[dir]);
+          while (gkyl_range_iter_next(&iter)) {
+            int znode = iter.idx[2] + (dir == 2 ? 1 : 2) * (lower[2] - global.lower[2]);
+            double zcomp = node_coordinate(grid.lower[2], grid.dx[2], znode, dir != 2), slope;
+            quadratic_map_deriv(0.0, &zcomp, &slope, &maps[2]);
+            const double *tangent = gkyl_array_cfetch(
+              geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&geom->nrange_surf[dir], iter.idx)
+            );
+            slope_error = fmax(slope_error, fabs(tangent[8] - slope / pi));
+            const double *curl = gkyl_array_cfetch(
+              geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&geom->nrange_surf[dir], iter.idx)
+            );
+            for (int dim = 0; dim < 3; ++dim) {
+              curl_error = fmax(curl_error, fabs(curl[dim]));
+            }
+          }
+        }
+        gkyl_gk_geometry_release(geom);
+      }
+    }
+  }
+  TEST_CHECK(curl_error < 2e-6);
+  TEST_MSG("analytic curl error %.17g", curl_error);
+  TEST_CHECK(error < 2e-10);
+  TEST_MSG("partition error %.17g", error);
+  TEST_CHECK(slope_error < 2e-10);
+  TEST_MSG("axial tangent error %.17g", slope_error);
+  gkyl_gk_geometry_release(full);
+  gkyl_position_map_release(pmap);
+}
+
+static void
+test_tok_partitions_numeric(void)
+{
+  check_tokamak_partitions(false);
+}
+static void
+test_tok_partitions_analytic(void)
+{
+  check_tokamak_partitions(true);
+}
+
+/**
+ * Check 1D/2D tokamak world slices for COCOS 3 metadata and field direction,
+ * tangent consistency after modal reconstruction, and axisymmetric angular derivatives.
+ */
+static void
+test_tok_world_slice(void)
+{
+  for (int ndim = 1; ndim <= 2; ++ndim) {
+    struct gkyl_gk_geometry_inp inp = {
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+      .efit_info =
+        {
+          .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
+          .rz_poly_order = 2,
+          .flux_poly_order = 1,
+          .reflect = true,
+        },
+      .tok_grid_info =
+        {.rclose = 0.5, .zmin = -1., .zmax = 1., .rleft = 0.001, .rmax = 1.0, .rright = 1.0},
+    };
+
+    double lower[] = {0.1, -0.8}, upper[] = {0.2, 0.8};
+    int cells[] = {2, 4}, ghost[] = {1, 1, 1};
+
+    gkyl_rect_grid_init(&inp.grid, ndim, lower + 2 - ndim, upper + 2 - ndim, cells + 2 - ndim);
+    gkyl_cart_modal_serendip(&inp.basis, ndim, 1);
+    gkyl_create_grid_ranges(&inp.grid, ghost, &inp.local_ext, &inp.local);
+
+    inp.global = inp.local;
+    inp.global_ext = inp.local_ext;
+    inp.world[0] = ndim == 1 ? 0.15 : 0.3;
+    inp.world[1] = 0.3;
+    inp.geo_grid = gkyl_gk_geometry_augment_grid(inp.grid, inp);
+
+    gkyl_cart_modal_serendip(&inp.geo_basis, 3, 1);
+    gkyl_create_grid_ranges(&inp.geo_grid, ghost, &inp.geo_local_ext, &inp.geo_local);
+
+    inp.geo_global = inp.geo_local;
+    inp.geo_global_ext = inp.geo_local_ext;
+    inp.position_map = gkyl_position_map_null_new();
+    struct gk_geometry *full = gkyl_gk_geometry_tok_new(&inp);
+    struct gk_geometry *geo = gkyl_gk_geometry_deflate(full, &inp);
+    TEST_CHECK(
+      gkyl_msgpack_map_elem_get_uint(
+        geo->io_meta_basic_len, geo->io_meta_basic, "equilibrium_cocos"
+      ) == 3
+    );
+
+    struct gkyl_array *saved = gkyl_array_new(GKYL_DOUBLE, 9, geo->nrange_int.volume);
+    gkyl_array_copy(saved, geo->geo_int.dxdz_nodal);
+
+    gkyl_gk_geometry_populate_nodal(geo);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &geo->nrange_int);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&geo->nrange_int, iter.idx);
+
+      const double *before = gkyl_array_cfetch(saved, loc);
+      const double *after = gkyl_array_cfetch(geo->geo_int.dxdz_nodal, loc);
+      const double *b = gkyl_array_cfetch(geo->geo_int.bcart_nodal, loc);
+      const double *grad = gkyl_array_cfetch(geo->geo_int.dxdz_grad_nodal, loc);
+
+      // COCOS 3 gives B_Z > 0 for this increasing radial flux.
+      TEST_CHECK(b[2] > 0.0);
+      double norm = sqrt(after[6] * after[6] + after[7] * after[7] + after[8] * after[8]);
+      for (int k = 0; k < 9; ++k) {
+        TEST_CHECK(fabs(before[k] - after[k]) < 1e-10);
+      }
+      for (int k = 0; k < 3; ++k) {
+        TEST_CHECK(fabs(b[k] - after[6 + k] / norm) < 1e-10);
+        // Axisymmetry: d/dalpha rotates each Cartesian tangent about Z.
+        TEST_CHECK(fabs(grad[9 + 3 * k] + after[3 * k + 1]) < 2e-5);
+        TEST_CHECK(fabs(grad[10 + 3 * k] - after[3 * k]) < 2e-5);
+        TEST_CHECK(fabs(grad[11 + 3 * k]) < 2e-5);
+      }
+    }
+
+    gkyl_array_release(saved);
+    gkyl_gk_geometry_release(geo);
+    gkyl_gk_geometry_release(full);
+    gkyl_position_map_release(inp.position_map);
+  }
+}
+
 TEST_LIST = {
-  {"test_tok_elliptical_ho", test_tok_elliptical_ho},
-  {"test_tok_3x_p1_straight_cylinder_ho", test_tok_3x_p1_straight_cylinder_ho},
-  {"test_tok_asdex_qprofile_core_ho", test_tok_asdex_qprofile_core_ho},
-  {"test_tok_asdex_qprofile_sol_ho", test_tok_asdex_qprofile_sol_ho},
+  {"gk_geo_tok_world_slice", test_tok_world_slice},
+  {"gk_geo_tok_partitions_numeric", test_tok_partitions_numeric},
+  {"gk_geo_tok_partitions_analytic", test_tok_partitions_analytic},
+  {"gk_geo_tok_elliptical_ho", test_tok_elliptical_ho},
+  {"gk_geo_tok_3x_p1_straight_cylinder_ho", test_tok_3x_p1_straight_cylinder_ho},
+  {"gk_geo_tok_asdex_qprofile_core_ho", test_tok_asdex_qprofile_core_ho},
+  {"gk_geo_tok_asdex_qprofile_sol_ho", test_tok_asdex_qprofile_sol_ho},
   {NULL, NULL}
 };

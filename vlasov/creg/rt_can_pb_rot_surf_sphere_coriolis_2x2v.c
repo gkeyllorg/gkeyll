@@ -6,10 +6,11 @@
 // |v| = 1.405, and in the rotating frame phi_rot = phi_inertial - omega t, so the centroid must
 // reach (theta, phi) = (1.113, 3.167) at t = 0.3 (thermal corrections are of order T t^2 = 1e-3);
 // the drift in phi relative to the meridian is the Coriolis effect. Figures of merit (serendipity
-// p2, 10 x 20 x 11 x 8 cells, 78 steps): at t = 0.3 the centroid is at (theta, phi) = (1.1089,
-// 3.1687) against the exact (1.1129, 3.1673), errors -0.004 and +0.001 rad with cells of 0.039 and
-// 0.105 rad; mass changes by -1.6e-2, through the boundaries in theta, which are open (absorbing):
-// the grid of the polar momentum is not symmetric about zero, as a reflecting wall requires.
+// p2, 10 x 20 x 11 x 8 cells, 78 steps): at t = 0.3 the number-weighted centroid (int x M0 dtheta
+// dphi / int M0 dtheta dphi) is at (theta, phi) = (1.1193, 3.1676) against the exact (1.1129,
+// 3.1673), errors +0.006 and +0.0003 rad with cells of 0.118 and 0.314 rad; mass changes by
+// -1.6e-2, through the boundaries in theta, which are open (absorbing): the grid of the polar
+// momentum is not symmetric about zero, as a reflecting wall requires.
 
 #include <math.h>
 #include <stdio.h>
@@ -384,13 +385,16 @@ main(int argc, char **argv)
     .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -463,7 +467,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

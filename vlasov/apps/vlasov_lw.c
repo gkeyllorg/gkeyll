@@ -479,6 +479,7 @@ eqn_openlibs(lua_State *L)
 
 // Emitting-wall boundary condition context, defined with the emission objects below.
 static struct gkyl_bc_emission_ctx *emission_get(lua_State *L);
+static struct gkyl_bc_emission_ctx *emission_get_retained(lua_State *L);
 
 /* *************** */
 /* Species methods */
@@ -729,7 +730,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcx.lower.aux_ctx = emission_get(L);
+        vm_species.bcx.lower.aux_ctx = emission_get_retained(L);
       }
     }
 
@@ -738,7 +739,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcx.upper.aux_ctx = emission_get(L);
+        vm_species.bcx.upper.aux_ctx = emission_get_retained(L);
       }
     }
   }
@@ -751,7 +752,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcy.lower.aux_ctx = emission_get(L);
+        vm_species.bcy.lower.aux_ctx = emission_get_retained(L);
       }
     }
 
@@ -760,7 +761,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcy.upper.aux_ctx = emission_get(L);
+        vm_species.bcy.upper.aux_ctx = emission_get_retained(L);
       }
     }
   }
@@ -773,7 +774,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcz.lower.aux_ctx = emission_get(L);
+        vm_species.bcz.lower.aux_ctx = emission_get_retained(L);
       }
     }
 
@@ -782,7 +783,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcz.upper.aux_ctx = emission_get(L);
+        vm_species.bcz.upper.aux_ctx = emission_get_retained(L);
       }
     }
   }
@@ -2750,6 +2751,9 @@ vm_parse_script_cli(struct gkyl_tool_args *acv)
 // Because the species anchors its input table, the objects live as long as the species.
 
 // Whether this run is on the GPU (the models need device copies when it is).
+// Under MPI the communicator, which picks each rank's device, is only created with
+// the app, after the script has built these objects. Select the device now so the
+// device copies do not all land on device 0.
 static bool
 vm_lw_use_gpu(lua_State *L)
 {
@@ -2758,6 +2762,19 @@ vm_lw_use_gpu(lua_State *L)
   bool use_gpu = cli.use_gpu;
   gkyl_tool_args_release(cli.rest);
   gkyl_tool_args_release(args);
+#ifdef GKYL_HAVE_NCCL
+  if (use_gpu) {
+    with_lua_global(L, "GKYL_MPI_COMM")
+    {
+      if (lua_islightuserdata(L, -1)) {
+        struct {
+          MPI_Comm comm;
+        } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        gkyl_nccl_comm_set_device(lw_mpi_comm_world->comm);
+      }
+    }
+  }
+#endif
   return use_gpu;
 }
 
@@ -2904,6 +2921,18 @@ emission_get(lua_State *L)
 {
   struct emission_lw **l_lw = luaL_checkudata(L, -1, VLASOV_EMISSION_METATABLE_NM);
   return (*l_lw)->ctx;
+}
+
+// As emission_get, and also retain the emission object (on top of the stack) for the
+// life of the program, as the input functions are: the species anchors its input
+// table, which the caller may still modify after constructing the species.
+static struct gkyl_bc_emission_ctx *
+emission_get_retained(lua_State *L)
+{
+  struct gkyl_bc_emission_ctx *ctx = emission_get(L);
+  lua_pushvalue(L, -1);
+  luaL_ref(L, LUA_REGISTRYINDEX);
+  return ctx;
 }
 
 // Emission spectra. Every model takes `charge`, the unit charge converting m v^2 / 2 to the
@@ -3880,9 +3909,16 @@ vm_app_new(lua_State *L)
   }
   vm.num_species += num_pkpm_species;
 
-  // Set field input.
+  // Set field input. The field's fieldID selects the solver (Maxwell by default).
   vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
-  vm.is_electrostatic = glua_tbl_get_bool(L, "isElectrostatic", false);
+  if (glua_tbl_has_key(L, "isElectrostatic")) {
+    return luaL_error(
+      L, "isElectrostatic was removed: set fieldID = G0.FieldModel.Phi in the field table."
+    );
+  }
+  if (vm.skip_field && glua_tbl_has_key(L, "field")) {
+    return luaL_error(L, "skipField = true and a field table are mutually exclusive.");
+  }
   // Momentum-carrying fluids with the Maxwell field: explicit coupling in the SSP-RK3 stages
   // instead of the implicit fluid-EM coupling of the staggered operator split.
   vm.use_explicit_sources = glua_tbl_get_bool(L, "useExplicitSources", false);
@@ -4712,7 +4748,7 @@ vm_app_run(lua_State *L)
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {

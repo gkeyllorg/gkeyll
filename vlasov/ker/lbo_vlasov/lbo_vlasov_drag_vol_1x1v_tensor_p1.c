@@ -11,18 +11,31 @@ GKYL_CU_DH double lbo_vlasov_drag_vol_1x1v_tensor_p1(const double *w, const doub
 
   const double rdvx2 = 2.0/dxv[1]; 
 
-  double alphaDrag[6]; 
-  // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
-  alphaDrag[0] = (1.4142135623730951*nuUSum[0]-1.4142135623730951*nuSum[0]*w[1])*rdvx2; 
-  alphaDrag[1] = (1.4142135623730951*nuUSum[1]-1.4142135623730951*nuSum[1]*w[1])*rdvx2; 
-  alphaDrag[2] = -(0.408248290463863*nuSum[0]*dxv[1]*rdvx2); 
-  alphaDrag[3] = -(0.408248290463863*dxv[1]*nuSum[1]*rdvx2); 
+  const double nuq0 = 0.7071067811865475*nuSum[0]-0.7071067811865475*nuSum[1]; 
+  const double a0_vx = rdvx2*(0.7071067811865475*nuUSum[0]-0.7071067811865475*nuUSum[1] - nuq0*w[1]); 
+  const double b0_vx = -0.5*rdvx2*nuq0*dxv[1]; 
+  double f0[3]; 
+  f0[0] = 0.7071067811865475*f[0]-0.7071067811865475*f[1]; 
+  f0[1] = 0.7071067811865475*f[2]-0.7071067811865475*f[3]; 
+  f0[2] = 0.7071067811865475*f[4]-0.7071067811865475*f[5]; 
+  double G0[3]; 
+  G0[1] = f0[1]*b0_vx+1.7320508075688772*f0[0]*a0_vx; 
+  G0[2] = 2.0*f0[2]*b0_vx+2.23606797749979*f0[0]*b0_vx+3.872983346207417*f0[1]*a0_vx; 
+  const double nuq1 = 0.7071067811865475*nuSum[1]+0.7071067811865475*nuSum[0]; 
+  const double a1_vx = rdvx2*(0.7071067811865475*nuUSum[1]+0.7071067811865475*nuUSum[0] - nuq1*w[1]); 
+  const double b1_vx = -0.5*rdvx2*nuq1*dxv[1]; 
+  double f1[3]; 
+  f1[0] = 0.7071067811865475*f[1]+0.7071067811865475*f[0]; 
+  f1[1] = 0.7071067811865475*f[3]+0.7071067811865475*f[2]; 
+  f1[2] = 0.7071067811865475*f[5]+0.7071067811865475*f[4]; 
+  double G1[3]; 
+  G1[1] = f1[1]*b1_vx+1.7320508075688772*f1[0]*a1_vx; 
+  G1[2] = 2.0*f1[2]*b1_vx+2.23606797749979*f1[0]*b1_vx+3.872983346207417*f1[1]*a1_vx; 
+  out[2] += 0.7071067811865475*G1[1]+0.7071067811865475*G0[1]; 
+  out[3] += 0.7071067811865475*G1[1]-0.7071067811865475*G0[1]; 
+  out[4] += 0.7071067811865475*G1[2]+0.7071067811865475*G0[2]; 
+  out[5] += 0.7071067811865475*G1[2]-0.7071067811865475*G0[2]; 
 
-  out[2] += 0.8660254037844386*(alphaDrag[3]*f[3]+alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphaDrag[2]*f[3]+f[2]*alphaDrag[3]+alphaDrag[0]*f[1]+f[0]*alphaDrag[1]); 
-  out[4] += 1.7320508075688772*(alphaDrag[3]*f[5]+alphaDrag[2]*f[4])+1.9364916731037085*(alphaDrag[1]*f[3]+f[1]*alphaDrag[3]+alphaDrag[0]*f[2]+f[0]*alphaDrag[2]); 
-  out[5] += 1.7320508075688772*(alphaDrag[2]*f[5]+alphaDrag[3]*f[4])+1.9364916731037085*(alphaDrag[0]*f[3]+f[0]*alphaDrag[3]+alphaDrag[1]*f[2]+f[1]*alphaDrag[2]); 
-
-  return fabs(1.25*alphaDrag[0]); 
+  return fabs(1.7677669529663687*nuUSum[0]*rdvx2-1.7677669529663687*nuSum[0]*w[1]*rdvx2); 
 
 } 

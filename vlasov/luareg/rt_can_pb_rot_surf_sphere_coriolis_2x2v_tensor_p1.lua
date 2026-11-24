@@ -6,10 +6,11 @@
 -- |v| = 1.405, and in the rotating frame phi_rot = phi_inertial - omega t, so the centroid must
 -- reach (theta, phi) = (1.113, 3.167) at t = 0.3 (thermal corrections are of order T t^2 = 1e-3);
 -- the drift in phi relative to the meridian is the Coriolis effect. Figures of merit (tensor p1, 10
--- x 20 x 11 x 8 cells): at t = 0.3 the centroid is at (theta, phi) = (1.1078, 3.1702) against the
--- exact (1.1129, 3.1673), errors -0.005 and +0.003 rad with cells of 0.039 and 0.105 rad; mass
--- changes by -1.4e-2, through the boundaries in theta, which are open (absorbing): the grid of the
--- polar momentum is not symmetric about zero, as a reflecting wall requires.
+-- x 20 x 11 x 8 cells): at t = 0.3 the number-weighted centroid (int x M0 dtheta dphi / int M0
+-- dtheta dphi) is at (theta, phi) = (1.1185, 3.1690) against the exact (1.1129, 3.1673), errors
+-- +0.006 and +0.002 rad with cells of 0.118 and 0.314 rad; mass changes by -1.4e-2, through the
+-- boundaries in theta, which are open (absorbing): the grid of the polar momentum is not symmetric
+-- about zero, as a reflecting wall requires.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -80,24 +80,39 @@ CI artifact and GitHub report record that override.
 ## Persistent regression data
 
 Every Jenkins controller requires a writable, agent-visible `GKEYLL_CI_ROOT`.
-CI retains one complete baseline per platform in
-`$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/`. A repeated run
-against the same resolved baseline SHA reuses that tree; a changed SHA rebuilds
-and replaces it. The candidate source, build, installed executable, and
-regression results are kept together in
-`$GKEYLL_CI_ROOT/candidate-cache/<platform>/<candidate-sha>/`. CI rebuilds the
-candidate from scratch on every run, even when its SHA is unchanged, and keeps
-only the latest candidate tree per platform.
-Within either SHA directory, `gkeyll/` is the source checkout and `gkylsoft/`
-is its sibling install and results directory. For example, the executable is
-`<sha>/gkylsoft/gkeyll/bin/gkeyll` and regression output is under
-`<sha>/gkylsoft/gkeyll-results/`.
+A complete baseline lives at
+`$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/` and is reused
+until the resolved baseline SHA changes. A failed or incomplete baseline build
+is removed after diagnostics are collected. A later candidate failure leaves
+a valid baseline intact. The latest candidate attempt, including its source,
+build, and results, stays at
+`$GKEYLL_CI_ROOT/candidate-cache/<platform>/<build-tag>/<candidate-sha>/`
+until the next run starts. Every run rebuilds the candidate, including when
+its SHA is unchanged. Within each build tree, `gkeyll/` is the source checkout
+and `gkylsoft/` contains the install and regression results.
 
-Both trees are built at their final paths so installed libraries retain valid
-absolute paths. An incomplete baseline build has no valid cache manifest and
-is rebuilt on the next run. Jenkins keeps summaries and small diagnostic
-artifacts in its workspace for reporting, then removes that workspace; the
-complete candidate build and results remain under `candidate-cache`.
+At startup, `cache_manager.py` removes inactive prior candidates and, on
+Stellar and Perlmutter, inactive build-tag workspaces. It preserves trees used
+by a running Jenkins build or surviving Slurm job. Concurrent runs can
+temporarily leave multiple candidate and baseline trees. When their cleanup
+stages finish, the candidate from the most recently started run remains,
+regardless of which run finished last. A newly started run removes that
+completed candidate; at most one completed candidate and one valid baseline
+remain after all runs finish. The cleanup uses a
+filesystem lock and queries Jenkins and Slurm before deleting an old tree.
+If either required query fails, CI stops cleanup and preserves the files.
+`cache-runs/` stores small ownership records and `cache-control/` contains
+reviewed cache scripts for each run. Jenkins still archives summaries and
+small diagnostics and retains its configured build history separately.
+
+The Jenkins agent must be able to read the Jenkins build-state API using
+`CI_JENKINS_READ_AUTH_FILE`, a mode-600 `user:api-token` file, or anonymous
+read access when that variable is empty. Its default is the platform CLI
+credential file. Set it explicitly when the agent runs under a different Unix
+account. On cluster systems, keep the root on shared storage that supports
+cross-process `flock`, and provide enough Jenkins executors for the desired
+parallel builds. Drain old CI runs before first using this layout so the
+legacy SHA-only candidate cache can be removed safely.
 The `<platform>` directory is `personal`, `team-workstation`, `stellar-cpu`,
 or `perlmutter-gpu`, depending on the Jenkins job.
 

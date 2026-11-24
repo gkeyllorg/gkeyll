@@ -3,7 +3,7 @@
 
 static void
 gk_neut_species_collisionless_rhs_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -11,7 +11,7 @@ gk_neut_species_collisionless_rhs_disabled(
 
 static void
 gk_neut_species_collisionless_rhs_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -19,22 +19,22 @@ gk_neut_species_collisionless_rhs_enabled(
 
   // Divide out the velocity-space Jacobian (identity velocity map => copy).
   gkyl_vlasov_velocity_map_divide_jacobvel(
-    species->vlasov_vel_map, &app->basis, &species->basis, &species->local, fin, species->f_no_J
+    gkns->vlasov_vel_map, &app->basis, &gkns->basis, &gkns->local, fin, gkns->f_no_J
   );
 
   // Compute the surface expansion of the phase space flux in configuration space.
   gkyl_dg_vlasov_conf_flux_surf_advance(
-    gkcls->calc_conf_flux, &app->local, &species->local, &species->local_ext,
-    species->conf_poisson_tensor_surf, species->hamil, fin, species->cflrate, gkcls->conf_flux_surf
+    gkcls->calc_conf_flux, &app->local, &gkns->local, &gkns->local_ext,
+    gkns->conf_poisson_tensor_surf, gkns->hamil, fin, gkns->cflrate, gkcls->conf_flux_surf
   );
 
   // Compute the surface expansion of the phase space flux in velocity space.
   gkyl_dg_vlasov_vel_flux_surf_advance(
-    gkcls->calc_vel_flux, &app->local, &species->local, species->conf_poisson_tensor,
-    species->hamil, 0, 0, 0, species->f_no_J, species->cflrate, gkcls->vel_flux_surf
+    gkcls->calc_vel_flux, &app->local, &gkns->local, gkns->conf_poisson_tensor, gkns->hamil, 0, 0,
+    0, gkns->f_no_J, gkns->cflrate, gkcls->vel_flux_surf
   );
 
-  gkyl_hyper_dg_advance(gkcls->slvr_vlasov, &species->local, fin, species->cflrate, rhs);
+  gkyl_hyper_dg_advance(gkcls->slvr_vlasov, &gkns->local, fin, gkns->cflrate, rhs);
 
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -166,11 +166,11 @@ gk_neut_species_collisionless_init(
 
 void
 gk_neut_species_collisionless_rhs(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
-  gkcls->rhs_func_neut(app, species, gkcls, fin, rhs);
+  gkcls->rhs_func_neut(app, gkns, gkcls, fin, rhs);
 }
 
 void

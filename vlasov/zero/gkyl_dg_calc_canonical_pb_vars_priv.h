@@ -9,7 +9,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <assert.h>
-#include <gkyl_vlasov_hyb_build.h>
+#include <gkyl_vlasov_kernel_sets.h>
 
 typedef void (*canonical_pb_m1i_contra_to_cov_t)(
   const double *h_ij, const double *v_i, const double *nv_i, double *GKYL_RESTRICT v_i_cov,
@@ -113,7 +113,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list
      canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_tensor_p1, NULL}, //4
     // 3x kernels
-    {NULL, GKYL_HYB_3X3V(canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1), NULL} // 5
+    {NULL, canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1, NULL} // 5
 };
 
 // canonical_pb Pressure (d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j) (Tensor kernels)
@@ -131,7 +131,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list
     }, // 3
     {NULL, canonical_pb_vars_pressure_2x3v_tensor_p1, NULL}, //4
     // 3x kernels
-    {NULL, GKYL_HYB_3X3V(canonical_pb_vars_pressure_3x3v_tensor_p1), NULL} // 5
+    {NULL, canonical_pb_vars_pressure_3x3v_tensor_p1, NULL} // 5
 };
 
 GKYL_CU_D static canonical_pb_m1i_contra_to_cov_t

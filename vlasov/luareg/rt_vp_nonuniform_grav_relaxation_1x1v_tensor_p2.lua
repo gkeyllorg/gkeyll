@@ -150,10 +150,9 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field: self-gravity only (the species is neutral), phi_g = 0 at the box edges.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     alphaG = alpha_g,
 
     poissonBcs = {

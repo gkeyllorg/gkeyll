@@ -3,9 +3,10 @@
 -- temperature scale as the relativistic two-stream tests, filamentation mode k = 0.5 along x seeded
 -- by a magnetic field perturbation. Ions are a neutralizing background.
 -- Quadratic momentum maps cluster the cells at the origin of momentum space.
--- Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency
--- sqrt(gamma_drift)): gamma = 0.525 (measured 0.524-0.527 over t = 5-20); the mode saturates at t =
--- 32.
+-- Linear theory (lab-frame plasma frequency sqrt(gamma_drift)) gives the growth rate gamma = 0.525
+-- of the field amplitude, so the magnetic energy W_B grows as exp(2 gamma t); a least-squares fit
+-- of ln W_B over t = 5-20 gives gamma = 0.524. W_B saturates at a first maximum of 7.76 at t = 26.2
+-- and reaches its overall maximum, 11.9, at t = 32.0.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

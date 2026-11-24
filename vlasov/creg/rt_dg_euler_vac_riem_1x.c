@@ -224,21 +224,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
-    .gas_gamma = ctx.gas_gamma,
-    .rp_type = WV_EULER_RP_HLLC,
-    .use_gpu = app_args.use_gpu,
-  });
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
-
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -282,6 +267,23 @@ main(int argc, char **argv)
 #else
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
+
+  // Fluid equations.
+  // Created after the communicator: on GPUs under MPI the communicator selects this rank's
+  // device, where the equation's device copy must live.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = ctx.gas_gamma,
+    .rp_type = WV_EULER_RP_HLLC,
+    .use_gpu = app_args.use_gpu,
+  });
+
+  struct gkyl_vlasov_fluid_species fluid = {
+    .equation = euler,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
+  };
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
@@ -389,7 +391,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

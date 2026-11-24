@@ -16,11 +16,54 @@
 #include <assert.h>
 #include <ctype.h>
 
+// SI equilibrium transformation to the fixed internal COCOS 3 convention.
+static bool
+efit_cocos_factors(int index, double *psi_factor, double *f_factor, double *q_factor)
+{
+  *f_factor = 1.0;
+  *q_factor = -1.0;
+  switch (index) {
+    case 1:
+      *psi_factor = -1.0;
+      break;
+    case 2:
+      *psi_factor = 1.0;
+      *f_factor = -1.0;
+      break;
+    case 3:
+      *psi_factor = 1.0;
+      *q_factor = 1.0;
+      break;
+    case 7:
+      *psi_factor = 1.0;
+      break;
+    case 11:
+      *psi_factor = -1.0 / (2.0 * M_PI);
+      break;
+    case 17:
+      *psi_factor = 1.0 / (2.0 * M_PI);
+      break;
+    default:
+      return false;
+  }
+  return true;
+}
+
 gkyl_efit *
 gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
+  int cocos_index = inp->eqdsk_cocos_index ? inp->eqdsk_cocos_index : 3;
+  double psi_factor, f_factor, q_factor;
+  if (!efit_cocos_factors(cocos_index, &psi_factor, &f_factor, &q_factor)) {
+    fprintf(
+      stderr, "efit.c: Unsupported EQDSK COCOS index %d (supported: 1, 2, 3, 7, 11, 17)\n",
+      cocos_index
+    );
+    return NULL;
+  }
   gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
+  up->eqdsk_cocos_index = cocos_index;
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
   up->filepath = inp->filepath;
@@ -82,6 +125,10 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
     &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up->zmaxis,
     &up->xdum, &up->sibry, &up->xdum, &up->xdum
   );
+  up->simag *= psi_factor;
+  up->sibry *= psi_factor;
+  up->bcentr *= f_factor;
+  up->current *= f_factor;
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -164,12 +211,14 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
       fidx[0] = i;
       double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpol_n);
+      fpol_n[0] *= f_factor;
     }
   } else {
     for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
       double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpol_n);
+      fpol_n[0] *= f_factor;
     }
   }
 
@@ -196,16 +245,33 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpolprime_n);
-      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
+      fpolprime_n[0] /= psi_factor;
     }
   } else {
     for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpolprime_n);
-      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
+      fpolprime_n[0] /= psi_factor;
+    }
+  }
+  // FF'/F is undefined where F vanishes (including a purely poloidal
+  // field). There use the derivative of the tabulated F itself.
+  // These nodal arrays contain the full, unpartitioned EQDSK flux profile,
+  // independent of the simulation's domain decomposition. flux_nrange is
+  // initialized from shape {nr}, so its indices and flat array offsets both
+  // run from 0 to nr-1.
+  double dpsi_node = (fluxupper[0] - fluxlower[0]) / (up->nr - 1);
+  for (int i = 0; i < up->nr; ++i) {
+    const double *fpol_n = gkyl_array_cfetch(fpolflux_n, i);
+    double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, i);
+    if (fpol_n[0] != 0.0) {
+      fpolprime_n[0] /= fpol_n[0];
+    } else {
+      int left = i == 0 ? 0 : i - 1, right = i == up->nr - 1 ? i : i + 1;
+      const double *fleft = gkyl_array_cfetch(fpolflux_n, left);
+      const double *fright = gkyl_array_cfetch(fpolflux_n, right);
+      fpolprime_n[0] = (fright[0] - fleft[0]) / ((right - left) * dpsi_node);
     }
   }
   gkyl_nodal_ops_n2m(
@@ -237,6 +303,7 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
       // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
       status = fscanf(ptr, "%lf", psi_n);
+      psi_n[0] *= psi_factor;
     }
   }
 
@@ -271,6 +338,7 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
       fidx[0] = i;
       double *q_n = gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", q_n);
+      q_n[0] *= q_factor;
     }
   } else {
     // psi increases away from magnetic axis.
@@ -278,6 +346,7 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
       fidx[0] = i;
       double *q_n = gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", q_n);
+      q_n[0] *= q_factor;
     }
   }
   gkyl_nodal_ops_n2m(

@@ -6,7 +6,7 @@
 -- zero outside, and no particle reaches the walls (all energies are below the rim, 1). Figures of
 -- merit (serendipity p1, 32 x 32 cells): at t = T/8 = 0.5554 the density differs from the exact top
 -- hat by 0.052 in relative L1 (edge smearing), the plateau averages 2.010 (exact 2) and the density
--- outside |x| > 0.8 stays below 7.6e-3; mass and energy conserved to 1e-4.
+-- outside |x| > 0.8 stays below 7.6e-3; mass and energy change by 5e-5 and 1.5e-4.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

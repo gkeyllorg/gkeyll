@@ -416,6 +416,9 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // Ions.
@@ -450,15 +453,20 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC},
+      },
 
     .zero_init_field = true, // Don't compute the field at t = 0.
     .is_static = true, // Don't evolve the field in time.
@@ -489,6 +497,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 3,
     .periodic_dirs = {0, 1, 2},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

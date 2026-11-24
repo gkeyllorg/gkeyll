@@ -16,7 +16,7 @@ enum vlasov_lte_correct_drop_mode {
   VLASOV_LTE_CORRECT_DROP_NONE = 0, // Report the errors only; drop no cell.
   VLASOV_LTE_CORRECT_DROP_NONPOSITIVE, // Drop cells that lost positivity.
   VLASOV_LTE_CORRECT_DROP_ABOVE_TOL, // Also drop cells whose error exceeds the tolerance.
-  VLASOV_LTE_CORRECT_DROP_NOT_IMPROVED, // Also drop cells no closer to the target than the uncorrected projection.
+  VLASOV_LTE_CORRECT_DROP_NOT_IMPROVED // Also drop cells no closer to the target than the uncorrected projection.
 };
 
 struct gkyl_vlasov_lte_correct {

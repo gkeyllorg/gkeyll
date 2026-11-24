@@ -472,40 +472,6 @@ bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = B_z;
 }
 
-void
-bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-
-  struct gk_app_ctx *app = ctx;
-  double a_mid = app->a_mid;
-  double x_inner = app->x_inner;
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, a_mid, x_inner);
-
-  fout[0] = Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
-void
-bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-
-  struct gk_app_ctx *app = ctx;
-  double a_mid = app->a_mid;
-  double x_inner = app->x_inner;
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, a_mid, x_inner);
-
-  fout[0] = -Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
 struct gk_app_ctx
 create_ctx(void)
 {
@@ -592,10 +558,10 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 32;
-  int Ny = 4;
-  int Nz = 8;
-  int Nvpar = 8;
-  int Nmu = 4;
+  int Ny = 8;
+  int Nz = 6;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   double vpar_max_elc = 4. * vte;
@@ -776,21 +742,24 @@ main(int argc, char **argv)
           {
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 1,
     .diag_moments = {GKYL_F_MOMENT_MAXWELLIAN},
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
 
     .boundary_flux_diagnostics =
       {
@@ -798,7 +767,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
   };
 
@@ -866,21 +834,24 @@ main(int argc, char **argv)
           {
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 1,
     .diag_moments = {GKYL_F_MOMENT_MAXWELLIAN},
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
 
     .boundary_flux_diagnostics =
       {
@@ -888,7 +859,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
   };
 
@@ -902,7 +872,7 @@ main(int argc, char **argv)
       .perp_dirs = {0, 2}, // Directions perpendicular to line.
       .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
       .val = ctx.side_wall_bias, // Biasing value.
-    }
+    },
   };
 
   struct gkyl_poisson_bias_line_list bias_line_list = {.num_bias_line = 2, .bl = target_corner_bcs};
@@ -911,13 +881,15 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_FIELD_DIRICHLET,
-         .value = {ctx.side_wall_bias},
-       }},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_FIELD_DIRICHLET,
+          .value = {ctx.side_wall_bias},
+        },
+      },
     .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
@@ -944,17 +916,13 @@ main(int argc, char **argv)
         .bfield_ctx = &ctx,
         .has_LCFS = true,
         .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
-        .core_parallel_bcs =
-          {
-            .lower_shift_func = bc_shift_func_lo,
-            .upper_shift_func = bc_shift_func_up,
-            .lower_shift_ctx = &ctx,
-            .upper_shift_ctx = &ctx,
-          },
       },
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

@@ -87,6 +87,11 @@ vm_species_emission_cross_init(
   emit->f_emit = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
   emit->f_emit_host = app->use_gpu ? mkarr(false, emit->f_emit->ncomp, emit->f_emit->size) :
                                      gkyl_array_acquire(emit->f_emit);
+  emit->ghost_restart = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
+  emit->ghost_restart_ho = app->use_gpu ?
+                             mkarr(false, emit->ghost_restart->ncomp, emit->ghost_restart->size) :
+                             gkyl_array_acquire(emit->ghost_restart);
+  emit->has_ghost_restart = false;
 
   struct gkyl_array *proj_buffer = mkarr(false, vms->basis.num_basis, emit->emit_buff_r->volume);
 
@@ -150,8 +155,10 @@ vm_species_emission_cross_init(
 
     emit->yield[i] = mkarr(app->use_gpu, vms->basis.num_basis, emit->impact_buff_r[i]->volume);
     emit->spectrum[i] = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
-    emit->weight[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
-    emit->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
+    // Per boundary cell: the yield-weighted and the total incoming flux (see bc_weighted_delta).
+    emit->weight[i] = mkarr(app->use_gpu, 2, emit->impact_cbuff_r[i]->volume);
+    // Integrated M0, M1i, M2 of the impact species' boundary flux.
+    emit->flux[i] = mkarr(app->use_gpu, app->vdim + 2, emit->impact_cbuff_r[i]->volume);
     emit->bflux_arr[i] = emit->impact_species[i]->bflux.flux_arr[bdir];
     emit->k[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
     emit->weight_host[i] = app->use_gpu ?
@@ -286,11 +293,85 @@ vm_species_emission_write(
   }
 }
 
+// Name of the file with the ghost cells of the emitting species at the wall for a frame.
+static cstr
+emission_restart_file_name(
+  const struct gkyl_vlasov_app *app, const struct vm_species *vms,
+  const struct vm_emitting_wall *emit, int frame
+)
+{
+  const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_restart_%d.gkyl" :
+                                                      "%s-%s_bc_up_restart_%d.gkyl";
+  return cstr_from_fmt(fmt, app->name, vms->name, frame);
+}
+
+void
+vm_species_emission_write_restart(
+  struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_emitting_wall *emit,
+  const struct gkyl_array *f, struct gkyl_msgpack_data *mt, int frame
+)
+{
+  if (!emit->write) {
+    return;
+  }
+  // The values are those the stepper holds (with the Jacobians of the evolved distribution).
+  gkyl_array_copy_range_to_range(emit->ghost_restart, f, emit->emit_buff_r, emit->emit_ghost_r);
+  if (app->use_gpu) {
+    gkyl_array_copy(emit->ghost_restart_ho, emit->ghost_restart);
+  }
+  cstr fileNm = emission_restart_file_name(app, vms, emit, frame);
+  gkyl_grid_sub_array_write(
+    emit->emit_grid, emit->emit_buff_r, mt, emit->ghost_restart_ho, fileNm.str
+  );
+  cstr_drop(&fileNm);
+}
+
+void
+vm_species_emission_read_restart(
+  struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_emitting_wall *emit, int frame
+)
+{
+  emit->has_ghost_restart = false;
+  if (!emit->write) {
+    return;
+  }
+  // The file holds the one-cell layer on its own grid: read it over the index range of that
+  // grid (same shape and ordering as the ghost range), into a copy of the grid since the
+  // reader overwrites the grid it is given.
+  struct gkyl_rect_grid grid = *emit->emit_grid;
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, grid.ndim, grid.cells);
+  cstr fileNm = emission_restart_file_name(app, vms, emit, frame);
+  enum gkyl_array_rio_status status =
+    gkyl_grid_sub_array_read(&grid, &range, emit->ghost_restart_ho, fileNm.str);
+  cstr_drop(&fileNm);
+  if (status == GKYL_ARRAY_RIO_SUCCESS) {
+    if (app->use_gpu) {
+      gkyl_array_copy(emit->ghost_restart, emit->ghost_restart_ho);
+    }
+    emit->has_ghost_restart = true;
+  }
+}
+
+void
+vm_species_emission_restart_bc(
+  struct gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_emitting_wall *emit,
+  struct gkyl_array *f
+)
+{
+  if (emit->has_ghost_restart) {
+    gkyl_array_copy_range_to_range(f, emit->ghost_restart, emit->emit_ghost_r, emit->emit_buff_r);
+    emit->has_ghost_restart = false;
+  }
+}
+
 void
 vm_species_emission_release(const struct vm_emitting_wall *emit)
 {
   gkyl_array_release(emit->f_emit_host);
   gkyl_array_release(emit->f_emit);
+  gkyl_array_release(emit->ghost_restart_ho);
+  gkyl_array_release(emit->ghost_restart);
   if (emit->elastic) {
     gkyl_array_release(emit->elastic_yield);
     gkyl_bc_emission_elastic_release(emit->elastic_update);

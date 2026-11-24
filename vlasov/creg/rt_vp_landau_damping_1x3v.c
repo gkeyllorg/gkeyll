@@ -304,6 +304,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
@@ -326,16 +327,18 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = elc,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -405,7 +408,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

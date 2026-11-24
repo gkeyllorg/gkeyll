@@ -15,23 +15,13 @@ CORELLIB := ../$(BUILD_DIR)/core/libg0core.so
 CORESLLIB := 
 LLIB := ../$(BUILD_DIR)/vlasov/libg0vlasov.so
 SLLIB := 
-# Optional heavy kernel sets: exclude the generated kernels of a set from the
-# build unless its knob is set (see the top-level Makefile). The name patterns
-# select exactly the tensor p=1 hybrid kernels of the given dimensionality (the
-# 3x3v phase-space Hamiltonian kernels are a subset of the 3x3v set) and the
-# tensor p=2 kernels in 2x3v.
-# KER_PRUNE lists the same sets as object-file patterns: the library link
+# Optional heavy kernel set: exclude the generated tensor p=2 kernels in 2x3v
+# from the build unless its knob is set (see the top-level Makefile).
+# KER_PRUNE lists the same set as object-file patterns: the library link
 # globs every object under the build directory, so objects of a set that was
 # built earlier and is now switched off are deleted before linking.
 KER_EXCLUDE :=
 KER_PRUNE :=
-ifneq ($(BUILD_VLASOV_HYB_3X3V),1)
-KER_EXCLUDE += -not -name '*3x3v_tensor_p1*'
-KER_PRUNE += -o -name '*3x3v_tensor_p1*.o'
-else ifneq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
-KER_EXCLUDE += -not -name '*hamil_phase*3x3v_tensor_p1*'
-KER_PRUNE += -o -name '*hamil_phase*3x3v_tensor_p1*.o'
-endif
 ifneq ($(BUILD_VLASOV_TEN_2X3V_P2),1)
 KER_EXCLUDE += -not -name '*2x3v_tensor_p2*' -not -name '*2x_3v_tensor_p2*'
 KER_PRUNE += -o -name '*2x3v_tensor_p2*.o' -o -name '*2x_3v_tensor_p2*.o'
@@ -77,7 +67,7 @@ CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
 
 EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_EXT_LIBS = ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = -L../${BUILD_DIR}/vlasov ${LLIB} ${SLLIB} ${EXEC_EXT_LIBS}
 
 LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
@@ -90,6 +80,9 @@ LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/vlasov
 
 unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} creg/rt_arg_parse.h ## Build regression tests
+
+.PHONY: library
+library: $(LLIB) $(SLLIB) ## Build only the shared library, without installing data
 
 .PHONY: all
 all: $(LLIB) $(SLLIB) ## Build all targets
@@ -220,13 +213,13 @@ ifneq ($(strip $(KER_PRUNE)),)
 endif
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${VLASOV_CU_LINK_OBJS}  -Xlinker=-soname -Xlinker=libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${VLASOV_CU_LINK_OBJS}  -Xlinker=-soname -Xlinker=libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
 else
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} -Wl,-soname,libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} -Wl,-soname,libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 else
 ## Darwin
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} -Wl,-install_name,@rpath/libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} -Wl,-install_name,@rpath/libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 
 .PHONY: check valcheck
@@ -239,8 +232,8 @@ check: unit unit-run ## Build (if needed) and run all unit tests
 define run-lua-units
 	root=$$PWD; \
 	for test in ${LUA_TESTS}; do \
-	  tname=$$(basename $$test); scratch=$$(mktemp -d); ln -s "$$root/${BUILD_DIR}" "$$scratch/build"; \
-	  if (cd "$$scratch" && ./build/gkeyll/gkeyll "$$root/vlasov/$$test" > "$$scratch/log.txt" 2>&1); then \
+	  tname=$$(basename $$test); scratch=$$(mktemp -d); ln -s "$$root/${BUILD_DIR}" "$$scratch/${BUILD_DIR}"; \
+	  if (cd "$$scratch" && ./${BUILD_DIR}/gkeyll/gkeyll "$$root/vlasov/$$test" > "$$scratch/log.txt" 2>&1); then \
 	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
 	  else \
 	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; cat "$$scratch/log.txt"; \

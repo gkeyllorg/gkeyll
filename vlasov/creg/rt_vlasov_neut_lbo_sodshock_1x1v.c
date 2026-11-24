@@ -5,8 +5,11 @@
 // mean free paths.
 // Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171,
 // velocity 0.609.
-// The kinetic shock position agrees within 1%, the plateaus within 5%; the density L1 error is
-// 0.013.
+// Measured at t = 0.1 from the density n of frame 1: the shock and the contact, located where n
+// crosses the midpoint of its exact jump, sit at x = 0.728 and 0.557; the mean of n over the middle
+// half of each plateau (bounded by the exact wave positions) is 2.8% low on the rarefaction side
+// (exact 0.649) and 1.9% high behind the shock (exact 0.171); the density L1 error
+// int |n - n_exact| dx is 0.013.
 
 #include <math.h>
 #include <stdio.h>
@@ -343,12 +346,7 @@ main(int argc, char **argv)
         .correct_all_moms = true,
         .use_last_converged = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
@@ -371,13 +369,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge_neut,
-      .mass = ctx.mass_neut,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge_neut,
+          .mass = ctx.mass_neut,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -449,7 +450,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

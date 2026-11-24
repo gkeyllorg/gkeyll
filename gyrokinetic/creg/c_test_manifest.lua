@@ -8,11 +8,7 @@ return {
          "rt_gk_multib_asdex_solonly_3x2v_p1",
          "rt_gk_multib_nstx_solonly_3x2v_p1",
          "rt_gk_multib_tcv_x21_3x2v_p1",
-         "rt_gk_sheath_3x2v_p1_cons",
-         -- 3x kinetic neutrals need the optional 3x3v hybrid Vlasov kernels
-         -- (configure --build-vlasov-hyb-3x3v=yes), which CI does not build.
-         "rt_gk_mdpx_cart_3x2v_p1",
-         "rt_gk_static_3x2v_p1",
+         "rt_gk_sheath_cons_3x2v_p1",
       },
       gpu = {
          "rt_gk_ltx_iwl_num_miller_3x2v_p1",
@@ -21,7 +17,7 @@ return {
          "rt_gk_multib_sheath_1x2v_p1",
          "rt_gk_multib_step_sol_1x2v_p1",
          "rt_gk_multib_tcv_x21_3x2v_p1",
-         "rt_gk_sheath_3x2v_p1_cons",
+         "rt_gk_sheath_cons_3x2v_p1",
       },
    },
    moat = {
@@ -32,7 +28,7 @@ return {
       { name = "rt_gk_cbc_3x2v_p1", cuts = { 1, 1, 4 } },
       { name = "rt_gk_d3d_iwl_2x2v_p1", cuts = { 1, 4 } },
       { name = "rt_gk_ion_sound_adiabatic_elc_1x2v_p1", cuts = { 4 } },
-      { name = "rt_gk_lapd_cyl_3x2v_p1", cuts = { 1, 1, 4 } },
+      { name = "rt_gk_lapd_cyl_3x2v_p1", cuts = { 1, 1, 2 } },
       { name = "rt_gk_ltx_1x2v_p1", cuts = { 4 } },
       { name = "rt_gk_mirror_boltz_elc_1x2v_p1", cuts = { 4 } },
       { name = "rt_gk_multib_step_sol_2x2v_p1", cuts = { 1, 3 } },

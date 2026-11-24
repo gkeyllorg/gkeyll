@@ -171,6 +171,31 @@ evalIonUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 }
 
 void
+evalElcDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_sound_ctx *app = ctx;
+
+  // Set electron background number density.
+  fout[0] = app->n0;
+}
+
+void
+evalElcTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_sound_ctx *app = ctx;
+
+  // Set electron isotropic temperature.
+  fout[0] = app->Te;
+}
+
+void
+evalElcUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  // Set electron parallel velocity.
+  fout[0] = 0.0;
+}
+
+void
 evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct ion_sound_ctx *app = ctx;
@@ -263,19 +288,37 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
+  };
+
+  // Adiabatic electrons: not evolved, rescaled to n0*(1 + e*phi/Te) every step.
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc,
+    .mass = ctx.mass_elc,
+
+    .projection =
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = evalElcDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalElcTempInit,
+        .ctx_temp = &ctx,
+        .upar = evalElcUparInit,
+        .ctx_upar = &ctx,
+        .correct_all_moms = true,
+      },
+
+    .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
+
+    .num_diag_moments = 1,
+    .diag_moments = {GKYL_F_MOMENT_M0},
   };
 
   // Field.
-  struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
-
-    .electron_mass = ctx.mass_elc,
-    .electron_charge = ctx.charge_elc,
-    .electron_density = ctx.n0,
-    .electron_temp = ctx.Te,
-
-    .kperpSq = ctx.k_perp * ctx.k_perp,
-  };
+  struct gkyl_gyrokinetic_field field = {.kperpSq = ctx.k_perp * ctx.k_perp};
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
@@ -303,8 +346,11 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
 
-    .num_species = 1,
-    .species = {ion},
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
+
+    .num_species = 2,
+    .species = {ion, elc},
 
     .field = field,
 

@@ -24,6 +24,14 @@ platform_dir() {
 baseline_path() { platform_dir "$1" baseline-cache "$2"; }
 candidate_path() { platform_dir "$1" candidate-cache "$2"; }
 
+run_tag() {
+  local tag="${BUILD_TAG:-manual}"
+  [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ && "$tag" != *..* ]] || die 'BUILD_TAG is not a safe path component'
+  printf '%s' "$tag"
+}
+
+candidate_entry() { printf '%s/%s/%s' "$(candidate_path "$1" "$2")" "$(run_tag)" "$3"; }
+
 cache_tree_valid() {
   local entry="$1" platform="$2" sha="$3" manifest head layer
   [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || return 1
@@ -66,7 +74,6 @@ publish_baseline() {
   [[ -d "$stage" ]] || die "baseline directory is missing: $stage"
   [[ "$stage" == "$target" ]] || die "baseline must be built at its final path: $target"
   cache_tree_valid "$target" "$platform" "$sha" || die "baseline cache is incomplete or invalid: $target"
-  find "$parent" -mindepth 1 -maxdepth 1 -type d ! -name "$sha" -exec rm -rf {} +
   printf '%s' "$target"
 }
 
@@ -77,21 +84,22 @@ prepare_candidate() {
   head="$(git -C "$source" rev-parse HEAD 2>/dev/null || true)"
   [[ "$head" == "$sha" ]] || die "candidate checkout does not match $sha"
   parent="$(candidate_path "$root" "$platform")"
-  target="$parent/$sha"
-  rm -rf "$parent"
+  target="$(candidate_entry "$root" "$platform" "$sha")"
+  rm -rf "${target%/*}"
   mkdir -p "$target/gkeyll"
   # Copy source before building; installed libraries must stay at this path.
   cp -a "$source/." "$target/gkeyll/"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate copy does not match $sha"
   rm -f "$target/candidate-manifest.txt"
-  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=building\nbuild_tag=%s\n' "$sha" "$baseline_sha" "${BUILD_TAG:-manual}" > "$target/candidate-manifest.txt"
+  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=building\nbuild_tag=%s\njob_name=%s\nbuild_number=%s\nbuild_url=%s\n' \
+    "$sha" "$baseline_sha" "$(run_tag)" "${JOB_NAME:-manual}" "${BUILD_NUMBER:-0}" "${BUILD_URL:-}" > "$target/candidate-manifest.txt"
   printf '%s' "$target"
 }
 
 finalize_candidate() {
   local root="$1" platform="$2" sha="$3" baseline_sha="$4" result="$5" stage="$6" workspace="$7" target file destination
   [[ "$sha" =~ ^[0-9a-f]{40}$ && "$baseline_sha" =~ ^[0-9a-f]{40}$ ]] || die 'candidate and baseline commits must be full SHAs'
-  target="$(candidate_path "$root" "$platform")/$sha"
+  target="$(candidate_entry "$root" "$platform" "$sha")"
   [[ -d "$target/gkeyll/.git" ]] || die "candidate checkout is missing: $target/gkeyll"
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate checkout does not match $sha"
@@ -102,15 +110,16 @@ finalize_candidate() {
     cp "$file" "$destination"
   done
   rm -f "$target/candidate-manifest.txt"
-  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=%s\nterminal_stage=%s\nbuild_tag=%s\nfinished_utc=%s\n' \
-    "$sha" "$baseline_sha" "$result" "$stage" "${BUILD_TAG:-manual}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/candidate-manifest.txt"
+  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=%s\nterminal_stage=%s\nbuild_tag=%s\njob_name=%s\nbuild_number=%s\nbuild_url=%s\nfinished_utc=%s\n' \
+    "$sha" "$baseline_sha" "$result" "$stage" "$(run_tag)" "${JOB_NAME:-manual}" "${BUILD_NUMBER:-0}" "${BUILD_URL:-}" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/candidate-manifest.txt"
 }
 
 stage_candidate_artifacts() {
   local root="$1" platform="$2" sha="$3" workspace="$4" target subtree file relative
   [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || die 'candidate commit must be a full SHA'
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
-  target="$(candidate_path "$root" "$platform")/$sha"
+  target="$(candidate_entry "$root" "$platform" "$sha")"
   [[ -d "$target" ]] || die "candidate directory is missing: $target"
   # The workspace came from the candidate checkout; recreate these archive
   # destinations so tracked symlinks cannot redirect diagnostic copies.

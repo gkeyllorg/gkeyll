@@ -276,6 +276,20 @@ struct gkyl_tm_trigger {
 int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 
 /**
+ * Initial tcurr of a trigger with time-interval dt in a simulation that starts
+ * (or restarts) at tstart: the last point k*dt (k integer) of the trigger's grid
+ * at or before tstart, so the trigger fires at tstart and then on its grid up to
+ * t_end. Restart frames are written slightly after their nominal time, and dt
+ * may differ from the run that wrote them (e.g. a new output cadence). A tstart
+ * short of a grid point only by round-off counts as on that point.
+ *
+ * @param dt Time-interval of the trigger.
+ * @param tstart Start time of the simulation.
+ * @return Initial tcurr for the trigger.
+ */
+double gkyl_tm_trigger_anchor(double dt, double tstart);
+
+/**
  * Print error message to stderr and exit.
  *
  * @param msg Error message.
@@ -293,6 +307,22 @@ int gkyl_compare_float(float a, float b, float eps);
  * sufficiently close by, where 'eps' is the relative tolerance.
  */
 int gkyl_compare_double(double a, double b, double eps);
+
+/**
+ * Classify a double by its IEEE binary64 bits, including in fast-math builds.
+ *
+ * @param value Value to classify.
+ * @return True for a finite value; false for NaN or infinity.
+ */
+bool gkyl_is_dfinite(double value);
+
+/**
+ * Round a double as if written to an E16.9 field and read back.
+ *
+ * @param value Value to round.
+ * @return Value after the decimal text round trip.
+ */
+double gkyl_round_to_e16_9(double value);
 
 /**
  * Copy (small) int arrays.
@@ -503,7 +533,8 @@ enum gkyl_msgpack_elem_type {
   GKYL_MP_UNSIGNED_INT,
   GKYL_MP_FLOAT,
   GKYL_MP_DOUBLE,
-  GKYL_MP_STRING
+  GKYL_MP_STRING,
+  GKYL_MP_STRING_ARRAY
 };
 
 // Entry type into msgpack map.
@@ -518,6 +549,10 @@ struct gkyl_msgpack_map_elem {
     float fval;
     double dval;
     const char *cval; // null terminated string managed by caller
+    struct {
+      size_t size;
+      const char *const *data; // Array of null-terminated strings managed by caller.
+    } sarray;
   };
 };
 
@@ -586,7 +621,8 @@ struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_clone(
 
 /**
  * Allocate a new list of MessagePack map elements out of the union of one or
- * more map elem lists.
+ * more map elem lists. Duplicate keys within or across lists cause a fatal error.
+ * Keys are compared case-sensitively, regardless of their values.
  *
  * @param numlist_union Number of lists.
  * @param nvals_union Number of values in the elist array, one for each list.
@@ -624,6 +660,20 @@ void gkyl_msgpack_map_elem_set_uint(
 );
 
 /**
+ * Replace an owned string value with an allocated copy of value.
+ * Use only with owned values, such as those in a cloned metadata list.
+ * The key is unchanged; an absent key is left absent, as with the numeric setters.
+ *
+ * @param nvals Number of elements in elist.
+ * @param elist List containing owned string values.
+ * @param key Name of the string element to update.
+ * @param value Non-NULL replacement string, which may alias the old value.
+ */
+void gkyl_msgpack_map_elem_set_string(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, const char *value
+);
+
+/**
  * Fetch the type double value of an element in an element list.
  *
  * @param nvals number of elements in elist_in.
@@ -648,22 +698,25 @@ unsigned int gkyl_msgpack_map_elem_get_uint(
 );
 
 /**
- * Fetch the pointer to the string value of an element in an element list.
+ * Fetch a borrowed, read-only pointer to a string value.
  *
- * @param nvals number of elements in elist_in.
- * @param elist_in List of elements.
- * @param key Name of the element to update.
- * @return Pointer to string value of the specified element.
+ * @param nvals Number of elements in elist.
+ * @param elist List of elements, not modified.
+ * @param key Name of the element to fetch.
+ * @return Borrowed string pointer, valid until its value is replaced or released;
+ * NULL if the key is absent or its value has been released. Do not free it directly.
  */
-char *gkyl_msgpack_map_elem_get_string(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key
+const char *gkyl_msgpack_map_elem_get_string(
+  int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key
 );
 
 /**
- * Free the memory allocated to store a string in an element of the given list.
+ * Release an owned string value and set its pointer to NULL.
+ * The key and list are not released. Use only for allocated values, such as
+ * those populated by gkyl_msgpack_to_map_elem_list or a cloned metadata list.
  *
- * @param nvals number of elements in elist_in.
- * @param elist_in List of elements.
+ * @param nvals Number of elements in elist.
+ * @param elist List of elements.
  * @param key Name of the element whose string value to release.
  */
 void gkyl_msgpack_map_elem_release_string(
@@ -671,15 +724,25 @@ void gkyl_msgpack_map_elem_release_string(
 );
 
 /**
- * Release list of MessagePack map elements.
+ * Release a metadata list, including its owned keys and allocated values.
+ * Use for lists returned by gkyl_msgpack_map_elem_clone or gkyl_msgpack_map_elem_union,
+ * not caller-owned lists with borrowed keys or values.
  *
- * @param nvals number of elements in elist_in.
- * @param elist_in List of elements to put in MessagePack.
+ * @param nvals Number of elements in elist_in.
+ * @param elist_in Owned list of elements to release.
  */
 void gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in);
 
 /**
+ * Release an owned string or string-array value, leaving its key and element intact.
+ * Use for values populated by gkyl_msgpack_to_map_elem_list in a caller-owned list.
+ * @param elem Element whose allocated value is to be released.
+ */
+void gkyl_msgpack_map_elem_release_value(struct gkyl_msgpack_map_elem *elem);
+
+/**
  * Create a new msgpack data from list of map elements.
+ * Duplicate keys cause a fatal error, even when their values match.
  *
  * @param nvals Number of values in the elist array
  * @param elist List of elements to insert into map
@@ -689,6 +752,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_create(int nvals, const struct gkyl_msgpa
 
 /**
  * Create a new msgpack data from union of a numlist lists of map elements.
+ * Duplicate keys within or across lists cause a fatal error, even when values match.
+ * Keys are compared case-sensitively.
  *
  * @param numlist_union Number of lists.
  * @param nvals_union Number of values in the elist array, one for each list.
@@ -709,8 +774,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
 
 /**
  * Read a MessagePack for the elements in an element list.
- * NOTE: if one of the elements read is a string, its memory must be
- * freed when done using it (e.g. with gkyl_msgpack_map_elem_release_string);
+ * Allocated string and string-array values must be freed when done using them
+ * with gkyl_msgpack_map_elem_release_value. Keys and the list remain caller-owned.
  * 
  * @param mpack_in MessagePack to read.
  * @param nvals Number of values in element list elist.

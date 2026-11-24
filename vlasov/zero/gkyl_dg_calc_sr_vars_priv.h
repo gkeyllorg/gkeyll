@@ -10,7 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <assert.h>
-#include <gkyl_vlasov_hyb_build.h>
+#include <gkyl_vlasov_kernel_sets.h>
 
 typedef void (*sr_n_set_t)(
   int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *M0, const double *M1i
@@ -209,7 +209,7 @@ GKYL_CU_D static const gkyl_dg_sr_vars_pressure_kern_list tensor_sr_vars_pressur
   {NULL, sr_vars_pressure_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(sr_vars_pressure_2x3v_tensor_p2), NULL
   }, // 5
   // 3x kernels
-  {NULL, GKYL_HYB_3X3V(sr_vars_pressure_3x3v_tensor_p1), NULL, NULL} // 6
+  {NULL, sr_vars_pressure_3x3v_tensor_p1, NULL, NULL} // 6
 };
 
 GKYL_CU_D static sr_n_set_t

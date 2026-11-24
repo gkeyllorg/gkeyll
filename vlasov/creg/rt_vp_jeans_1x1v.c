@@ -308,6 +308,7 @@ main(int argc, char **argv)
 
   // Field: self-gravity only (the species is neutral, so no electrostatic solve).
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .alpha_g = ctx.alpha_g,
 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
@@ -330,16 +331,18 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "dm",
-      .charge = ctx.charge_dm,
-      .mass = ctx.mass_dm,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = dm,
-    }},
+    .species =
+      {
+        {
+          .name = "dm",
+          .charge = ctx.charge_dm,
+          .mass = ctx.mass_dm,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = dm,
+        },
+      },
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -409,7 +412,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

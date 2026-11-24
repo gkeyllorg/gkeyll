@@ -10,7 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_vlasov_hyb_build.h>
+#include <gkyl_vlasov_kernel_sets.h>
 
 typedef void (*dg_gr_maxwell_lorentz_conf_t)(
   const gkyl_dg_gr_maxwell_inp *meq, const double *dx, const double *jacob_pos,
@@ -71,6 +71,6 @@ GKYL_CU_D static const gkyl_dg_gr_maxwell_lorentz_conf_kern_list tensor_lorentz_
   }, // 3
   {NULL, dg_gr_maxwell_lorentz_conf_2x3v_tensor_p1,
    GKYL_TEN_2X3V_P2(dg_gr_maxwell_lorentz_conf_2x3v_tensor_p2), NULL}, // 4
-  {NULL, GKYL_HYB_3X3V(dg_gr_maxwell_lorentz_conf_3x3v_tensor_p1),
-   dg_gr_maxwell_lorentz_conf_3x3v_tensor_p2, NULL} // 5
+  {NULL, dg_gr_maxwell_lorentz_conf_3x3v_tensor_p1, dg_gr_maxwell_lorentz_conf_3x3v_tensor_p2, NULL
+  } // 5
 };

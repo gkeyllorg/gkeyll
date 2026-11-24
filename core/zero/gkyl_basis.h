@@ -281,12 +281,6 @@ unsigned gkyl_cart_modal_basis_get_num_basis(const struct gkyl_basis *basis);
 enum gkyl_basis_type gkyl_cart_modal_basis_get_type(const struct gkyl_basis *basis);
 
 /**
- * Free the memory associated with basis objects
- * created with _new methods above.
- *
- * @param basis Basis object to free.
- */
-/**
  * Basis type to use when selecting the kernel tables of a phase-space
  * updater from a (configuration basis, phase basis) pair. Kernel tables are
  * keyed on the configuration-space basis type, and the tensor p=1 hybrid
@@ -312,5 +306,34 @@ gkyl_basis_phase_kernel_type(
   return conf_basis->b_type;
 }
 
+/**
+ * Number of Gauss-Legendre points per direction for projecting a function
+ * onto this basis by quadrature. This is poly_order + 1, except for the
+ * hybrid bases: they report poly_order = 1 but are p=2 in their velocity
+ * directions, and the 2-point nodes are the roots of P_2, so 2 points would
+ * zero every p=2 velocity coefficient. Hybrid bases use 3 points.
+ *
+ * @param basis Basis to project onto.
+ * @return Number of quadrature points per direction.
+ */
+GKYL_CU_DH static inline int
+gkyl_basis_proj_num_quad(const struct gkyl_basis *basis)
+{
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_HYBRID:
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_GKHYBRID_VEL:
+      return 3;
+    default:
+      return basis->poly_order + 1;
+  }
+}
+
+/**
+ * Free the memory associated with basis objects
+ * created with _new methods above.
+ *
+ * @param basis Basis object to free.
+ */
 void gkyl_cart_modal_basis_release(struct gkyl_basis *basis);
 void gkyl_cart_modal_basis_release_cu(struct gkyl_basis *basis);

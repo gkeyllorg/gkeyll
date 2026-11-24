@@ -24,26 +24,20 @@ static const struct gkyl_str_int_pair distribution_moms[] = {
   {"HamiltonianMoments", GKYL_F_MOMENT_HAMILTONIAN}, // M0, mass*M1, H moments.
   {"M1_from_H", GKYL_F_MOMENT_M1_FROM_H}, // dH/dv / m moment.
   {"EnergyMoment", GKYL_F_MOMENT_ENERGY}, // H moment.
-  {"M0EnergyM3", GKYL_F_MOMENT_M0ENERGYM3}, // M0, Energy (H) and M3 moments.
-  {"Ni", GKYL_F_MOMENT_NI}, // M0, M1i for-vector.
-  {"Tij", GKYL_F_MOMENT_TIJ}, // Stress-energy tensor.
+  {"EnergyFlux", GKYL_F_MOMENT_ENERGY_FLUX}, // H*dH/dv /m moment.
+  {"M0_upper", GKYL_F_MOMENT_M0_UPPER}, // Partial M0 above a threshold velocity (vdim = 1).
+  {"M0_lower", GKYL_F_MOMENT_M0_LOWER}, // Partial M0 below a threshold velocity (vdim = 1).
   {0, 0}
 };
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
-  {"bcCopy", GKYL_SPECIES_COPY},
-  {"bcWall", GKYL_SPECIES_REFLECT},
-  {"bcReflect", GKYL_SPECIES_REFLECT},
-  {"bcAbsorb", GKYL_SPECIES_ABSORB},
-  {"bcNoSlip", GKYL_SPECIES_NO_SLIP},
-  {"bcWedge", GKYL_SPECIES_WEDGE},
-  {"bcFunc", GKYL_SPECIES_FUNC},
-  {"bcFixedFunc", GKYL_SPECIES_FIXED_FUNC},
-  {"bcZeroFlux", GKYL_SPECIES_ZERO_FLUX},
-  {"bcRecycle", GKYL_SPECIES_RECYCLE},
-  {"bcEmission", GKYL_SPECIES_EMISSION},
-  {0, 0}
+  {"bcCopy", GKYL_SPECIES_COPY},          {"bcWall", GKYL_SPECIES_REFLECT},
+  {"bcReflect", GKYL_SPECIES_REFLECT},    {"bcAbsorb", GKYL_SPECIES_ABSORB},
+  {"bcNoSlip", GKYL_SPECIES_NO_SLIP},     {"bcWedge", GKYL_SPECIES_WEDGE},
+  {"bcFunc", GKYL_SPECIES_FUNC},          {"bcFixedFunc", GKYL_SPECIES_FIXED_FUNC},
+  {"bcZeroFlux", GKYL_SPECIES_ZERO_FLUX}, {"bcRecycle", GKYL_SPECIES_RECYCLE},
+  {"bcEmission", GKYL_SPECIES_EMISSION},  {0, 0}
 };
 
 // Field boundary conditions -> enum map.

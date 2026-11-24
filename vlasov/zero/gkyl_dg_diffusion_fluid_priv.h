@@ -707,31 +707,36 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list
       // 1x
       {
         .list =
-          {// 2nd order diffusion.
-           {
-             .list =
-               {{ker_dg_diffusion_fluid_order2_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order2_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order2_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL}},
-           },
-           // 4th order diffusion.
-           {
-             .list =
-               {{ker_dg_diffusion_fluid_order4_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order4_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order4_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL}},
-           },
-           // 6th order diffusion.
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_fluid_order6_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_fluid_order6_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL, NULL, NULL, NULL, NULL}},
-           }
+          {
+            // 2nd order diffusion.
+            {
+              .list =
+                {{ker_dg_diffusion_fluid_order2_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order2_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order2_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL}},
+            },
+            // 4th order diffusion.
+            {
+              .list =
+                {{ker_dg_diffusion_fluid_order4_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order4_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order4_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL}},
+            },
+            // 6th order diffusion.
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order6_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order6_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL}},
+            },
           },
       },
       // 2x
@@ -776,13 +781,13 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list
                 {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
                  {ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsx,
                   ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsy,
-                  ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL,
-                  NULL, NULL},
+                  ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsxy,
+                  NULL, NULL, NULL, NULL},
                  {ker_dg_diffusion_fluid_order6_vol_2x_ser_p3_constcoeff_diffdirsx,
                   ker_dg_diffusion_fluid_order6_vol_2x_ser_p3_constcoeff_diffdirsy,
-                  ker_dg_diffusion_fluid_order6_vol_2x_ser_p3_constcoeff_diffdirsxy, NULL, NULL,
-                  NULL, NULL}},
-            }
+                  ker_dg_diffusion_fluid_order6_vol_2x_ser_p3_constcoeff_diffdirsxy,
+                  NULL, NULL, NULL, NULL}},
+            },
           },
       },
       // 3x
@@ -839,9 +844,9 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list
                   ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsyz,
                   ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz},
                  {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-            }
+            },
           },
-      }
+      },
 };
 
 // Surface kernel list: x-direction
@@ -878,7 +883,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfx_kernels_
        {NULL, dg_diffusion_fluid_order6_surfx_2x_ser_p2_constcoeff,
         dg_diffusion_fluid_order6_surfx_2x_ser_p3_constcoeff},
        {NULL, dg_diffusion_fluid_order6_surfx_3x_ser_p2_constcoeff, NULL}},
-  }
+  },
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfy_kernels_constcoeff[] = {
@@ -909,7 +914,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfy_kernels_
        {NULL, dg_diffusion_fluid_order6_surfy_2x_ser_p2_constcoeff,
         dg_diffusion_fluid_order6_surfy_2x_ser_p3_constcoeff},
        {NULL, dg_diffusion_fluid_order6_surfy_3x_ser_p2_constcoeff, NULL}},
-  }
+  },
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfz_kernels_constcoeff[] = {
@@ -935,7 +940,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfz_kernels_
       {{NULL, NULL, NULL},
        {NULL, NULL, NULL},
        {NULL, dg_diffusion_fluid_order6_surfz_3x_ser_p2_constcoeff, NULL}},
-  }
+  },
 };
 
 // Boundary surface kernel list: x-direction
@@ -973,7 +978,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
          {NULL, dg_diffusion_fluid_order6_boundary_surfx_2x_ser_p2_constcoeff,
           dg_diffusion_fluid_order6_boundary_surfx_2x_ser_p3_constcoeff},
          {NULL, dg_diffusion_fluid_order6_boundary_surfx_3x_ser_p2_constcoeff, NULL}},
-    }
+    },
 };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
@@ -1005,7 +1010,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
          {NULL, dg_diffusion_fluid_order6_boundary_surfy_2x_ser_p2_constcoeff,
           dg_diffusion_fluid_order6_boundary_surfy_2x_ser_p3_constcoeff},
          {NULL, dg_diffusion_fluid_order6_boundary_surfy_3x_ser_p2_constcoeff, NULL}},
-    }
+    },
 };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
@@ -1032,7 +1037,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
         {{NULL, NULL, NULL},
          {NULL, NULL, NULL},
          {NULL, dg_diffusion_fluid_order6_boundary_surfz_3x_ser_p2_constcoeff, NULL}},
-    }
+    },
 };
 
 // Tensor volume kernels
@@ -1468,29 +1473,34 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list
       // 1x
       {
         .list =
-          {// 2nd order diffusion.
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order2_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order2_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL}},
-           },
-           // 4th order diffusion.
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order4_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_fluid_order4_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL, NULL,
-                 NULL, NULL, NULL}},
-           },
-           // 6th order diffusion.
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_fluid_order6_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_fluid_order6_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL, NULL, NULL, NULL, NULL}},
-           }
+          {
+            // 2nd order diffusion.
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order2_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order2_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL}},
+            },
+            // 4th order diffusion.
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order4_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order4_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL}},
+            },
+            // 6th order diffusion.
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order6_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL},
+                 {ker_dg_diffusion_fluid_order6_vol_1x_ser_p3_constcoeff_diffdirsx, NULL, NULL,
+                  NULL, NULL, NULL, NULL}},
+            },
           },
       },
       // 2x
@@ -1525,17 +1535,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list
             },
             // 6th order diffusion.
             {
-              .list =
-                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-                 {ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsx,
-                  ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsy,
-                  ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL,
-                  NULL, NULL},
-                 {ker_dg_diffusion_fluid_order6_vol_2x_tensor_p3_constcoeff_diffdirsx,
-                  ker_dg_diffusion_fluid_order6_vol_2x_tensor_p3_constcoeff_diffdirsy,
-                  ker_dg_diffusion_fluid_order6_vol_2x_tensor_p3_constcoeff_diffdirsxy, NULL, NULL,
-                  NULL, NULL}},
-            }
+              .list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsx, ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsy, ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_fluid_order6_vol_2x_tensor_p3_constcoeff_diffdirsx, ker_dg_diffusion_fluid_order6_vol_2x_tensor_p3_constcoeff_diffdirsy, ker_dg_diffusion_fluid_order6_vol_2x_tensor_p3_constcoeff_diffdirsxy, NULL, NULL, NULL, NULL}},
+            },
           },
       },
       // 3x
@@ -1580,9 +1581,9 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list
                   ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsyz,
                   ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxyz},
                  {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-            }
+            },
           },
-      }
+      },
 };
 
 // Surface kernel list: x-direction
@@ -1613,7 +1614,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfx_kerne
        {NULL, dg_diffusion_fluid_order6_surfx_2x_tensor_p2_constcoeff,
         dg_diffusion_fluid_order6_surfx_2x_tensor_p3_constcoeff},
        {NULL, dg_diffusion_fluid_order6_surfx_3x_tensor_p2_constcoeff, NULL}},
-  }
+  },
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfy_kernels_constcoeff[] = {
@@ -1640,7 +1641,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfy_kerne
        {NULL, dg_diffusion_fluid_order6_surfy_2x_tensor_p2_constcoeff,
         dg_diffusion_fluid_order6_surfy_2x_tensor_p3_constcoeff},
        {NULL, dg_diffusion_fluid_order6_surfy_3x_tensor_p2_constcoeff, NULL}},
-  }
+  },
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfz_kernels_constcoeff[] = {
@@ -1664,7 +1665,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfz_kerne
       {{NULL, NULL, NULL},
        {NULL, NULL, NULL},
        {NULL, dg_diffusion_fluid_order6_surfz_3x_tensor_p2_constcoeff, NULL}},
-  }
+  },
 };
 
 // Boundary surface kernel list: x-direction
@@ -1696,7 +1697,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
          {NULL, dg_diffusion_fluid_order6_boundary_surfx_2x_tensor_p2_constcoeff,
           dg_diffusion_fluid_order6_boundary_surfx_2x_tensor_p3_constcoeff},
          {NULL, dg_diffusion_fluid_order6_boundary_surfx_3x_tensor_p2_constcoeff, NULL}},
-    }
+    },
 };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
@@ -1724,7 +1725,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
          {NULL, dg_diffusion_fluid_order6_boundary_surfy_2x_tensor_p2_constcoeff,
           dg_diffusion_fluid_order6_boundary_surfy_2x_tensor_p3_constcoeff},
          {NULL, dg_diffusion_fluid_order6_boundary_surfy_3x_tensor_p2_constcoeff, NULL}},
-    }
+    },
 };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
@@ -1749,7 +1750,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
         {{NULL, NULL, NULL},
          {NULL, NULL, NULL},
          {NULL, dg_diffusion_fluid_order6_boundary_surfz_3x_tensor_p2_constcoeff, NULL}},
-    }
+    },
 };
 
 // Macro for choosing volume and surface kernels.

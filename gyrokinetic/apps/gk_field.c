@@ -40,7 +40,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 
     struct gkyl_msgpack_map_elem elem_list[] = {
       {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0}
+      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
@@ -58,31 +58,32 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 }
 
 static void
-gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app)
+gk_field_polarization_potential_new(struct gk_field *gkf, struct gkyl_gyrokinetic_app *app)
 {
   // Project the initial potential onto a p+1 tensor basis and compute the polarization
   // density to use use by species in calculating the initial ion density.
-  f->init_phi_pol = true;
+  gkf->init_phi_pol = true;
   struct gkyl_basis phi_pol_basis;
   gkyl_cart_modal_tensor(&phi_pol_basis, app->cdim, app->poly_order + 1);
 
-  f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
-  struct gkyl_array *phi_pol_ho = app->use_gpu ? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size) :
-                                                 gkyl_array_acquire(f->phi_pol);
+  gkf->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *phi_pol_ho = app->use_gpu ?
+                                    mkarr(false, gkf->phi_pol->ncomp, gkf->phi_pol->size) :
+                                    gkyl_array_acquire(gkf->phi_pol);
 
   struct gkyl_eval_on_nodes *phi_pol_proj =
     gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
       .grid = &app->grid,
       .basis = &phi_pol_basis,
       .num_ret_vals = 1,
-      .eval = f->info.polarization_potential,
-      .ctx = f->info.polarization_potential_ctx,
+      .eval = gkf->info.polarization_potential,
+      .ctx = gkf->info.polarization_potential_ctx,
       .c2p_func = eval_on_nodes_c2p_position_func,
       .c2p_func_ctx = app->position_map,
     });
 
   gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &app->local, phi_pol_ho);
-  gkyl_array_copy(f->phi_pol, phi_pol_ho);
+  gkyl_array_copy(gkf->phi_pol, phi_pol_ho);
 
   gkyl_eval_on_nodes_release(phi_pol_proj);
   gkyl_array_release(phi_pol_ho);
@@ -90,23 +91,24 @@ gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_
 
 static void
 gk_field_polarization_potential_from_file_new(
-  struct gk_field *f, struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokinetic_ic_import inp
+  struct gk_field *gkf, struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokinetic_ic_import inp
 )
 {
-  f->init_phi_pol = true;
+  gkf->init_phi_pol = true;
   struct gkyl_basis phi_pol_basis;
   gkyl_cart_modal_tensor(&phi_pol_basis, app->cdim, app->poly_order + 1);
 
-  f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
-  struct gkyl_array *phi_pol_ho = app->use_gpu ? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size) :
-                                                 gkyl_array_acquire(f->phi_pol);
+  gkf->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *phi_pol_ho = app->use_gpu ?
+                                    mkarr(false, gkf->phi_pol->ncomp, gkf->phi_pol->size) :
+                                    gkyl_array_acquire(gkf->phi_pol);
 
   struct gkyl_app_restart_status rstat = header_from_file(app, inp.file_name);
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, phi_pol_ho, inp.file_name);
     assert(rstat.io_status == GKYL_ARRAY_RIO_SUCCESS);
-    gkyl_array_copy(f->phi_pol, phi_pol_ho);
+    gkyl_array_copy(gkf->phi_pol, phi_pol_ho);
   } else {
     assert(false);
   }
@@ -115,31 +117,82 @@ gk_field_polarization_potential_from_file_new(
 }
 
 static void
-gk_field_polarization_potential_release(struct gk_field *f)
+gk_field_polarization_potential_release(struct gk_field *gkf)
 {
-  gkyl_array_release(f->phi_pol);
+  gkyl_array_release(gkf->phi_pol);
 }
 
 // Functions related to the field energy allocations, diagnostics, and release
 
+// factor times the field energy in the local range, without reducing it.
+static void
+gk_field_calc_energy_local(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
+)
+{
+  gkyl_array_integrate_advance(
+    field->calc_em_energy, field->phi_smooth, factor, field->es_energy_fac, &app->local,
+    &app->local, out
+  );
+  field->energy_adiab_func(app, field, factor, out);
+}
+
+// Sum a local energy over the communicator.
+static double
+gk_field_energy_reduce(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, const double *energy_local
+)
+{
+  gkyl_comm_allreduce(
+    app->comm, GKYL_DOUBLE, GKYL_SUM, 1, energy_local, field->em_energy_red_global
+  );
+  double energy;
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(&energy, field->em_energy_red_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    energy = field->em_energy_red_global[0];
+  }
+  return energy;
+}
+
+// The 1x field energy uses a scalar factor.
+static double
+gk_field_em_energy_reduce(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, const double *energy_local
+)
+{
+  double energy = gk_field_energy_reduce(app, field, energy_local);
+  return app->cdim == 1 ? energy * field->es_energy_fac_1d : energy;
+}
+
+static void
+gk_field_energy_bg_none(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
+)
+{
+}
+
 static void
 gk_field_calc_energy_dt_active(
-  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
 )
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_array_integrate_advance(
-    field->calc_em_energy, field->phi_smooth, 1.0 / dt, field->es_energy_fac, &app->local,
-    &app->local, energy_reduced
+  gk_field_calc_energy_local(
+    app, field, 1.0 / dt, is_old ? field->em_energy_red_old : field->em_energy_red_new
+  );
+  field->energy_bg_func(
+    app, field, 1.0 / dt, is_old ? field->bg_energy_red_old : field->bg_energy_red_new
   );
   app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
 gk_field_calc_energy_dt_none(
-  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
 )
 {
+  // Do nothing.
 }
 
 static void
@@ -147,64 +200,15 @@ gk_field_calc_energy_enabled(
   struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm
 )
 {
-  gkyl_array_integrate_advance(
-    field->calc_em_energy, field->phi_smooth, 1.0, field->es_energy_fac, &app->local, &app->local,
-    field->em_energy_red
-  );
-
-  gkyl_comm_allreduce(
-    app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global
-  );
-
-  double energy_global[1] = {0.0};
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(
-      energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
-    );
-  } else {
-    energy_global[0] = field->em_energy_red_global[0];
-  }
-
-  if (app->cdim == 1) {
-    energy_global[0] *= field->es_energy_fac_1d;
-  }
-
+  gk_field_calc_energy_local(app, field, 1.0, field->em_energy_red);
+  double energy_global[1] = {gk_field_em_energy_reduce(app, field, field->em_energy_red)};
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 
-  if (field->info.time_rate_diagnostics) {
-    gkyl_comm_allreduce(
-      app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_old, field->em_energy_red_global
-    );
-    double energy_dot_global_old[1] = {0.0};
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(
-        energy_dot_global_old, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
-      );
-    } else {
-      energy_dot_global_old[0] = field->em_energy_red_global[0];
-    }
-    if (app->cdim == 1) {
-      energy_dot_global_old[0] *= field->es_energy_fac_1d;
-    }
-
-    gkyl_comm_allreduce(
-      app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_new, field->em_energy_red_global
-    );
-    double energy_dot_global_new[1] = {0.0};
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(
-        energy_dot_global_new, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
-      );
-    } else {
-      energy_dot_global_new[0] = field->em_energy_red_global[0];
-    }
-    if (app->cdim == 1) {
-      energy_dot_global_new[0] *= field->es_energy_fac_1d;
-    }
-
-    double energy_dot_global[1] = {0.0};
-    energy_dot_global[0] = energy_dot_global_new[0] - energy_dot_global_old[0];
-
+  if (field->time_rate_diags) {
+    double energy_dot_global[1] = {
+      gk_field_em_energy_reduce(app, field, field->em_energy_red_new) -
+      gk_field_em_energy_reduce(app, field, field->em_energy_red_old)
+    };
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
   }
 }
@@ -218,127 +222,176 @@ gk_field_calc_energy_disabled(
 }
 
 static void
-gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_energy_dt_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
-  if (app->use_gpu) {
-    f->em_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
-    f->em_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
-    gkyl_cu_memset(f->em_energy_red_new, 0, sizeof(double[1]));
-    gkyl_cu_memset(f->em_energy_red_old, 0, sizeof(double[1]));
-  } else {
-    f->em_energy_red_new = gkyl_malloc(sizeof(double[1]));
-    f->em_energy_red_old = gkyl_malloc(sizeof(double[1]));
-    memset(f->em_energy_red_new, 0, sizeof(double[1]));
-    memset(f->em_energy_red_old, 0, sizeof(double[1]));
-  }
-  f->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  f->is_first_energy_dot_write_call = true;
+  // Energies/dt at the beginning and end of a time step, for the energy rate
+  // diagnostic and the energy balance of the app.
+  gkf->calc_energy_dt_func = gk_field_calc_energy_dt_active;
+  gkf->em_energy_red_old = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gkf->em_energy_red_new = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gkf->bg_energy_red = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gkf->bg_energy_red_old = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gkf->bg_energy_red_new = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gkf->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  gkf->is_first_energy_dot_write_call = true;
 }
 
 static void
-gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   // Allocate energy reduction arrays.
-  if (app->use_gpu) {
-    f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
-    f->em_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
-  } else {
-    f->em_energy_red = gkyl_malloc(sizeof(double[1]));
-    f->em_energy_red_global = gkyl_malloc(sizeof(double[1]));
+  gkf->em_energy_red = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gkf->em_energy_red_global = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+
+  gkf->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  gkf->is_first_energy_write_call = true;
+
+  gkf->calc_energy_func = gk_field_calc_energy_enabled;
+  gkf->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  gkf->energy_bg_func = gk_field_energy_bg_none;
+
+  // The energy balance of the app needs the energy rate diagnostic and the
+  // background-charge energy.
+  gkf->energy_balance = false;
+  for (int d = 0; d < app->gkbal.num_diags; d++) {
+    gkf->energy_balance = gkf->energy_balance || app->gkbal.diag_types[d] == GKYL_GK_BALANCE_ENERGY;
   }
-
-  f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  f->is_first_energy_write_call = true;
-
-  f->calc_energy_func = gk_field_calc_energy_enabled;
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
-
-  if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_new(app, f);
+  gkf->time_rate_diags = gkf->info.time_rate_diagnostics || gkf->energy_balance;
+  if (gkf->time_rate_diags) {
+    gk_field_energy_dt_new(app, gkf);
   }
 
   // Factors for ES energy.
-  f->es_energy_fac =
+  gkf->es_energy_fac =
     mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
-  f->es_energy_fac_1d = 0.0;
+  gkf->es_energy_fac_1d = 0.0;
 }
 
 static void
-gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_energy_dt_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
-  if (app->use_gpu) {
-    gkyl_cu_free(f->em_energy_red_new);
-    gkyl_cu_free(f->em_energy_red_old);
-  } else {
-    gkyl_free(f->em_energy_red_new);
-    gkyl_free(f->em_energy_red_old);
-  }
-  gkyl_dynvec_release(f->integ_energy_dot);
+  gkf->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  gkyl_free_hodev(app->use_gpu, gkf->em_energy_red_old);
+  gkyl_free_hodev(app->use_gpu, gkf->em_energy_red_new);
+  gkyl_free_hodev(app->use_gpu, gkf->bg_energy_red);
+  gkyl_free_hodev(app->use_gpu, gkf->bg_energy_red_old);
+  gkyl_free_hodev(app->use_gpu, gkf->bg_energy_red_new);
+  gkyl_dynvec_release(gkf->integ_energy_dot);
 }
 
 static void
-gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  gkyl_dynvec_release(f->integ_energy);
+  gkyl_dynvec_release(gkf->integ_energy);
+  gkyl_free_hodev(app->use_gpu, gkf->em_energy_red);
+  gkyl_free_hodev(app->use_gpu, gkf->em_energy_red_global);
 
-  if (app->use_gpu) {
-    gkyl_cu_free(f->em_energy_red);
-    gkyl_cu_free(f->em_energy_red_global);
-  } else {
-    gkyl_free(f->em_energy_red);
-    gkyl_free(f->em_energy_red_global);
+  if (gkf->time_rate_diags) {
+    gk_field_energy_dt_release(app, gkf);
   }
 
-  if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_release(app, f);
-  }
+  gkyl_array_release(gkf->es_energy_fac);
+}
 
-  gkyl_array_release(f->es_energy_fac);
+static void
+gk_field_accumulate_rho_c_bg_none(gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+}
+
+static void
+gk_field_adiabatic_energy_none(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
+)
+{
 }
 
 // Initialize field object.
 struct gk_field *
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 {
-  struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
+  struct gk_field *gkf = gkyl_malloc(sizeof(struct gk_field));
 
-  f->info = gk->field;
+  gkf->info = gk->field;
 
-  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+  gkf->gkfield_id = gkf->info.gkfield_id ? gkf->info.gkfield_id : GKYL_GK_FIELD_ES;
 
-  f->calc_init_field = !f->info.zero_init_field;
-  f->update_field = !f->info.is_static;
+  gkf->calc_init_field = !gkf->info.zero_init_field;
+  gkf->update_field = !gkf->info.is_static;
   // The combination update_field=true, calc_init_field=false is not allowed.
-  assert(!(f->update_field && (!f->calc_init_field)));
+  assert(!(gkf->update_field && (!gkf->calc_init_field)));
 
   // Initialize polarization potential if needed.
-  f->init_phi_pol = false;
-  if (f->info.polarization_potential) {
-    gk_field_polarization_potential_new(f, app);
-  } else if (f->info.polarization_potential_import.type != GKYL_IC_IMPORT_NONE) {
-    gk_field_polarization_potential_from_file_new(f, app, f->info.polarization_potential_import);
+  gkf->init_phi_pol = false;
+  if (gkf->info.polarization_potential) {
+    gk_field_polarization_potential_new(gkf, app);
+  } else if (gkf->info.polarization_potential_import.type != GKYL_IC_IMPORT_NONE) {
+    gk_field_polarization_potential_from_file_new(gkf, app, gkf->info.polarization_potential_import);
   }
 
   // Initialize energy diagnostics.
-  gk_field_energy_new(app, f);
+  gk_field_energy_new(app, gkf);
+
+  // Species with an adiabatic response enter the field equation through their background
+  // density and K = sum_s (q_s^2 n_s0/T_s)*J instead of their charge density (see
+  // gk_field_adiabatic.c).
+  memset(&gkf->gk_adiab, 0, sizeof(gkf->gk_adiab));
+  gkf->num_rhoc_species = 0;
+  for (int i = 0; i < app->num_species; ++i) {
+    if (app->species[i].info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+      gkf->gk_adiab.species_idx[gkf->gk_adiab.num_species++] = i;
+    } else {
+      gkf->rhoc_species_idx[gkf->num_rhoc_species++] = i;
+    }
+  }
+  gkf->has_adiabatic_species = gkf->gk_adiab.num_species > 0;
+  gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
+  gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
 
   // Initialize the field solver
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    gk_field_fem_new_boltzmann(app, f);
+  if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    gk_field_fem_new_boltzmann(app, gkf);
   } else {
     if (app->cdim == 1) {
-      gk_field_fem_new_1x(app, f);
+      gk_field_fem_new_1x(app, gkf);
     } else if (app->cdim > 1) {
-      gk_field_fem_new_2x3x(app, f);
+      gk_field_fem_new_2x3x(app, gkf);
     }
   }
 
-  // Initialize biased walls.
-  gk_field_biased_wall_new(app, f);
+  // Set up the adiabatic response, which may replace the field solve.
+  if (gkf->has_adiabatic_species) {
+    gk_field_adiabatic_new(app, gkf);
+  }
 
-  return f;
+  return gkf;
+}
+
+void
+gk_field_fem_parproj_new(
+  struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, const struct gkyl_array *weight
+)
+{
+  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
+  for (int d = 0; d < app->num_periodic_dir; ++d) {
+    if (app->periodic_dirs[d] == app->cdim - 1) {
+      fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+    }
+  }
+
+  // Gather the weight for the (global) projection in z.
+  struct gkyl_array *weight_global = 0;
+  if (weight) {
+    weight_global = mkarr(app->use_gpu, weight->ncomp, app->global_ext.volume);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, weight, weight_global);
+  }
+
+  gkf->fem_parproj = gkyl_fem_parproj_new(
+    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, weight_global, 0, app->use_gpu
+  );
+
+  if (weight) {
+    gkyl_array_release(weight_global);
+  }
 }
 
 // RHS functions for calculations
@@ -362,35 +415,43 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
 
 void
 gk_field_calc_energy_dt(
-  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
 )
 {
-  field->calc_energy_dt_func(app, field, dt, energy_reduced);
+  field->calc_energy_dt_func(app, field, dt, is_old);
 }
 
 void
-gk_field_accumulate_rho_c_adiabatic(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux
+gk_field_calc_energy_balance(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm, double *energy,
+  double *energy_dot, double *bg_energy, double *bg_energy_dot
 )
 {
-  // Gyroaverage the density if needed.
-  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
-  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
-  // Add the background (electron) charge density.
-  double n_s0 = field->info.electron_density;
-  double q_s = field->info.electron_charge;
-  double dg_norm = pow(sqrt(2.0), app->basis.ndim);
-  gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
+  // Field energy and its rate of change from the field energy diagnostics,
+  // which must be computed at tm first.
+  bool has_energy = gkyl_dynvec_getlast(field->integ_energy, energy) &&
+                    gkyl_dynvec_getlast(field->integ_energy_dot, energy_dot);
+  assert(
+    has_energy && gkyl_dynvec_getlast_tm(field->integ_energy) == tm &&
+    gkyl_dynvec_getlast_tm(field->integ_energy_dot) == tm
+  );
+  // Background-charge energy now, and its rate of change from the energies/dt
+  // stored by gk_field_calc_energy_dt at the beginning and end of the last time step.
+  field->energy_bg_func(app, field, 1.0, field->bg_energy_red);
+  *bg_energy = gk_field_energy_reduce(app, field, field->bg_energy_red);
+  *bg_energy_dot = gk_field_energy_reduce(app, field, field->bg_energy_red_new) -
+                   gk_field_energy_reduce(app, field, field->bg_energy_red_old);
 }
 
 void
 gk_field_accumulate_rho_c_poisson(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
+  struct gkyl_array **bflux
 )
 {
   // Gyroaverage the density if needed.
-  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
-  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
+  gks->gyroaverage(app, gks, gks->m0.marr, gks->m0_gyroavg);
+  gkyl_array_accumulate_range(field->rho_c, gks->info.charge, gks->m0_gyroavg, &app->local);
 }
 
 void
@@ -401,11 +462,13 @@ gk_field_accumulate_rho_c(
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    field->accumulate_rhoc_func(app, field, s, bflux[i]);
+  for (int k = 0; k < field->num_rhoc_species; ++k) {
+    int i = field->rhoc_species_idx[k];
+    struct gk_species *gks = &app->species[i];
+    gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin[i]);
+    field->accumulate_rhoc_func(app, field, gks, bflux[i]);
   }
+  field->accumulate_rhoc_bg_func(app, field);
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -460,21 +523,22 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
 
 // Release resources for field.
 void
-gk_field_release(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_release(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   // Release polarization potential if used.
-  if (f->init_phi_pol) {
-    gk_field_polarization_potential_release(f);
+  if (gkf->init_phi_pol) {
+    gk_field_polarization_potential_release(gkf);
   }
 
   // Release solver-specific resources.
-  f->release_func(app, f);
+  gkf->release_func(app, gkf);
+
+  if (gkf->has_adiabatic_species) {
+    gk_field_adiabatic_release(app, gkf);
+  }
 
   // Release energy diagnostics.
-  gk_field_energy_release(app, f);
+  gk_field_energy_release(app, gkf);
 
-  // Release biased walls.
-  gk_field_biased_wall_release(app, f);
-
-  gkyl_free(f);
+  gkyl_free(gkf);
 }

@@ -71,14 +71,17 @@ gk_eirene_gyrokinetic_str_ends_in_b1011(char *name)
 }
 
 void
-gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+gk_eirene_rhs(
+  gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[],
+  struct gkyl_array **step_moms_out[]
+)
 {
   struct gk_eirene *eirene = app->eirene;
   for (int i = 0; i < eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     int sidx = gk_find_species_idx(app, gks->info.name);
-    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx]);
+    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx], step_moms_out[sidx]);
   }
 }
 
@@ -198,6 +201,8 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
     eirene->bgk_src[i].write_diagnostics = true;
     gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);
+    eirene->bgk_src[i].step_moms_idx =
+      gk_stepped_moms_append_refs(&gks->step_moms, &eirene->bgk_src[i].step_moms);
   }
 
   // Read initial EIRENE data.

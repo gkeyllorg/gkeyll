@@ -7,7 +7,7 @@
 -- and 3 where the Boltzmann factor is below 2e-4. Figures of merit
 -- (serendipity p2, 20 x 2 x 10 x 8 cells, 705 steps): at t = 2 the azimuthally averaged density
 -- profile differs from its initial projection by 2.0e-3 in relative L1 (3.0e-3 at the peak) and
--- stays azimuthally uniform to 4e-5; mass and energy change by 8e-5 and 4e-5
+-- stays azimuthally uniform to round-off; mass and energy change by 8e-5 and 4e-5
 -- (absorption of the Boltzmann tail at the outer wall).
 local Vlasov = G0.Vlasov
 

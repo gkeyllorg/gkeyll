@@ -9,14 +9,14 @@
 // map in each direction clustering cells at the origin while the box edge sits at ~7.5 a
 // (effectively infinity, with absorbing species boundaries and phi_g = 0 Dirichlet boundaries); the
 // velocity mesh uses the same map so the high-velocity tail of the relaxed distribution is covered.
-// Figures of merit (tensor p1 (hybrid), 16^2 x 16^2 cells, about 4 minutes on one core): the
-// kinetic energy relative to its virial value goes from 0.500 to 0.996 +- 0.027 (mean over t =
-// 10-20, final 0.975) and the final density is fit by rho0/(1 + r^2/r0^2)^2 with rho0 = 2.45 and r0
-// = 1.94 (L2 residual 3.7%, versus 11% for a Gaussian; the isothermal r0 from the final sigma^2 and
-// rho0 is 1.78); the mass changes by +0.05% over the run (the absorbing boundaries sweep out the
-// signed, under-resolved tails of the distribution in the large outer cells; the interior scheme is
-// conservative to round-off, as the same run with periodic boundaries shows) and the total energy
-// (kinetic minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) by 1e-3.
+// Figures of merit (tensor p1 (hybrid), 16^2 x 16^2 cells): the kinetic energy relative to its
+// virial value goes from 0.500 to 0.995 +- 0.027 (mean and standard deviation over t = 10-20 of the
+// integrated-moment time series, final 0.976) and the final density is fit by rho0/(1 + r^2/r0^2)^2
+// with rho0 = 2.43 and r0 = 1.91 (least squares on the cell averages weighted by cell area;
+// relative L2 residual 3.6%, versus 11% for a Gaussian; the isothermal r0 from the final sigma^2 =
+// K/M and rho0 is 1.79); the mass changes by +0.05% over the run (the absorbing boundaries sweep
+// out the signed, under-resolved tails of the distribution in the large outer cells) and the total
+// energy (kinetic minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) by 1e-3.
 
 #include <math.h>
 #include <stdio.h>
@@ -342,8 +342,10 @@ main(int argc, char **argv)
     .cells = {NVX, NVX},
 
     .mapc2p_vel =
-      {{.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx},
-       {.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx}},
+      {
+        {.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx},
+        {.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx},
+      },
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDmInit, .ctx_func = &ctx},
@@ -358,6 +360,7 @@ main(int argc, char **argv)
 
   // Field: self-gravity only (the species is neutral), phi_g = 0 at the box edges.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .alpha_g = ctx.alpha_g,
 
     .poisson_bcs =
@@ -380,8 +383,10 @@ main(int argc, char **argv)
     .cells = {NX, NX},
 
     .mapc2p_pos =
-      {{.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
-       {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx}},
+      {
+        {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
+        {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
+      },
 
     // Tensor p=1 is the hybrid basis: p=1 in configuration space, p=2 in velocity
     // space, which resolves the velocity tails of the relaxing distribution.
@@ -393,16 +398,18 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "dm",
-      .charge = ctx.charge_dm,
-      .mass = ctx.mass_dm,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = dm,
-    }},
+    .species =
+      {
+        {
+          .name = "dm",
+          .charge = ctx.charge_dm,
+          .mass = ctx.mass_dm,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = dm,
+        },
+      },
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
@@ -473,7 +480,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

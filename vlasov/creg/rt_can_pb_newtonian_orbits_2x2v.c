@@ -7,7 +7,7 @@
 // and 3 where the Boltzmann factor is below 2e-4. Figures of merit
 // (serendipity p2, 20 x 2 x 10 x 8 cells, 705 steps): at t = 2 the azimuthally averaged density
 // profile differs from its initial projection by 2.0e-3 in relative L1 (3.0e-3 at the peak) and
-// stays azimuthally uniform to 4e-5; mass and energy change by 8e-5 and 4e-5
+// stays azimuthally uniform to round-off; mass and energy change by 8e-5 and 4e-5
 // (absorption of the Boltzmann tail at the outer wall).
 
 #include <math.h>
@@ -359,13 +359,16 @@ main(int argc, char **argv)
     .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 
@@ -438,7 +441,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 

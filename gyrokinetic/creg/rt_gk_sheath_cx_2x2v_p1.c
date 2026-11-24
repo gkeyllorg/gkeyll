@@ -151,7 +151,7 @@ create_ctx(void)
   double t_end = 1.0e-7; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq =
-    0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+    1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -564,15 +564,19 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 5,
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // Ion species.
@@ -626,7 +630,7 @@ main(int argc, char **argv)
               .partner_nm = "neut",
               .ion_mass = ctx.mass_ion,
               .partner_mass = ctx.mass_ion,
-            }
+            },
             /* { .react_id = GKYL_REACT_IZ, */
             /*   .type_self = GKYL_SELF_ELC, */
             /*   .ion_id = GKYL_ION_AR, */
@@ -666,15 +670,19 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 5,
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   struct gkyl_gyrokinetic_neut_species neut = {
@@ -704,8 +712,10 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
   };
 
   // GK app.
@@ -730,6 +740,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

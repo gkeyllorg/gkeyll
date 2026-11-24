@@ -666,25 +666,30 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_ic,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_ic,
-       },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_ic,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_ic,
+        },
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 8,
     .diag_moments =
       {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2,
        GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   struct gkyl_gyrokinetic_projection ion_ic = {
@@ -748,32 +753,39 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_ic,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_ic,
-       },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_ic,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_ic,
+        },
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 8,
     .diag_moments =
       {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2,
        GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_p,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .polarization_potential = eval_potential,
     .polarization_potential_ctx = &ctx,
   };
@@ -807,12 +819,15 @@ main(int argc, char **argv)
             .map_strength = 0.5,
             .maximum_slope_at_min_B = 2,
             .gaussian_std = 0.2,
-            .gaussian_max_integration_width = 1.0,
+            .gaussian_max_integration_width = 0.5,
           },
       },
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

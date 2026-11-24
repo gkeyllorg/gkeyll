@@ -6,7 +6,7 @@
 -- velocity space) and must reproduce the 1x3v driver. The reference is a quasi-1D finite-volume
 -- Euler solution with the metric determinant as area factor (reflecting walls), and the exact
 -- planar Riemann solution is quoted for contrast. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x
--- 6 x 6 cells on cubic velocity maps, 52 steps): density L1 error 0.0365 against the quasi-1D
+-- 6 x 6 cells on cubic velocity maps, 62 steps): density L1 error 0.0365 against the quasi-1D
 -- reference (0.0356 against the planar exact solution); shock at 1.2031 (reference 1.1821) within
 -- one cell; cell-averaged density within 0.028 (relative L1 0.012) of the serendipity p2 1x3v
 -- driver at 16 radial cells; mass and energy conserved to round-off.

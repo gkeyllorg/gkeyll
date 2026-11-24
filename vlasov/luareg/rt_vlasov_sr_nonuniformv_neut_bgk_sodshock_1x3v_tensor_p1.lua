@@ -3,12 +3,16 @@
 -- collision frequency puts the mean free path at one cell. Temperatures are in units of mc^2, so
 -- the gas is relativistically hot; the reference is the exact Riemann solution of the
 -- Maxwell-Juttner gas.
--- Note: the relativistic BGK target matches the pressure of f, not its energy, so the post-shock
--- state drifts from the exact one as energy is not conserved (6% over this run).
+-- Note: the relativistic BGK target matches the pressure of f, not its energy, so energy is not
+-- conserved and the post-shock state drifts from the exact one: the kinetic energy
+-- int (gamma - 1) f dx dp (energy minus M0 in the integrated moments, -imom) rises by 2.1% over
+-- this run.
 -- Quadratic velocity maps cluster the cells at the origin of velocity space.
 -- Exact solution at t = 0.2: shock at x = 0.646, contact at 0.588, post-shock lab-frame density
 -- 0.313, velocity 0.438.
--- The kinetic shock position agrees within 2%; the measured post-shock lab density is 0.38.
+-- Measured at t = 0.2 from frame 1: the post-shock lab-frame density (M0 at x = 0.617, midway
+-- between the exact contact and shock) is 0.39, and the shock, where M0 crosses the midpoint
+-- between that value and the upstream 0.125, sits at x = 0.645, within 1% of the exact position.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

@@ -49,7 +49,8 @@ test_pmap_decomposed_2x(void)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, cdim, 1);
   struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {
-    {.eval_pmap = pmap_cubic}, {.eval_pmap = pmap_quad}
+    {.eval_pmap = pmap_cubic},
+    {.eval_pmap = pmap_quad},
   };
 
   int nghost[] = {1, 1};
