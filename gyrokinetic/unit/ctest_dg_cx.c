@@ -146,9 +146,9 @@ test_coll_cx_d(bool use_gpu)
 
   const double *cv_cx = gkyl_array_cfetch(coef_cx_ho, gkyl_range_idx(&confRange, (int[2]){1, 1}));
 
-  // Test against predicted value.
+  // Test against predicted value (Meier & Shumlak 2012, Eq. 17, with vT^2 = 2T/m).
   double p1_vals[] = {
-    3.242709205939892e-14, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00
+    4.224104204998764e-14, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00
   };
   for (int i = 0; i < basis.num_basis; ++i) {
     TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_cx[i] * check_fac, 1e-12));
