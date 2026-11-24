@@ -648,13 +648,14 @@ struct gkyl_vlasov_stat {
 
   long nstage_2_fail; // number of failed RK stage-2s
   long nstage_3_fail; // number of failed RK stage-3s
+  long nfl_em_retake; // number of repeated implicit fluid-EM coupling steps
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
 
   double total_tm; // time for simulation (not including ICs)
   double rk3_tm; // time for SSP RK3 step
-  double fl_em_tm; // time for implicit fluid-EM coupling step
+  double fl_em_tm; // time for implicit fluid-EM coupling step (with its synchronization for output)
   double init_species_tm; // time to initialize all species
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields

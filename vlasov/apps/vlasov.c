@@ -833,12 +833,13 @@ comm_reduce_app_stat(
 
   global->use_gpu = local->use_gpu;
 
-  enum { NUP, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
+  enum { NUP, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, NFL_EM_RETAKE, L_END };
   int64_t l_red[] = {
     [NUP] = local->nup,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
     [NSTAGE_3_FAIL] = local->nstage_3_fail,
+    [NFL_EM_RETAKE] = local->nfl_em_retake,
   };
 
   int64_t l_red_global[L_END];
@@ -848,6 +849,7 @@ comm_reduce_app_stat(
   global->nfeuler = l_red_global[NFEULER];
   global->nstage_2_fail = l_red_global[NSTAGE_2_FAIL];
   global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];
+  global->nfl_em_retake = l_red_global[NFL_EM_RETAKE];
 
   int64_t l_red_n_iter_corr[app->num_species];
   int64_t l_red_num_corr[app->num_species];
@@ -1031,6 +1033,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app *app)
   gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
   gkyl_vlasov_app_cout(app, fp, " nstage_3_fail : %ld,\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, fp, " nfluid_em_coupling_retake : %ld,\n", stat.nfl_em_retake);
 
   gkyl_vlasov_app_cout(
     app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n", stat.stage_2_dt_diff[0], stat.stage_2_dt_diff[1]

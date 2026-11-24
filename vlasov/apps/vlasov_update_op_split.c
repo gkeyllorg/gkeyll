@@ -94,6 +94,7 @@ vlasov_update_op_split(gkyl_vlasov_app *app, double dt0)
     for (int i = 0; i < app->num_species; ++i) {
       vlasov_species_discard_step(app, &app->species[i]);
     }
+    app->stat.nfl_em_retake += 1;
     dt0 = st.dt_actual;
   }
 
@@ -118,8 +119,10 @@ vlasov_op_split_sync(gkyl_vlasov_app *app)
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
   // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
+  struct timespec wst = gkyl_wall_clock();
   vm_fluid_em_coupling_update(app, fl_em, app->tcurr - 0.5 * dt_half, dt_half);
   vm_fluid_em_coupling_limit(app, fl_em);
+  app->stat.fl_em_tm += gkyl_time_diff_now_sec(wst);
   // the limiter of the synchronization is not part of the evolution: the species keep it out of
   // their records
   for (int i = 0; i < fl_em->num_fluid; ++i) {
