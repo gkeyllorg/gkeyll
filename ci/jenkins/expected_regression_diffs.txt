@@ -18,3 +18,6 @@
 #
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
+
+gyrokinetic/rt_gk_cbc_adiabatic_3x2v_p1 # The BGK buffer region is now corrected
+gyrokinetic/rt_gk_cbc_adiabatic_num_3x2v_p1 # The BGK buffer region is now corrected
