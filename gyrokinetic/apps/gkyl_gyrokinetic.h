@@ -518,8 +518,9 @@ struct gkyl_gyrokinetic_species {
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
   // Write <app>-<species>_frequencies.gkyl at integrated diagnostic times
   // for evolving species. Components: omega_H_max, transit_therm, transit_max,
-  // transit_min, omega_d_therm (thermal magnetic drift), and nu_max (collisions), in 1/s.
-  // File metadata defines scales and reductions for each component.
+  // transit_min, omega_d_therm (thermal magnetic drift), nu_max (collisions) and
+  // diff_max (anomalous-diffusion CFL rate), in 1/s.
+  // apps/gk_species_frequencies.c defines each component's scaling and reduction.
   // Reductions are within each block in multiblock runs.
   bool frequency_diagnostics;
 

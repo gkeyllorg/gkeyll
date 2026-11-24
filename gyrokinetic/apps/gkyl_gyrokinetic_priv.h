@@ -1346,6 +1346,7 @@ struct gk_species {
   struct gkyl_array *frequency_geometry, *frequency_nu; // Host diagnostic buffers.
   double frequency_rates[4], transit_frequency_min;
   double transit_frequency; // Local, time-independent resolved parallel transit rate.
+  double diffusion_frequency; // Local, time-independent anomalous-diffusion CFL rate.
   bool is_first_frequencies_write_call;
 
   struct gk_species_balance gksbal; // Balance computations.

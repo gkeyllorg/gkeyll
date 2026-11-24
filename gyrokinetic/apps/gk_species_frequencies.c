@@ -1,7 +1,8 @@
 #include <gkyl_gyrokinetic_priv.h>
 
-// Each entry supplies a local rate and its definition. Storage and component
-// metadata follow this registry; transit_min uses a minimum MPI reduction.
+// Each entry supplies a local rate and its "name: description" metadata string.
+// Storage and component metadata follow this registry; transit_min uses a
+// minimum MPI reduction.
 struct gk_frequency_descriptor {
   const char *description;
   double (*calc)(gkyl_gyrokinetic_app *, struct gk_species *);
@@ -45,25 +46,45 @@ gk_frequency_collision(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   return gks->frequency_rates[3];
 }
 
+static double
+gk_frequency_diffusion(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  return gks->diffusion_frequency *
+         gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
+}
+
+// The metadata strings stay short; the comment above each entry defines its rate.
 static const struct gk_frequency_descriptor frequency_registry[] = {
-  {"omega_H_max: "
-   "Maximum omega_H stability estimate, including equation scaling; zero for Boltzmann/adiabatic fields. No CFL factor.",
-   gk_frequency_omegaH},
-  {"transit_therm: "
-   "max_x sqrt(T_parallel/m)*abs(<C/(JB)>)/L_z; cell-average primitive temperature, computational block length L_z, equation scaling, no 2*pi or CFL factor.",
-   gk_frequency_transit},
-  {"transit_max: "
-   "Velocity-domain upper transit estimate: max|v_parallel|*max_x abs(<C/(JB)>)/L_z; equation scaling, no 2*pi or CFL factor.",
-   gk_frequency_transit_max},
-  {"transit_min: "
-   "Minimum velocity-domain transit estimate: min|v_parallel|*min_x abs(<C/(JB)>)/L_z; zero if the continuous velocity interval contains zero. Equation scaling, no 2*pi or CFL factor.",
-   gk_frequency_transit_min},
-  {"omega_d_therm: "
-   "Thermal magnetic drift estimate max_x sum_i (abs(v_curvature^i)+abs(v_gradB^i))/L_i over simulated perpendicular directions; v_d=(T_parallel/m)*curl(b)/Omega+(T_perp/qB)*b cross grad(log B). Cell-center geometry and cell-average temperatures, no mean-flow contribution, equation scaling, no 2*pi or CFL factor. Zero in 1x.",
-   gk_frequency_drift},
-  {"nu_max: "
-   "max_x cell-average sum of self and cross LBO/BGK collision frequencies, refreshed at diagnostic time; includes configured nu_frac, excludes collisionless and time-dilation scaling. Zero without collisions.",
-   gk_frequency_collision}
+  // omega_H stability estimate, including equation scaling. Zero for
+  // Boltzmann/adiabatic fields. No CFL factor.
+  {"omega_H_max: Maximum omega_H mode frequency", gk_frequency_omegaH},
+  // max_x sqrt(T_parallel/m)*abs(<C/(JB)>)/L_z, with the cell-average primitive
+  // temperature and the computational block length L_z. Equation scaling, no 2*pi
+  // or CFL factor.
+  {"transit_therm: Thermal parallel transit frequency", gk_frequency_transit},
+  // Velocity-domain upper transit estimate max|v_parallel|*max_x abs(<C/(JB)>)/L_z.
+  // Equation scaling, no 2*pi or CFL factor.
+  {"transit_max: Maximum parallel transit frequency", gk_frequency_transit_max},
+  // Velocity-domain lower transit estimate min|v_parallel|*min_x abs(<C/(JB)>)/L_z;
+  // zero if the continuous velocity interval contains zero. Equation scaling, no
+  // 2*pi or CFL factor.
+  {"transit_min: Minimum parallel transit frequency", gk_frequency_transit_min},
+  // Thermal magnetic drift estimate
+  //   max_x sum_i (abs(v_curvature^i) + abs(v_gradB^i))/L_i
+  // over the simulated perpendicular directions, with
+  //   v_d = (T_parallel/m)*curl(b)/Omega + (T_perp/qB)*b cross grad(log B).
+  // Cell-center geometry and cell-average temperatures, no mean-flow contribution,
+  // equation scaling, no 2*pi or CFL factor. Zero in 1x.
+  {"omega_d_therm: Thermal magnetic drift frequency", gk_frequency_drift},
+  // max_x of the cell-average sum of self and cross LBO/BGK collision frequencies,
+  // refreshed at diagnostic time. Includes the configured nu_frac; excludes
+  // collisionless and time-dilation scaling. Zero without collisions.
+  {"nu_max: Maximum collision frequency", gk_frequency_collision},
+  // max_x 2*c_0(D*g^xx*J)*(2/dx)^2, the anomalous-diffusion term's contribution to
+  // the CFL rate (c_0: zeroth DG coefficient of D*g^xx*J; dx: cell length along x).
+  // D is time independent, so this is constant up to time-dilation scaling. No CFL
+  // factor. Zero without anomalous diffusion.
+  {"diff_max: Maximum anomalous diffusion frequency", gk_frequency_diffusion}
 };
 
 enum { num_frequencies = sizeof frequency_registry / sizeof frequency_registry[0] };
@@ -151,6 +172,27 @@ gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks)
                   0.0 :
                   fmin(fabs(gks->vel_map->vbounds[0]), fabs(gks->vel_map->vbounds[vdim]));
   gks->transit_frequency_min = vmin * min_parfac / (app->grid.upper[zdir] - app->grid.lower[zdir]);
+
+  // The anomalous-diffusion volume kernel adds 2*c_0(D*g^xx*J)*(2/dx)^2 to each
+  // cell's CFL rate. D is projected once, so the maximum is cached here.
+  gks->diffusion_frequency = 0.0;
+  if (gks->anom_diff.anom_diff_id) {
+    struct gkyl_array *diffD_host = gks->anom_diff.diffD;
+    if (app->use_gpu) {
+      diffD_host = mkarr(false, nb, app->local_ext.volume);
+      gkyl_array_copy(diffD_host, gks->anom_diff.diffD);
+    }
+    double rdx2sq = pow(2.0 / gks->grid.dx[0], 2.0);
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      const double *diffD_c = gkyl_array_cfetch(diffD_host, gkyl_range_idx(&app->local, iter.idx));
+      gks->diffusion_frequency = fmax(gks->diffusion_frequency, 2.0 * diffD_c[0] * rdx2sq);
+    }
+    if (app->use_gpu) {
+      gkyl_array_release(diffD_host);
+    }
+  }
+
   if (app->use_gpu) {
     gkyl_array_release(parfac_host);
     gkyl_array_release(jacobtot_inv_host);
