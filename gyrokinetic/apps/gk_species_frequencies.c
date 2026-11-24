@@ -80,10 +80,13 @@ static const struct gk_frequency_descriptor frequency_registry[] = {
   // refreshed at diagnostic time. Includes the configured nu_frac; excludes
   // collisionless and time-dilation scaling. Zero without collisions.
   {"nu_max: Maximum collision frequency", gk_frequency_collision},
-  // max_x 2*c_0(D*g^xx*J)*(2/dx)^2, the anomalous-diffusion term's contribution to
-  // the CFL rate (c_0: zeroth DG coefficient of D*g^xx*J; dx: cell length along x).
-  // D is time independent, so this is constant up to time-dilation scaling. No CFL
-  // factor. Zero without anomalous diffusion.
+  // Maximum over cells of the anomalous-diffusion term's contribution to the CFL
+  // rate, taken from the solver's own updater (its volume kernel currently returns
+  // 2*c_0(D*g^xx*J)*(2/dx)^2; c_0: zeroth DG coefficient of D*g^xx*J, dx: cell
+  // length along x). D is time independent, so this is constant. Scaled by the
+  // constant time-dilation factor only: spatially varying df/dt multipliers, which
+  // the solver applies cell by cell, are not included. No CFL factor. Zero without
+  // anomalous diffusion.
   {"diff_max: Maximum anomalous diffusion frequency", gk_frequency_diffusion}
 };
 
@@ -173,24 +176,28 @@ gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks)
                   fmin(fabs(gks->vel_map->vbounds[0]), fabs(gks->vel_map->vbounds[vdim]));
   gks->transit_frequency_min = vmin * min_parfac / (app->grid.upper[zdir] - app->grid.lower[zdir]);
 
-  // The anomalous-diffusion volume kernel adds 2*c_0(D*g^xx*J)*(2/dx)^2 to each
-  // cell's CFL rate. D is projected once, so the maximum is cached here.
+  // The anomalous-diffusion term's CFL contribution does not depend on f and D is
+  // projected once, so take it from the solver once: advance the diffusion
+  // updater on a zero f into a cleared cflrate and reduce it as the time step
+  // does. f1 (zero input), fnew (rhs) and cflrate are separate arrays for evolving
+  // species and unused before the first step; fnew and cflrate are cleared again
+  // afterwards (f1 is only read).
   gks->diffusion_frequency = 0.0;
   if (gks->anom_diff.anom_diff_id) {
-    struct gkyl_array *diffD_host = gks->anom_diff.diffD;
+    gkyl_array_clear(gks->f1, 0.0);
+    gkyl_array_clear(gks->fnew, 0.0);
+    gkyl_array_clear(gks->cflrate, 0.0);
+    gkyl_dg_updater_gk_anomalous_diffusion_advance(
+      gks->anom_diff.slvr, &gks->local, gks->f1, gks->cflrate, gks->fnew
+    );
+    gkyl_array_reduce_range(gks->omega_cfl, gks->cflrate, GKYL_MAX, &gks->local);
     if (app->use_gpu) {
-      diffD_host = mkarr(false, nb, app->local_ext.volume);
-      gkyl_array_copy(diffD_host, gks->anom_diff.diffD);
+      gkyl_cu_memcpy(&gks->diffusion_frequency, gks->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    } else {
+      gks->diffusion_frequency = gks->omega_cfl[0];
     }
-    double rdx2sq = pow(2.0 / gks->grid.dx[0], 2.0);
-    gkyl_range_iter_init(&iter, &app->local);
-    while (gkyl_range_iter_next(&iter)) {
-      const double *diffD_c = gkyl_array_cfetch(diffD_host, gkyl_range_idx(&app->local, iter.idx));
-      gks->diffusion_frequency = fmax(gks->diffusion_frequency, 2.0 * diffD_c[0] * rdx2sq);
-    }
-    if (app->use_gpu) {
-      gkyl_array_release(diffD_host);
-    }
+    gkyl_array_clear(gks->fnew, 0.0);
+    gkyl_array_clear(gks->cflrate, 0.0);
   }
 
   if (app->use_gpu) {
