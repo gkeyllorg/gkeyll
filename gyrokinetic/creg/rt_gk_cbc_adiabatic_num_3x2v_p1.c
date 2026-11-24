@@ -754,7 +754,8 @@ main(int argc, char **argv)
         {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
       },
 
-    // Krook buffers at the radial boundaries.
+    // Krook buffers at the radial boundaries, relaxing to the moment-corrected Maxwellian of the
+    // walls so that their discrete density matches the electron density.
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_STATIC,

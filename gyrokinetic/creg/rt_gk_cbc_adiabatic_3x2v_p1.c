@@ -684,7 +684,8 @@ main(int argc, char **argv)
         },
       },
 
-    // Krook buffers at the x walls.
+    // Krook buffers at the x walls, relaxing to the moment-corrected Maxwellian of the walls so
+    // that their discrete density matches the electron density.
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_STATIC,

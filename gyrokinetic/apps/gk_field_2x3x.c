@@ -70,19 +70,41 @@ gk_field_fem_projection_par_phi_ts_3x(
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  // Apply TS BC in the core lower parallel boundary, and
-  // fill core upper parallel boundary ghost with skin boundary value.
+  // We impose TS(U) at the lower ghost, and TS^-1(TS(U)) ~ U at the upper ghost, 
+  // which projects the upper ghost potential, U, onto the "twist-shift" space, 
+  // i.e. x-y continuous and filtered.
   int par_dir = app->cdim - 1; // Parallel direction index.
-  gkyl_array_copy_range_to_range(
-    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
-    &app->global_upper_skin[par_dir]
-  );
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
-  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
-  // Fill upper parallel boundary ghost with skin boundary value.
+
+  // Fill the upper ghost with the upper skin boundary value.
   gkyl_bc_basic_gyrokinetic_advance(
     field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
   );
+  // Lower ghost = TS(upper ghost), continuous in x and y.
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
+    &app->global_upper_ghost[par_dir]
+  );
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
+  // Upper ghost = TS^-1(lower ghost).
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_upper_ghost[par_dir],
+    &app->global_lower_ghost[par_dir]
+  );
+  gkyl_bc_twistshift_advance(field->bc_ts_up, field->rho_c_global_dg, field->rho_c_global_dg);
+  // Make the upper ghost continuous in x and y (the projection operates on the lower ghost).
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
+    &app->global_upper_ghost[par_dir]
+  );
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_upper_ghost[par_dir],
+    &app->global_lower_ghost[par_dir]
+  );
+  // Lower ghost = TS(upper ghost), continuous in x and y.
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(
@@ -159,17 +181,40 @@ gk_field_fem_projection_par_phi_iwl_3x(
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  // Apply TS BC in the core lower parallel boundary, and
-  // fill core upper parallel boundary ghost with skin boundary value.
-  gkyl_array_copy_range_to_range(
-    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
-    &app->global_upper_skin_par_core
-  );
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
-  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
+  // We impose TS(U) at the lower ghost, and TS^-1(TS(U)) ~ U at the upper ghost, 
+  // which projects the upper ghost potential, U, onto the "twist-shift" space, 
+  // i.e. x-y continuous and filtered.
+
+  // Fill the core upper ghost with the upper skin boundary value.
   gkyl_bc_basic_gyrokinetic_advance(
     field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
   );
+  // Lower ghost = TS(upper ghost), continuous in x and y.
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
+    &app->global_upper_ghost_par_core
+  );
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
+  // Upper ghost = TS^-1(lower ghost).
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_upper_ghost_par_core,
+    &app->global_lower_ghost_par_core
+  );
+  gkyl_bc_twistshift_advance(field->bc_ts_up, field->rho_c_global_dg, field->rho_c_global_dg);
+  // Make the upper ghost continuous in x and y (the projection operates on the lower ghost).
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
+    &app->global_upper_ghost_par_core
+  );
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
+  gkyl_array_copy_range_to_range(
+    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_upper_ghost_par_core,
+    &app->global_lower_ghost_par_core
+  );
+  // Lower ghost = TS(upper ghost), continuous in x and y.
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(
@@ -438,6 +483,31 @@ gk_field_2x3x_add_IWL_updaters(
     }
     gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
+    // TS BC updater for low to up TS for the upper edge. This sets ghost_U = T_UL(ghost_U).
+    struct gkyl_bc_twistshift_inp T_UL_up = {
+      .bc_dir = par_dir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_UPPER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = &app->global_par_ext_core,
+      .num_ghost = ghost, // one ghost per config direction
+      .basis = &app->basis,
+      .grid = &app->grid,
+      .use_gpu = app->use_gpu,
+      .upsample_factor = app->core_parallel_bcs.ts_upsample_factor,
+      .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
+      .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
+    };
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.upper_shift_func) {
+      T_UL_up.shift_func = app->core_parallel_bcs.upper_shift_func;
+      T_UL_up.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
+    } else {
+      T_UL_up.shift_dg = app->delta_ts_x_up;
+    }
+    gkf->bc_ts_up = gkyl_bc_twistshift_inew(&T_UL_up);
+
     long buff_sz =
       GKYL_MAX2(app->global_lower_ghost_par_sol.volume, app->global_lower_ghost_par_core.volume);
     gkf->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
@@ -532,6 +602,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
     if (app->cdim == 3) {
       gkyl_bc_twistshift_release(gkf->bc_ts_lo);
+      gkyl_bc_twistshift_release(gkf->bc_ts_up);
       gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_up);
       gkyl_array_release(gkf->bc_buffer);
     }

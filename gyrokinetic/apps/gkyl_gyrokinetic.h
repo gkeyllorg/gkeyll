@@ -219,6 +219,10 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 // 3. nu(x)*(F_eq - f)
 //    for static model, with F_eq the projection of feq_shape or, if feq_shape
 //    is not given, that specified by projection.
+//    for external model or
+// 3. nu(x)*(F_eq - f)
+//    for static model, with F_eq the projection of feq_shape or, if feq_shape
+//    is not given, that specified by projection.
 struct gkyl_gyrokinetic_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x,y,z).
