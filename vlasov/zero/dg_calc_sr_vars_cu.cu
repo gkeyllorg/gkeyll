@@ -13,6 +13,114 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+// Restrict each indirect call to its generated family; the runtime pointer
+// still selects the kernel. Integer matrix offsets retain their 32-bit ABI.
+GKYL_CU_D static __forceinline__ void
+sr_vars_n_set_call(
+  sr_n_set_t kernel, int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *M0,
+  const double *M1i
+)
+{
+  asm volatile("{\n"
+               " .param .b32 a0;\n"
+               " st.param.b32 [a0], %1;\n"
+               " .param .b64 a1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " .param .b64 a2;\n"
+               " st.param.b64 [a2], %3;\n"
+               " .param .b64 a3;\n"
+               " st.param.b64 [a3], %4;\n"
+               " .param .b64 a4;\n"
+               " st.param.b64 [a4], %5;\n"
+               " targets: .calltargets " GKYL_SR_VARS_N_SET_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "r"(count), "l"(A), "l"(rhs), "l"(M0), "l"(M1i)
+               : "memory");
+}
+
+GKYL_CU_D static __forceinline__ void
+sr_vars_n_copy_call(sr_n_copy_t kernel, int count, struct gkyl_nmat *x, const double *M0, double *n)
+{
+  asm volatile("{\n"
+               " .param .b32 a0;\n"
+               " st.param.b32 [a0], %1;\n"
+               " .param .b64 a1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " .param .b64 a2;\n"
+               " st.param.b64 [a2], %3;\n"
+               " .param .b64 a3;\n"
+               " st.param.b64 [a3], %4;\n"
+               " targets: .calltargets " GKYL_SR_VARS_N_COPY_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "r"(count), "l"(x), "l"(M0), "l"(n)
+               : "memory");
+}
+
+GKYL_CU_D static __forceinline__ void
+sr_vars_GammaV_call(
+  sr_GammaV_t kernel, const double *u_i, double *u_i_sq, double *GammaV, double *GammaV_sq
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0;\n"
+               " st.param.b64 [a0], %1;\n"
+               " .param .b64 a1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " .param .b64 a2;\n"
+               " st.param.b64 [a2], %3;\n"
+               " .param .b64 a3;\n"
+               " st.param.b64 [a3], %4;\n"
+               " targets: .calltargets " GKYL_SR_VARS_GAMMAV_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(u_i), "l"(u_i_sq), "l"(GammaV), "l"(GammaV_sq)
+               : "memory");
+}
+
+GKYL_CU_D static __forceinline__ void
+sr_vars_pressure_call(
+  sr_pressure_t kernel, const double *w, const double *dxv, const double *vmap, const double *gamma,
+  const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV,
+  const double *GammaV_sq, const double *f, double *pressure
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0;\n"
+               " st.param.b64 [a0], %1;\n"
+               " .param .b64 a1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " .param .b64 a2;\n"
+               " st.param.b64 [a2], %3;\n"
+               " .param .b64 a3;\n"
+               " st.param.b64 [a3], %4;\n"
+               " .param .b64 a4;\n"
+               " st.param.b64 [a4], %5;\n"
+               " .param .b64 a5;\n"
+               " st.param.b64 [a5], %6;\n"
+               " .param .b64 a6;\n"
+               " st.param.b64 [a6], %7;\n"
+               " .param .b64 a7;\n"
+               " st.param.b64 [a7], %8;\n"
+               " .param .b64 a8;\n"
+               " st.param.b64 [a8], %9;\n"
+               " .param .b64 a9;\n"
+               " st.param.b64 [a9], %10;\n"
+               " .param .b64 a10;\n"
+               " st.param.b64 [a10], %11;\n"
+               " targets: .calltargets " GKYL_SR_VARS_PRESSURE_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(w), "l"(dxv), "l"(vmap), "l"(gamma), "l"(gamma_inv), "l"(u_i),
+                 "l"(u_i_sq), "l"(GammaV), "l"(GammaV_sq), "l"(f), "l"(pressure)
+               : "memory");
+}
+
 __global__ static void
 gkyl_dg_calc_sr_vars_n_set_cu_kernel(
   gkyl_dg_calc_sr_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
@@ -37,7 +145,7 @@ gkyl_dg_calc_sr_vars_n_set_cu_kernel(
     const double *M0_d = (const double *)gkyl_array_cfetch(M0, loc);
     const double *M1i_d = (const double *)gkyl_array_cfetch(M1i, loc);
 
-    up->sr_n_set(count, As, xs, M0_d, M1i_d);
+    sr_vars_n_set_call(up->sr_n_set, count, As, xs, M0_d, M1i_d);
   }
 }
 
@@ -65,7 +173,7 @@ gkyl_dg_calc_sr_vars_n_copy_cu_kernel(
     const double *M0_d = (const double *)gkyl_array_cfetch(M0, loc);
     double *n_d = (double *)gkyl_array_fetch(n, loc);
 
-    up->sr_n_copy(count, xs, M0_d, n_d);
+    sr_vars_n_copy_call(up->sr_n_copy, count, xs, M0_d, n_d);
   }
 }
 
@@ -116,7 +224,7 @@ gkyl_dg_calc_sr_vars_GammaV_cu_kernel(
     double *GammaV_d = (double *)gkyl_array_fetch(GammaV, loc_conf);
     double *GammaV_sq_d = (double *)gkyl_array_fetch(GammaV_sq, loc_conf);
 
-    up->sr_GammaV(u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d);
+    sr_vars_GammaV_call(up->sr_GammaV, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d);
   }
 }
 
@@ -182,9 +290,10 @@ gkyl_dg_calc_sr_vars_pressure_cu_kernel(
       momLocal[k] = 0.0;
     }
 
-    up->sr_pressure(
-      xc, up->phase_grid.dx, use_vmap ? (const double *)gkyl_array_cfetch(vmap, loc_vel) : 0,
-      gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, f_d, &momLocal[0]
+    sr_vars_pressure_call(
+      up->sr_pressure, xc, up->phase_grid.dx,
+      use_vmap ? (const double *)gkyl_array_cfetch(vmap, loc_vel) : 0, gamma_d, gamma_inv_d, u_i_d,
+      u_i_sq_d, GammaV_d, GammaV_sq_d, f_d, &momLocal[0]
     );
 
     // Accumulate output to output array atomically to avoid race conditions
