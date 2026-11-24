@@ -119,9 +119,11 @@ create_ctx(void)
   return ctx;
 }
 
-void
+static int
 compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 {
+  // Check the initial sheath potential against the Maxwellian flux balance.
+  // Return 1 if the comparison passes, 0 otherwise.
   struct boundary_ctx *app = ctx;
   char filename[256];
   sprintf(filename, "%s-field_0.gkyl", app_inp->name);
@@ -148,6 +150,7 @@ compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
     printf("Sheath value and analytical sheath value match!\n");
   }
   gkyl_array_release(field);
+  return check;
 }
 
 void
@@ -327,7 +330,7 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
-  compareToAnalytics(&app_inp, &ctx);
+  int check = compareToAnalytics(&app_inp, &ctx);
 
   gkyl_gyrokinetic_comms_release(comm);
 
@@ -337,5 +340,5 @@ main(int argc, char **argv)
   }
 #endif
 
-  return 0;
+  return check ? EXIT_SUCCESS : EXIT_FAILURE;
 }
