@@ -395,7 +395,9 @@ gk_species_lbo_init(
     }
 
     // Create moment calculator to get M0, M1, M2 for primitive moments.
-    gk_species_moment_init(app, gks, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
+    gk_species_moment_init(
+      app, gks, &lbo->moms, GKYL_F_MOMENT_M0M1M2, GKYL_F_MOMENT_WEIGHT_NONE, false
+    );
     lbo->nu_moms = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
 
     // Edge of velocity space corrections to momentum and energy.

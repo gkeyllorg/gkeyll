@@ -27,6 +27,8 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_ENERGY_FLUX, // H*dH/dv /m moment.
   GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane.
   GKYL_F_MOMENT_M0_LOWER, // M0 integrated over (part of) the lower half-plane.
+  GKYL_F_MOMENT_M0M1M2M3, // Density, momentum, energy and energy flux.
+  GKYL_F_MOMENT_M0M1M2PARM2PERPM3PARM3PERP, // Six raw moments.
   GKYL_F_MOMENT_COUNT // Number of options (for internal use).
 };
 
@@ -52,7 +54,9 @@ static const char *gkyl_distribution_moments_strs[] = {
   "EnergyMoment",
   "EnergyFlux",
   "M0_upper",
-  "M0_lower"
+  "M0_lower",
+  "M0M1M2M3",
+  "M0M1M2parM2perpM3parM3perp"
 };
 
 // Descriptions for each distribution moment.
@@ -78,7 +82,9 @@ static const char *gkyl_distribution_moments_descriptions[] = {
   "Hamiltonian energy density (for neutrals).",
   "Energy flux density: the Hamiltonian times its velocity gradient, divided by the mass.",
   "Partial number density from velocities above a threshold velocity (vdim = 1 only).",
-  "Partial number density from velocities below a threshold velocity (vdim = 1 only)."
+  "Partial number density from velocities below a threshold velocity (vdim = 1 only).",
+  "Number density, parallel momentum divided by mass, second and third velocity moments.",
+  "Number density, parallel momentum divided by mass, parallel/perpendicular second and third moments."
 };
 
 // Each moment above needs both a name and a description.
@@ -88,10 +94,10 @@ static_assert(
 _Static_assert(
 #endif
   sizeof(gkyl_distribution_moments_strs) / sizeof(gkyl_distribution_moments_strs[0]) ==
-      GKYL_F_MOMENT_M0_LOWER + 1 &&
+      GKYL_F_MOMENT_COUNT &&
     sizeof(gkyl_distribution_moments_descriptions) /
         sizeof(gkyl_distribution_moments_descriptions[0]) ==
-      GKYL_F_MOMENT_M0_LOWER + 1,
+      GKYL_F_MOMENT_COUNT,
   "gkyl_distribution_moments_strs/_descriptions out of sync with gkyl_distribution_moments"
 );
 
