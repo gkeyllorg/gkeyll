@@ -10,7 +10,7 @@
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
@@ -395,13 +395,13 @@ test_1x(
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
   // Take 2nd moment of rhs to find energy loss on host
-  struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, GKYL_ELECTRON_MASS, -GKYL_ELEMENTARY_CHARGE, gvm,
-    gk_geom, NULL, GKYL_F_MOMENT_M2, false, use_gpu
+  struct gkyl_mom_gyrokinetic *m2_calc = gkyl_mom_gyrokinetic_new(
+    GKYL_ELECTRON_MASS, -GKYL_ELEMENTARY_CHARGE, &confBasis, &basis, &grid, gvm, gk_geom,
+    GKYL_F_MOMENT_M2, false, use_gpu
   );
 
   struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
+  gkyl_mom_gyrokinetic_advance(m2_calc, &local, &confLocal, NULL, rhs, m2_final);
 
   struct gkyl_array *m2_final_host;
   m2_final_host = m2_final;
@@ -453,7 +453,7 @@ test_1x(
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
   gkyl_dg_updater_rad_gyrokinetic_release(slvr);
-  gkyl_dg_updater_moment_gyrokinetic_release(m2_calc);
+  gkyl_mom_gyrokinetic_release(m2_calc);
   gkyl_array_release(m2_final);
 
   if (use_gpu) {
@@ -753,12 +753,12 @@ test_2x(int poly_order, bool use_gpu, double te)
   // gkyl_grid_sub_array_write(&grid, &local, 0, nvsqnu, "ctest_dg_rad_gyrokinetic_2x_nvsqnu.gkyl");
   // gkyl_grid_sub_array_write(&grid, &local, 0, f, "ctest_dg_rad_gyrokinetic_2x_f.gkyl");
   // Take 2nd moment of rhs to find energy loss on host
-  struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, GKYL_ELECTRON_MASS, -GKYL_ELEMENTARY_CHARGE, gvm,
-    gk_geom, NULL, GKYL_F_MOMENT_M2, false, use_gpu
+  struct gkyl_mom_gyrokinetic *m2_calc = gkyl_mom_gyrokinetic_new(
+    GKYL_ELECTRON_MASS, -GKYL_ELEMENTARY_CHARGE, &confBasis, &basis, &grid, gvm, gk_geom,
+    GKYL_F_MOMENT_M2, false, use_gpu
   );
   struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
+  gkyl_mom_gyrokinetic_advance(m2_calc, &local, &confLocal, NULL, rhs, m2_final);
 
   struct gkyl_array *m2_final_host;
   m2_final_host = m2_final;
@@ -810,7 +810,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
   gkyl_dg_updater_rad_gyrokinetic_release(slvr);
-  gkyl_dg_updater_moment_gyrokinetic_release(m2_calc);
+  gkyl_mom_gyrokinetic_release(m2_calc);
   gkyl_array_release(m2_final);
 
   if (use_gpu) {

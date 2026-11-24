@@ -29,9 +29,9 @@ struct gkyl_gk_maxwellian_moments {
   struct gkyl_array *t_perp;
   struct gkyl_dg_bin_op_mem *mem;
 
-  struct gkyl_dg_updater_moment *M0_calc;
-  struct gkyl_dg_updater_moment *M1_calc;
-  struct gkyl_dg_updater_moment *M2_calc;
-  struct gkyl_dg_updater_moment *M2_par_calc;
-  struct gkyl_dg_updater_moment *M2_perp_calc;
+  struct gkyl_mom_gyrokinetic *M0_calc;
+  struct gkyl_mom_gyrokinetic *M1_calc;
+  struct gkyl_mom_gyrokinetic *M2_calc;
+  struct gkyl_mom_gyrokinetic *M2_par_calc;
+  struct gkyl_mom_gyrokinetic *M2_perp_calc;
 };

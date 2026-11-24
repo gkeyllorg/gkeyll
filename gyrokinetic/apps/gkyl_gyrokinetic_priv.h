@@ -46,7 +46,8 @@
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_mom_weighted_gyrokinetic.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
@@ -79,6 +80,7 @@
 #include <gkyl_translate_dim.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_time_integ_gyrokinetic.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mat.h>
@@ -86,6 +88,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_mom_weighted_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
 #include <gkyl_prim_cross_m0deltas.h>
@@ -163,7 +166,8 @@ struct gk_species_moment {
           struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments
         };
         struct {
-          struct gkyl_dg_updater_moment *mcalc;
+          struct gkyl_mom_gyrokinetic *mcalc;
+          struct gkyl_mom_weighted_gyrokinetic *mcalc_weighted;
         };
         struct {
           struct gkyl_mom_type *mom_type; // Vlasov (triad) moment type for neutrals.
@@ -184,6 +188,11 @@ struct gk_species_moment {
     const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
     const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
     const struct gkyl_array *fin
+  );
+  void (*weighted_calc_func)(
+    const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+    const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+    const struct gkyl_array *fin, const struct gkyl_range *wgt_rng, const struct gkyl_array *wgt
   );
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
   void (*diag_jacobgeo_div_func)(
@@ -701,7 +710,7 @@ struct gk_recycle_wall {
   struct gkyl_array *bc_buffer; // Fixed buffers for recycle BCs.
   struct gkyl_array *phase_flux_gk[GKYL_MAX_SPECIES]; // Array to put phase-flux into.
   struct gkyl_array *m0_flux_gk[GKYL_MAX_SPECIES]; // M0 moment of ion flux.
-  struct gkyl_dg_updater_moment *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
+  struct gkyl_mom_gyrokinetic *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
 
   struct gkyl_array *unit_phase_flux_neut; // Unit-density neutral flux.
   struct gkyl_array *unit_m0_flux_neut; // MO moment of unit-density flux.
@@ -1810,6 +1819,7 @@ struct gk_eirene {
 
 // Gyrokinetic object: used as opaque pointer in user code.
 struct gkyl_gyrokinetic_app {
+  struct gkyl_gyrokinetic_fdot_args fdot_args; // Solver-owned state pointer arrays.
   char name[128]; // Name of app.
   struct gkyl_job_pool *job_pool; // Job pool.
 
@@ -2089,19 +2099,20 @@ void gkyl_gyrokinetic_app_apply_ic_cross_neut_species(
  * @param app gyrokinetic app object.
  * @param gks Species object.
  * @param sm Species moment object.
- * @param nm Name string indicating moment type
+ * @param mom_type Moment selector.
+ * @param weight_type NONE, CONF or VEL; fluid moments support NONE or CONF.
  * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_species_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
-  enum gkyl_distribution_moments mom_type, bool is_integrated
+  enum gkyl_distribution_moments mom_type, enum gkyl_mom_weight_type weight_type, bool is_integrated
 );
 
 /**
- * Calculate a moment from a kinetic distribution or conservative fluid state.
- * 
+ * Calculate an unweighted moment from a kinetic distribution or conservative fluid state.
+ *
  * @param app Gyrokinetic application providing the current field.
- * @param sm Species moment object.
+ * @param sm Species moment object initialized with weight type NONE.
  * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
  * @param conf_rng Configuration-space range.
  * @param fin Input distribution function or conservative fluid moment array.
@@ -2110,6 +2121,24 @@ void gk_species_moment_calc(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
   const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin
+);
+
+/**
+ * Calculate a weighted moment from a kinetic distribution or conservative fluid state.
+ *
+ * @param app Gyrokinetic application providing the current field.
+ * @param sm Species moment object initialized with CONF or VEL weights (CONF only for fluids).
+ * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
+ * @param conf_rng Configuration-space range.
+ * @param fin Input distribution function or conservative fluid moment array.
+ * @param weight_range Weight storage range; must not be NULL.
+ * @param weight Current weight array; must not be NULL.
+ */
+void gk_species_moment_calc_weighted(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin, const struct gkyl_range *weight_range,
+  const struct gkyl_array *weight
 );
 
 /**
@@ -5225,45 +5254,43 @@ void gyrokinetic_calc_field_and_apply_bc(
 );
 
 /**
- * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time
- * step it requires for stability based on the CFL constraint.
+ * Compute the combined gyrokinetic RHS and its rank-local CFL timestep.
+ * This does not choose the native timestep or reduce the estimate across ranks.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fdot_args Borrowed input states and output rate/stepped-moment arrays.
+ * @return Rank-local CFL timestep estimate.
+ */
+double gyrokinetic_dfdt(
+  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args
+);
+
+/**
+ * Compute the combined RHS and choose the native CFL-limited timestep.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species change in distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species change in distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
- * @param st Time stepping status object.
+ * @param fdot_args Borrowed input states and output rate/stepped-moment arrays.
+ * @param st Output actual and suggested timesteps.
  */
 void gyrokinetic_rhs(
-  gkyl_gyrokinetic_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
-  struct gkyl_array *fout[], struct gkyl_array **bflux_out[], const struct gkyl_array *fin_neut[],
-  struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
+  gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args,
   struct gkyl_update_status *st
 );
 
 /**
- * Compute the RHS of the gyrokinetic equation (df/dt) due to implicit terms.
+ * Compute the timestep-dependent implicit collision update.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
- * @param dt Suggested time step.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of change in charged-species distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of change in neutral-species distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
- * @param st Time stepping status object.
+ * @param dt Time step used by the implicit update.
+ * @param fdot_args Borrowed input states and output updated states/stepped moments.
+ * @param st Time stepping status object (unchanged).
  */
 void gyrokinetic_rhs_implicit(
-  gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_array *fin[],
-  struct gkyl_array *fout[], struct gkyl_array **bflux_out[], struct gkyl_array *fin_neut[],
-  struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
+  gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args,
   struct gkyl_update_status *st
 );
 
