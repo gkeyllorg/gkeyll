@@ -3,8 +3,8 @@
 -- with density proportional to exp(omega^2 sin^2 theta / 2T) and co-rotating mean momentum p_phi =
 -- omega sin^2 theta, is a function of the Hamiltonian and must stay stationary between reflecting
 -- walls at theta = pi/4 and 5 pi/8 for t = 5 (about four thermal transits). Figures of merit
--- (tensor p1, 32 x 12 x 12 cells): over t = 5 the density profile changes by at most 6.1e-3
--- (relative), the temperature by 3.8e-3 and the mean p_phi by 3.3e-3; mass and energy conserved to
+-- (tensor p1, 32 x 12 x 12 cells): over t = 5 the density profile changes by at most 1.6e-3
+-- (relative), the temperature by 1.4e-3 and the mean p_phi by 2.0e-3; mass and energy conserved to
 -- round-off.
 local Vlasov = G0.Vlasov
 

@@ -52,7 +52,10 @@ vm_species_projection_init(
       .grid = &vms->grid,
       .basis = &vms->basis,
       .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = vms->basis.poly_order + 1,
+      // The order of the velocity basis sets the number of quadrature points:
+      // the tensor hybrid basis reports poly_order 1 but is p=2 in velocity,
+      // and with 2 points its quadratic velocity coefficients would be zero.
+      .num_quad = vms->basis_vel.poly_order + 1,
       .num_ret_vals = 1,
       .eval = inp.func,
       .ctx = inp.ctx_func,

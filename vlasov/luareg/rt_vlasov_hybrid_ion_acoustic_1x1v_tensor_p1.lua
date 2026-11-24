@@ -11,7 +11,7 @@
 -- omega_pi. Kinetic electrons, which are isothermal at this frequency, give omega = 0.08590
 -- omega_pi and a damping rate of 0.02508 omega_pi. Figures of merit (tensor p1 with the hybrid
 -- phase basis, 32 x 48 cells, omega_pe dt = 1.01): between t = 1 and 3 wave periods the ion
--- density wave decays at 0.01331 omega_pi (-0.1%) with omega = 0.09487 omega_pi (+0.2%); the total
+-- density wave decays at 0.01332 omega_pi (-0.1%) with omega = 0.09486 omega_pi (+0.2%); the total
 -- energy changes by -5e-13 (4e-5 of twice the initial kinetic energy of the ion flow).
 
 local Vlasov = G0.Vlasov

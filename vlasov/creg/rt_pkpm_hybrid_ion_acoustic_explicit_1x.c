@@ -20,7 +20,7 @@
 // omega_pe + |Omega_ce| of the electron fluid, and the field that sets the direction has |Omega_ce|
 // = omega_pe, so the step is half that of the kinetic test): between t = 1 and 3 wave periods the
 // ion density wave decays at 0.01329 omega_pi (-0.3%) with omega = 0.09481 omega_pi (+0.1%); the
-// kinetic test gives 0.01329 and 0.09480. The total energy changes by -8e-13 of itself (1e-4 of
+// kinetic test gives 0.01331 and 0.09483. The total energy changes by -8e-13 of itself (1e-4 of
 // twice the initial kinetic energy of the ion flow).
 
 #include <complex.h>

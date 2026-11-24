@@ -15,7 +15,7 @@
 // 0.09470 omega_pi, damping rate 0.01333 omega_pi.
 // Figures of merit (32 cells, 48 in w, 1964 steps, omega_pe dt = 1.01): between t = 1 and 3 wave
 // periods the ion density wave decays at 0.01332 omega_pi (-0.1%) with omega = 0.09486 omega_pi
-// (+0.2%); the kinetic test gives 0.01331 and 0.09487. The total energy changes by -5e-13 of itself
+// (+0.2%); the kinetic test gives 0.01332 and 0.09486. The total energy changes by -5e-13 of itself
 // (7e-5 of twice the initial kinetic energy of the ion flow).
 
 #include <complex.h>

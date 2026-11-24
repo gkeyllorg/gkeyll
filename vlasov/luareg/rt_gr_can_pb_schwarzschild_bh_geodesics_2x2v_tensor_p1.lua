@@ -6,7 +6,7 @@
 -- centroid must follow the geodesic integrated from the same Hamiltonian for t = 30, during which
 -- it falls to r ~ 8 and the Newtonian ellipse with the same L already lags noticeably. Figures of
 -- merit (tensor p1, 8 x 12 x 10 x 10 cells): at t = 30 the centroid is at (r, theta) =
--- (14.445, 2.670) against the geodesic (14.520, 2.694), i.e. within 0.08 in r and 0.024 rad in
+-- (14.432, 2.668) against the geodesic (14.520, 2.694), i.e. within 0.09 in r and 0.026 rad in
 -- theta, while a Newtonian orbit with the same angular momentum would be at (14.768, 2.651); 2% of
 -- the mass is lost through the walls.
 local Vlasov = G0.Vlasov

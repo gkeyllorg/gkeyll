@@ -6,8 +6,8 @@
 -- centroid must stay at r0 and advance in phi at the orbital frequency Omega = sqrt(M) / (r0^(3/2)
 -- + a sqrt(M)) over t = 25 M; the Kerr and Schwarzschild frequencies differ by 3.5 percent. Figures
 -- of merit (tensor p1, 12 x 24 x 6 x 6 cells): at t = 25 M the density centroid is at (r, phi) =
--- (7.967, 4.225) against the exact (8, 4.209), i.e. within 0.10 cells in r and 0.06 cells in phi;
--- mass changes by 6.3e-4.
+-- (7.972, 4.227) against the exact (8, 4.209), i.e. within 0.08 cells in r and 0.07 cells in phi;
+-- mass changes by 6.3e-5.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

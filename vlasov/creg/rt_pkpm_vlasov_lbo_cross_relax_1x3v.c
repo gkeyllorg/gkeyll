@@ -13,10 +13,10 @@
 // Figures of merit (2 cells; 8 x 8 x 8 in the electron velocity on the hybrid basis, 48 in w for
 // the ions; 1226 steps, to t = 5): particle number is conserved to 1e-13 and the total momentum and
 // total energy to 4e-13 (both species kinetic on the same basis and velocity grid,
-// vlasov/luareg/rt_vlasov_lbo_cross_relax_1x3v_tensor_p1.lua: 2e-7 and 6e-9). The drift difference
+// vlasov/luareg/rt_vlasov_lbo_cross_relax_1x3v_tensor_p1.lua: 2e-8 and 5e-10). The drift difference
 // decays at 1.0102 against nu_ei + nu_ie = 1.0100 and the temperature difference at 0.0395 against
-// 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396. The temperatures end at 0.95535 (electrons) and
-// 0.54495 (ions); both PKPM: 0.95546 and 0.54495, both kinetic: 0.95536 and 0.54489.
+// 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396. The temperatures end at 0.95544 (electrons) and
+// 0.54496 (ions); both PKPM: 0.95546 and 0.54495, both kinetic: 0.95545 and 0.54494.
 
 #include <math.h>
 #include <stdio.h>

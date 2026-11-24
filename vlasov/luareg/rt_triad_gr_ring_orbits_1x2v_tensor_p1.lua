@@ -9,8 +9,8 @@
 -- profile must be unchanged after t = 50 M, a quarter of the orbital period, with absorbing walls
 -- at r = 5 M and 15 M, beyond the pericentres and apocentres of the ring's eccentric edge orbits.
 -- Figures of merit (tensor p1, 25 x 16 x 36 cells): at t = 50 M the density profile differs from
--- its initial projection by 1.6e-2 in relative L1 (2.1e-2 at the peak); mass and energy change by
--- 6.7e-3 and 6.2e-3 at the absorbing walls.
+-- its initial projection by 1.8e-2 in relative L1 (2.3e-2 at the peak); mass and energy change by
+-- 6.7e-3 and 6.1e-3 at the absorbing walls.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

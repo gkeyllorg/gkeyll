@@ -3,9 +3,9 @@
 -- |p_x|, |p_y| < 1 of height 0.5 has density 2, zero flow and temperature 1/3; with nu dt >> 1 the
 -- implicit scheme must return the Maxwellian with exactly these moments in every cell, conserving
 -- density, momentum and energy. Figures of merit (tensor p1, 2 x 2 x 16 x 16 cells): the projected
--- square has n = 2.5313 and T = 0.4001 (quadrature of the discontinuity); after relaxation every
+-- square has n = 1.8368 and T = 0.2981 (quadrature of the discontinuity); after relaxation every
 -- cell carries exactly these moments and the cell averages of f agree with those of the
--- Maxwellian(n, T) to 4.0e-6 of its peak; mass and energy
+-- Maxwellian(n, T) to 1.5e-6 of its peak; mass and energy
 -- conserved to round-off.
 local Vlasov = G0.Vlasov
 

@@ -19,9 +19,9 @@
 // the perturbation phase-mixes during the first period, so the figures of merit are taken after it.
 // Figures of merit (16 cells; 16 x 6 x 6 in the ion velocity, 16 in w for the electrons; 1866
 // steps, omega_pe dt = 0.65, |Omega_ce| dt = 0.33): between t = 1 and 2 wave periods the k d_i = 1
-// mode of B_y + i B_z decays at 0.05099 Omega_ci (+1.2%) with omega = 0.51616 Omega_ci (+0.3%); the
-// history of the transverse magnetic energy over the same interval gives 0.05110 Omega_ci (+1.4%).
-// The total energy changes by -5e-13 of itself (6e-5 of the initial magnetic energy of the wave).
+// mode of B_y + i B_z decays at 0.05104 Omega_ci (+1.3%) with omega = 0.51627 Omega_ci (+0.3%); the
+// history of the transverse magnetic energy over the same interval gives 0.05111 Omega_ci (+1.4%).
+// The total energy changes by -5e-13 of itself (7e-5 of the initial magnetic energy of the wave).
 
 #include <math.h>
 #include <stdio.h>

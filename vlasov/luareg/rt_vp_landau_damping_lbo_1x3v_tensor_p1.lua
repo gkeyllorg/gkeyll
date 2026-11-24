@@ -6,7 +6,7 @@
 -- Collisionless linear theory at k lambda_D = 0.5: omega = 1.4157 omega_pe, damping rate gamma =
 -- 0.1533 omega_pe.
 -- Figures of merit (tensor p1 (hybrid), 16 x 16 x 4 x 4 cells): the field-energy peaks over t =
--- 0.5-12 decay at gamma = 0.1463 and recur at omega = 1.381; the field energy at t = 20 is 0.00039
+-- 0.5-12 decay at gamma = 0.1484 and recur at omega = 1.385; the field energy at t = 20 is 0.00039
 -- of its initial value. The rate differs from the 1x1v value 0.123 because the 3V collisions also
 -- scatter into the perpendicular directions and relax the isotropic temperature.
 
