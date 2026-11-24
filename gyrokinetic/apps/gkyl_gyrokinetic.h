@@ -215,13 +215,18 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 // 2. nu(x)*(f_M(n_S,upar,T) - f)
 //    nu(x)*(f_M(n,upar_S,T) - f)
 //    nu(x)*(f_M(n,upar,T_S) - f)
-//    for external model
+//    for external model or
+// 3. nu(x)*(F_eq - f)
+//    for static model, with F_eq the projection of feq_shape or, if feq_shape
+//    is not given, that specified by projection.
 struct gkyl_gyrokinetic_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x,y,z).
   void *rate_profile_ctx;
   void (*feq_shape)(double t, const double *xn, double *fout, void *ctx); // F_eq(x,y,z,vpar,mu).
   void *feq_shape_ctx;
+  struct gkyl_gyrokinetic_projection
+    projection; // Projection object input (e.g. for MAXWELLIAN_PRIM).
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
