@@ -8,7 +8,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_const.h>
 
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
@@ -241,12 +241,11 @@ test_2x_option(bool use_gpu)
   }
 
   // Initialize integrated moment calculator
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, mi, qi, gvm, gk_geom, NULL,
-    GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu
+  struct gkyl_mom_gyrokinetic *mcalc = gkyl_mom_gyrokinetic_new(
+    mi, qi, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu
   );
 
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
+  int num_mom = gkyl_mom_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   struct gkyl_array *marr_host = use_gpu ? marr_host = mkarr(false, marr->ncomp, marr->size) :
@@ -258,7 +257,7 @@ test_2x_option(bool use_gpu)
 
   // Now calculate the integrated moments
   double avals_global[2 + vdim];
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &local, &confLocal, f, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &local, &confLocal, NULL, f, marr);
   gkyl_array_reduce_range(red_integ_diag_global, marr, GKYL_SUM, &confLocal);
 
   if (use_gpu) {
@@ -300,7 +299,7 @@ test_2x_option(bool use_gpu)
   }
   gkyl_free_hodev(use_gpu, red_integ_diag_global);
 
-  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
+  gkyl_mom_gyrokinetic_release(mcalc);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
 }
