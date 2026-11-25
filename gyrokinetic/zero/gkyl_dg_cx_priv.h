@@ -66,7 +66,7 @@ choose_kern(struct gkyl_basis cbasis)
 static void
 fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
 {
-  // These values are from E. Meier's PhD Thesis
+  // These values are from E. Meier's PhD Thesis (sigma = a - b*ln(V_cx), vT^2 = 2T/m in V_cx).
   if (type_ion == GKYL_ION_H) {
     a[0] = 1.12e-18;
     b[0] = 7.15e-20;
