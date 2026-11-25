@@ -111,7 +111,12 @@ check_weighted(int cdim, int vdim, int order, bool gpu, bool mapped)
     .global = conf,
     .global_ext = conf_ext,
   };
-  struct gk_geometry *geom = gkyl_gk_geometry_new(NULL, &geom_in, gpu);
+  struct gk_geometry *geom = gkyl_gk_geometry_new(NULL, &geom_in, false);
+  if (gpu) {
+    struct gk_geometry *geom_dev = gkyl_gk_geometry_new(geom, &geom_in, true);
+    gkyl_gk_geometry_release(geom);
+    geom = geom_dev;
+  }
 
   struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, conf_ext.volume);
   for (long cell = 0; cell < bmag->size; ++cell) {
