@@ -494,6 +494,12 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   if (app->has_pkpm) {
     vlasov_species_init_pkpm(vm, app);
   }
+  // Held backgrounds, captured at the end of the initial conditions.
+  app->has_background = false;
+  for (int i = 0; i < ntot; ++i) {
+    app->has_background = app->has_background || vlasov_species_has_background(&app->species[i]);
+  }
+
   // The momentum and energy exchange between the species with a fluid aspect that collide.
   vm_coll_exchange_init(app);
   app->has_coll_stage = app->has_pkpm || app->coll_exchange.num_species > 0;
@@ -535,11 +541,12 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // Without the split, the currents of all species and the resistive layer are explicit in the
   // stages of a Maxwell field: the time-step resolves the plasma frequency (with the cyclotron
   // frequency in the rate of each coupled fluid) and the rate of the layer. A static field does
-  // not respond to them: the plasma frequency the fluid sources read stays zero.
-  if (app->has_field && app->field->field_id == GKYL_FIELD_E_B && !app->has_fluid_em_coupling) {
+  // not respond to them, and with the split the source step resolves them: the plasma frequency
+  // the force kernels of the stages read stays zero.
+  if (app->has_field && app->field->field_id == GKYL_FIELD_E_B) {
     app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
     gkyl_array_clear(app->src_omega_p_sq, 0.0);
-    if (!app->field->info.is_static) {
+    if (!app->field->info.is_static && !app->has_fluid_em_coupling) {
       app->src_dt_func = vlasov_src_dt_explicit;
       app->src_omega_p_sq_kin = mkarr(app->use_gpu, 1, app->local_ext.volume);
       gkyl_array_clear(app->src_omega_p_sq_kin, 0.0);
@@ -640,6 +647,87 @@ vm_apply_bc(
   vlasov_field_apply_bc(app, emfield);
 }
 
+// Held backgrounds (First_Fourier_Harmonic_Notes/background_density_gradient.tex), captured at the
+// end of the initial conditions (no-op without a held species). The held species are put on their
+// backgrounds, with the other species at their initial conditions and the evolved Maxwell field zero
+// (the background magnetic field is external). The right-hand side of a stage there, without the
+// force of the backgrounds, gives the force that holds each held species (its momentum moment divided
+// by the density); the right-hand side with that force is the remainder every stage subtracts. The
+// initial conditions wait in the fnew buffers (the projection of a PKPM species uses f1), the field in
+// em1.
+static void
+vlasov_capture_backgrounds(gkyl_vlasov_app *app, double t0)
+{
+  if (!app->has_background) {
+    return;
+  }
+  int num_species = app->num_species;
+  struct vm_field *field = app->field;
+  bool has_em = field->field_id == GKYL_FIELD_E_B;
+
+  for (int i = 0; i < num_species; ++i) {
+    vlasov_species_copy_range(app, &app->species[i], VM_RK_FNEW, VM_RK_F);
+  }
+  if (has_em) {
+    gkyl_array_copy(field->em1, field->em);
+    gkyl_array_clear(field->em, 0.0);
+    vlasov_field_apply_bc(app, field->em);
+  }
+  for (int i = 0; i < num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (vlasov_species_has_background(sp)) {
+      vlasov_species_background_reset(app, sp);
+      vlasov_species_background_project(app, sp, t0);
+    }
+  }
+
+  struct gkyl_array *fin[num_species];
+  struct gkyl_array *fout[num_species];
+  const struct gkyl_array *fluidin[num_species];
+  struct gkyl_array *fluidout[num_species];
+  vlasov_species_gather_rk_state(app, VM_RK_F, VM_RK_F1, fin, fout, fluidin, fluidout);
+
+  // The force, from the right-hand side without it.
+  vlasov_stage_rhs(app, 1, t0, fin, fluidin, field->em, fout, fluidout, field->emnew);
+  for (int i = 0; i < num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (vlasov_species_has_background(sp)) {
+      vlasov_species_background_calc_force(app, sp, fin[i], fluidin[i], fout[i], fluidout[i]);
+    }
+  }
+
+  // The remainder, the right-hand side with the force. A PKPM species takes the speeds of its
+  // velocity-domain edges from the stage before (in the first stage of a step from the last
+  // completed step): the stage is repeated until those speeds are the background's own (the
+  // dependence on them is through the traces at the edges, so two repeats reach round-off), and the
+  // first stage of the run takes them too (complete_step keeps them).
+  for (int pass = 0; pass < 3; ++pass) {
+    vlasov_stage_rhs(
+      app, pass == 0 ? 1 : 2, t0, fin, fluidin, field->em, fout, fluidout, field->emnew
+    );
+  }
+  for (int i = 0; i < num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (vlasov_species_has_background(sp)) {
+      vlasov_species_background_store(app, sp, fout[i], fluidout[i]);
+    }
+  }
+
+  // The initial conditions back; nothing the evaluations recorded is kept, except the speeds of the
+  // velocity-domain edges of a held PKPM species.
+  for (int i = 0; i < num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    vlasov_species_discard_step(app, sp);
+    if (vlasov_species_has_background(sp)) {
+      vlasov_species_complete_step(app, sp);
+    }
+    vlasov_species_copy_range(app, sp, VM_RK_F, VM_RK_FNEW);
+  }
+  if (has_em) {
+    gkyl_array_copy(field->em, field->em1);
+  }
+}
+
 void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app *app, double t0)
 {
@@ -660,6 +748,10 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app *app, double t0)
   struct gkyl_array *fluid[num_species];
   vlasov_species_gather_state(app, distf, fluid);
   vm_apply_bc(app, t0, distf, fluid, app->field->em);
+
+  // The force and the remainder of the held backgrounds, with the other species at their initial
+  // conditions (no-op without a held species).
+  vlasov_capture_backgrounds(app, t0);
 }
 
 void
@@ -1226,6 +1318,11 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   // time of frame 0.
   // With PKPM species the Maxwell field (which has a file and a time of its own) is read first:
   // their boundary conditions read b of the restart field.
+  // Held backgrounds are not in the frames: they are captured again from the initial conditions
+  // and the backgrounds, before the frame is read over them.
+  if (app->has_background) {
+    gkyl_vlasov_app_apply_ic(app, 0.0);
+  }
   struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
   struct gkyl_app_restart_status fstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
   if (app->has_pkpm) {

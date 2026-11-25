@@ -235,6 +235,20 @@ struct gkyl_vlasov_kinetic_species {
   int num_init; // Number of initial condition functions.
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
+  // Held background (First_Fourier_Harmonic_Notes/background_density_gradient.tex): a projection,
+  // in the format of those of the initial condition, of the state the species is held about. Once,
+  // in gkyl_vlasov_app_apply_ic, the right-hand side of the species is evaluated on its background
+  // (the other species at their initial conditions, the evolved field zero): its momentum moment
+  // divided by the density is a body force, applied with app_accel in every stage, and what is left
+  // is subtracted in every stage. The background is then a steady state of the discrete system, and
+  // the force acts on everything that evolves about it. The initial condition may carry a
+  // perturbation of the background. The background magnetic field belongs in the external field
+  // (ext_em); a background at rest along the field (or unmagnetized) is held by the force alone,
+  // while a gradient across the field needs the diamagnetic flow in the background. Non-relativistic
+  // species without velocity or position maps. A PKPM species gives the eight normalized
+  // distributions here (one GKYL_PROJ_FUNC projection) and its fluid background in the fluid block.
+  struct gkyl_vlasov_projection background;
+
   bool is_static; // Set to true if species does not change in time.
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   bool write_omega_cfl; // Whether to output dt diagnostic for the CFL constraint.
@@ -339,6 +353,14 @@ struct gkyl_vlasov_fluid_species {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // Held background of an Euler or isothermal Euler fluid, or of the fluid block of a PKPM species,
+  // in the format of init (see the background of the kinetic block).
+  void *background_ctx; // context for the background function
+  void (*background)(double t, const double *xn, double *fout, void *ctx);
+  // Evaluate init and background at the nodes of the basis instead of projecting them: for p = 1
+  // the state is continuous, so a smooth profile has no jumps at the faces (no numerical flux
+  // dissipation on it, and for a PKPM species the change of frame at a face is the identity).
+  bool eval_on_nodes;
 
   // Hyper-diffusion coefficient
   double nuHyp;
@@ -378,6 +400,10 @@ struct gkyl_vlasov_fluid_species {
   // pointer to background density function in canonical PB fluid systems
   void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
 
+  // Applied acceleration [ax, ay, az] (external force per unit mass) of an Euler or isothermal
+  // Euler fluid and of the fluid block of a PKPM species: rho a in the momentum and rho u.a in the
+  // energy, in the right-hand side of every SSP-RK3 stage (also with the implicit fluid-EM
+  // coupling, whose source step does not take it).
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
@@ -627,7 +653,8 @@ struct gkyl_vm {
   // store the steps that make a restart continue the uninterrupted run. Kinetic species may be
   // present (hybrid runs, polynomial order 1): the source step takes their current as known, the
   // transport step moves them with its E, and the step resolves their plasma frequency
-  // (cfl_frac / omega_p).
+  // (cfl_frac / omega_p). The applied accelerations (app_accel) of all species act in the
+  // transport step, with the pressure gradients they may balance, and not in the source step.
   // With use_explicit_sources the Lorentz force is in the fluid RHS and the fluid currents on the
   // RHS of Ampere's law in every SSP-RK3 stage, and in each cell the time-step resolves the larger
   // of the rate of the hyperbolic terms and the rate of the source of each coupled fluid (see

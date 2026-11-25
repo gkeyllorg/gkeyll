@@ -114,6 +114,10 @@ struct vm_fluid_em_coupling {
   // Resistive layer of the solve, the damping rate of E at the nodes (the field's; NULL without a
   // layer and for a static field).
   const struct gkyl_array *sigma;
+  // The solve applies no body force: the applied acceleration of a species is in the RHS of the
+  // transport step, with the pressure gradient it may balance (in the solve it would be unbalanced
+  // and drive the plasma oscillation). The zero acceleration the solver reads for every species.
+  struct gkyl_array *accel_zero;
 
   // Staggered states (fluids, field): those at the start of an update while it runs (for a
   // transport step that takes less than planned), and those kept while the app holds the
@@ -127,7 +131,6 @@ struct vm_fluid_em_coupling {
   struct gkyl_array *em_ghost;
   void (*advance_func)(
     struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
-    const struct gkyl_array *app_accels[GKYL_MAX_SPECIES],
     struct gkyl_array *fluids[GKYL_MAX_SPECIES]
   );
 
@@ -229,6 +232,9 @@ struct gkyl_vlasov_app {
   int src_num_kinetic; // number of charged kinetic species
   int src_kinetic[GKYL_MAX_SPECIES]; // indices of the charged kinetic species
 
+  // Held backgrounds (captured in gkyl_vlasov_app_apply_ic).
+  bool has_background; // some species is held about a background
+
   // PKPM species.
   bool has_pkpm; // some species is a PKPM species
   int num_pkpm_species; // number of PKPM species
@@ -256,6 +262,17 @@ void vlasov_forward_euler(
   gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
+);
+
+// The right-hand sides of a forward-Euler stage before the sources: the
+// time-dependent inputs at tcurr, the field update (the Maxwell right-hand side into emout, or the
+// potentials), the staging phases of the species and their right-hand sides into fout and
+// fluidout. Returns the smallest stable time-step of the field, its explicit sources and the
+// species.
+double vlasov_stage_rhs(
+  gkyl_vlasov_app *app, int stage, double tcurr, struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
+  struct gkyl_array *fluidout[], struct gkyl_array *emout
 );
 
 // No explicit source of a Maxwell field: no bound on the time-step (assigned to the app's

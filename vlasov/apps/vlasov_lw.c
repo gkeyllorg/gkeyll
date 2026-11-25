@@ -489,6 +489,48 @@ static struct gkyl_bc_emission_ctx *emission_get_retained(lua_State *L);
 #define VLASOV_SPECIES_METATABLE_NM "GkeyllZero.App.Vlasov.Species"
 
 // Lua userdata object for constructing species input.
+// One projection of a kinetic species read from a Lua table in the format of the entries of
+// "projections": the background of a held species.
+struct vm_lw_projection {
+  bool is_set; // Was the table given?
+  enum gkyl_projection_id proj_id; // Projection type.
+  bool has_init_func, has_density_func, has_V_drift_func, has_temp_func; // Which functions given.
+  struct lua_func_ctx init_func_ref, density_func_ref, V_drift_func_ref, temp_func_ref;
+  bool correct_all_moms; // Correct all moments in the projection, or only the density?
+  double iter_eps; // Error tolerance for moment fixes (density is always exact).
+  int max_iter; // Maximum number of iterations for moment fixes.
+  bool use_last_converged; // Use the last iteration regardless of convergence?
+};
+
+// Read the projection table on top of the stack: its function "init" returns nret_init values,
+// "driftVelocityInit" vdim values.
+static struct vm_lw_projection
+vm_lw_projection_read(lua_State *L, int nret_init, int vdim)
+{
+  struct vm_lw_projection p = {.is_set = true};
+  p.proj_id = glua_tbl_get_integer(L, "projectionID", 0);
+  const char *names[4] = {"init", "densityInit", "driftVelocityInit", "temperatureInit"};
+  int nrets[4] = {nret_init, 1, vdim, 1};
+  bool *has[4] = {&p.has_init_func, &p.has_density_func, &p.has_V_drift_func, &p.has_temp_func};
+  struct lua_func_ctx *refs[4] = {
+    &p.init_func_ref, &p.density_func_ref, &p.V_drift_func_ref, &p.temp_func_ref
+  };
+  for (int k = 0; k < 4; ++k) {
+    int ref = LUA_NOREF;
+    *has[k] = false;
+    if (glua_tbl_get_func(L, names[k])) {
+      ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      *has[k] = true;
+    }
+    *refs[k] = (struct lua_func_ctx){.func_ref = ref, .ndim = 0, .nret = nrets[k], .L = L};
+  }
+  p.correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+  p.iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
+  p.max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
+  p.use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+  return p;
+}
+
 struct vlasov_species_lw {
   int magic; // This must be first element in the struct.
 
@@ -568,6 +610,7 @@ struct vlasov_species_lw {
   int max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
   bool use_last_converged
     [GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
+  struct vm_lw_projection background; // Background of a held species (is_set: given).
 
   enum gkyl_collision_id collision_id; // Collision type.
   double nu_frac; // Rescales collision frequencies (default = 1).
@@ -914,6 +957,13 @@ vlasov_species_lw_new(lua_State *L)
   bool use_last_converged[GKYL_MAX_PROJ];
 
   int num_init = glua_tbl_get_integer(L, "numInit", 0);
+
+  // Background of a held species: one projection in the format of those of "projections".
+  struct vm_lw_projection background = {.is_set = false};
+  with_lua_tbl_tbl(L, "background")
+  {
+    background = vm_lw_projection_read(L, 1, vdim);
+  }
 
   with_lua_tbl_tbl(L, "projections")
   {
@@ -1311,6 +1361,7 @@ vlasov_species_lw_new(lua_State *L)
   };
 
   vms_lw->num_init = num_init;
+  vms_lw->background = background;
   for (int i = 0; i < num_init; i++) {
     vms_lw->proj_id[i] = proj_id[i];
 
@@ -1556,6 +1607,8 @@ struct vlasov_fluid_species_lw {
   char name[128];
   double charge, mass;
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
+  bool has_background_func; // Is there a background function (a held fluid)?
+  struct lua_func_ctx background_ctx; // Lua registry reference to the background function.
 
   bool has_app_advect_func; // Is there an applied advection function?
   struct lua_func_ctx app_advect_func_ref; // Lua registry reference to applied advection function.
@@ -1612,6 +1665,14 @@ vlasov_fluid_species_lw_new(lua_State *L)
   } else {
     return luaL_error(L, "Fluid species must have an \"init\" function for initial conditions!");
   }
+  // Background of a held fluid (same format as init), and the nodal evaluation of both.
+  int background_ref = LUA_NOREF;
+  bool has_background_func = false;
+  if (glua_tbl_get_func(L, "background")) {
+    background_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_background_func = true;
+  }
+  vm_fluid_species.eval_on_nodes = glua_tbl_get_bool(L, "evalOnNodes", false);
 
   // Slope limiter factor and relative floor of the vertex positivity limiter (0: defaults).
   vm_fluid_species.limiter_fac = glua_tbl_get_number(L, "limiterFac", 0.0);
@@ -1733,6 +1794,13 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .nret = vm_fluid_species.equation->num_equations,
     .L = L,
   };
+  vmfs_lw->has_background_func = has_background_func;
+  vmfs_lw->background_ctx = (struct lua_func_ctx){
+    .func_ref = background_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vm_fluid_species.equation->num_equations,
+    .L = L,
+  };
 
   for (int i = 0; i < vm_fluid_species.collisions.num_cross_collisions; i++) {
     vmfs_lw->has_cross_nu_func[i] = has_cross_nu_func[i];
@@ -1816,6 +1884,10 @@ struct vlasov_pkpm_species_lw {
   bool has_fluid_init_func; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ref; // Lua registry reference to fluid initialization function.
 
+  struct vm_lw_projection dist_background; // Background distributions of a held species.
+  bool has_fluid_background_func; // Is there a fluid background function (a held species)?
+  struct lua_func_ctx fluid_background_func_ref; // Lua registry reference to it.
+
   bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
   struct lua_func_ctx
     applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
@@ -1870,6 +1942,9 @@ vlasov_pkpm_species_lw_new(lua_State *L)
 
   bool has_dist_init_func = false;
   int dist_init_func_ref = LUA_NOREF;
+  struct vm_lw_projection dist_background = {.is_set = false};
+  bool has_fluid_background_func = false;
+  int fluid_background_func_ref = LUA_NOREF;
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
 
@@ -1987,6 +2062,12 @@ vlasov_pkpm_species_lw_new(lua_State *L)
       }
     }
 
+    // Background distributions of a held species: one function projection of the eight blocks.
+    with_lua_tbl_tbl(L, "background")
+    {
+      dist_background = vm_lw_projection_read(L, PKPM_DIST_NUM_BLOCKS, vdim);
+    }
+
     with_lua_tbl_tbl(L, "collisions")
     {
       collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -2083,6 +2164,12 @@ vlasov_pkpm_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "fluid")
   {
     pkpm_species.fluid.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
+    pkpm_species.fluid.eval_on_nodes = glua_tbl_get_bool(L, "evalOnNodes", false);
+
+    if (glua_tbl_get_func(L, "background")) {
+      fluid_background_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_fluid_background_func = true;
+    }
 
     if (glua_tbl_get_func(L, "init")) {
       fluid_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -2147,6 +2234,15 @@ vlasov_pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->has_fluid_init_func = has_fluid_init_func;
   pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){
     .func_ref = fluid_init_func_ref,
+    .ndim = 0, // Set by the app.
+    .nret = 5,
+    .L = L,
+  };
+
+  pkpm_s_lw->dist_background = dist_background;
+  pkpm_s_lw->has_fluid_background_func = has_fluid_background_func;
+  pkpm_s_lw->fluid_background_func_ref = (struct lua_func_ctx){
+    .func_ref = fluid_background_func_ref,
     .ndim = 0, // Set by the app.
     .nret = 5,
     .L = L,
@@ -2493,6 +2589,37 @@ vm_app_ctx(struct vlasov_app_lw *app_lw, const struct lua_func_ctx *ref, int ndi
   *ctx = *ref;
   ctx->ndim = ndim;
   return ctx;
+}
+
+// Set a projection of the app input from one read with vm_lw_projection_read: "init" lives on the
+// phase space of dimension pdim, the moments on the configuration space of dimension cdim.
+static void
+vm_lw_projection_set(
+  struct vlasov_app_lw *app_lw, const struct vm_lw_projection *p, int cdim, int pdim,
+  struct gkyl_vlasov_projection *out
+)
+{
+  out->proj_id = p->proj_id;
+  if (p->has_init_func) {
+    out->func = gkyl_lw_eval_cb;
+    out->ctx_func = vm_app_ctx(app_lw, &p->init_func_ref, pdim);
+  }
+  if (p->has_density_func) {
+    out->density = gkyl_lw_eval_cb;
+    out->ctx_density = vm_app_ctx(app_lw, &p->density_func_ref, cdim);
+  }
+  if (p->has_V_drift_func) {
+    out->V_drift = gkyl_lw_eval_cb;
+    out->ctx_V_drift = vm_app_ctx(app_lw, &p->V_drift_func_ref, cdim);
+  }
+  if (p->has_temp_func) {
+    out->temp = gkyl_lw_eval_cb;
+    out->ctx_temp = vm_app_ctx(app_lw, &p->temp_func_ref, cdim);
+  }
+  out->correct_all_moms = p->correct_all_moms;
+  out->iter_eps = p->iter_eps;
+  out->max_iter = p->max_iter;
+  out->use_last_converged = p->use_last_converged;
 }
 
 // Gets all species objects from the App table, which must be on top of
@@ -3630,6 +3757,13 @@ vm_app_new(lua_State *L)
       vm.species[s].kinetic.projection[i].use_last_converged = species[s]->use_last_converged[i];
     }
 
+    if (species[s]->background.is_set) {
+      vm_lw_projection_set(
+        app_lw, &species[s]->background, cdim, cdim + species[s]->vdim,
+        &vm.species[s].kinetic.background
+      );
+    }
+
     vm.species[s].kinetic.collisions.collision_id = species[s]->collision_id;
     vm.species[s].kinetic.collisions.nu_frac = species[s]->nu_frac;
     vm.species[s].kinetic.collisions.write_coll_diagnostics = species[s]->write_coll_diagnostics;
@@ -3771,6 +3905,11 @@ vm_app_new(lua_State *L)
     vm.species[num_kinetic_species + s].fluid.init = gkyl_lw_eval_cb;
     vm.species[num_kinetic_species + s].fluid.ctx =
       vm_app_ctx(app_lw, &fluid_species[s]->init_ctx, cdim);
+    if (fluid_species[s]->has_background_func) {
+      vm.species[num_kinetic_species + s].fluid.background = gkyl_lw_eval_cb;
+      vm.species[num_kinetic_species + s].fluid.background_ctx =
+        vm_app_ctx(app_lw, &fluid_species[s]->background_ctx, cdim);
+    }
 
     if (fluid_species[s]->has_app_advect_func) {
       vm.species[num_kinetic_species + s].fluid.advection.velocity = gkyl_lw_eval_cb;
@@ -3841,6 +3980,13 @@ vm_app_new(lua_State *L)
     if (ps->has_fluid_init_func) {
       sp->fluid.init = gkyl_lw_eval_cb;
       sp->fluid.ctx = vm_app_ctx(app_lw, &ps->fluid_init_func_ref, cdim);
+    }
+    if (ps->dist_background.is_set) {
+      vm_lw_projection_set(app_lw, &ps->dist_background, cdim, pdim, &sp->kinetic.background);
+    }
+    if (ps->has_fluid_background_func) {
+      sp->fluid.background = gkyl_lw_eval_cb;
+      sp->fluid.background_ctx = vm_app_ctx(app_lw, &ps->fluid_background_func_ref, cdim);
     }
 
     if (ps->has_applied_acceleration_func) {

@@ -1758,6 +1758,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // Determine whether we have radiation.
   vm_species_new_radiation(vm_app_inp, app, vms);
 
+  // Held background: initialized before the collisionless solver, whose applied acceleration takes
+  // its force.
+  vm_species_background_init(app, vms, &vms->bg);
+
   // Initialize the collisionless solver.
   vms->collisionless = (struct vm_collisionless){};
   vm_species_collisionless_init(app, vms, &vms->collisionless);
@@ -1903,7 +1907,10 @@ vm_species_rhs(
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
-  return vms->rhs_func(app, vms, fin, em, rhs);
+  double dt = vms->rhs_func(app, vms, fin, em, rhs);
+  // A held background: subtract the remainder of the right-hand side on it.
+  vm_species_background_rhs(&vms->bg, rhs);
+  return dt;
 }
 
 // Implicit update of the species: on return rhs is the distribution after the
@@ -2107,6 +2114,7 @@ vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *vms)
   for (int k = 0; k < vms->num_init; k++) {
     vm_species_projection_release(app, &vms->proj_init[k]);
   }
+  vm_species_background_release(app, &vms->bg);
 
   gkyl_array_release(vms->rad);
   gkyl_array_release(vms->f_no_J);

@@ -6,8 +6,10 @@
 // fluids and E lag tcurr by half the last step. The first update of a run takes a trial forward
 // Euler step for h. If the CFL bound of a stage of T is more than 1% below the planned step, the
 // fluids and the field are restored, the source step is repeated over the smaller interval and T
-// is attempted again. Applied fields, currents and accelerations are evaluated at the midpoint of
-// each source interval.
+// is attempted again. Applied fields and currents are evaluated at the midpoint of each source
+// interval. The applied accelerations of the species are not part of S: they act in the stages of
+// T, with the pressure gradients they may balance (in S such a force is unbalanced and drives the
+// plasma oscillation, at an amplitude growing as (omega_p h)^2).
 //
 // Kinetic species: the source step takes the current of each kinetic species at its start as a
 // known current, and the transport step moves the species with the E of the source step. This

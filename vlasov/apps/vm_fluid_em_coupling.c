@@ -56,11 +56,15 @@ fluid_em_coupling_dt_kinetic(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
 static void
 fluid_em_coupling_advance(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
-  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES], struct gkyl_array *fluids[GKYL_MAX_SPECIES]
+  struct gkyl_array *fluids[GKYL_MAX_SPECIES]
 )
 {
+  const struct gkyl_array *accels[GKYL_MAX_SPECIES];
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    accels[i] = fl_em->accel_zero;
+  }
   gkyl_dg_calc_fluid_em_coupling_advance(
-    fl_em->slvr, dt, app_accels, app->field->ext_em, fl_em->curl_current, fl_em->sigma, fluids,
+    fl_em->slvr, dt, accels, app->field->ext_em, fl_em->curl_current, fl_em->sigma, fluids,
     fl_em->em_solve
   );
 }
@@ -90,7 +94,7 @@ fluid_em_coupling_ex_mean(struct gkyl_vlasov_app *app)
 static void
 fluid_em_coupling_advance_ghost(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
-  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES], struct gkyl_array *fluids[GKYL_MAX_SPECIES]
+  struct gkyl_array *fluids[GKYL_MAX_SPECIES]
 )
 {
   struct vm_field *field = app->field;
@@ -115,7 +119,7 @@ fluid_em_coupling_advance_ghost(
       gkyl_array_copy(fluids[i], fl_em->fluid_ghost[i]);
     }
     gkyl_array_copy(fl_em->em_solve, fl_em->em_ghost);
-    fluid_em_coupling_advance(app, fl_em, dt, app_accels, fluids);
+    fluid_em_coupling_advance(app, fl_em, dt, fluids);
     if (trial < 2) {
       ex_mean_trial[trial] = fluid_em_coupling_ex_mean(app);
     }
@@ -186,6 +190,8 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
     fl_em->fluid_stag[i] = mkarr(app->use_gpu, fluid->ncomp, fluid->size);
   }
   fl_em->em_stag = mkarr(app->use_gpu, app->field->em->ncomp, app->field->em->size);
+  fl_em->accel_zero = mkarr(app->use_gpu, 3 * num_basis, num_cells);
+  gkyl_array_clear(fl_em->accel_zero, 0.0);
 
   // Ghost current: the fluids' average current over a source step is removed as well (a static
   // field takes no current).
@@ -224,7 +230,6 @@ vm_fluid_em_coupling_update(
   int num_fluid = fl_em->num_fluid;
 
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
-  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
 
   // The solve acts on the physical state: the fluid of a PKPM species and a field with PKPM
   // species carry the position-map Jacobian, which is divided out before and restored after
@@ -237,13 +242,6 @@ vm_fluid_em_coupling_update(
         app->pos_map, &app->local, fs->fluid->ncomp, fs->fluid, fs->pkpm.fluid_no_J
       );
       fluids[i] = fs->pkpm.fluid_no_J;
-    }
-    app_accels[i] = fs->app_accel;
-    // Compute applied accelerations if present and time-dependent.
-    // Note: applied accelerations use proj_on_basis
-    // so does copy to GPU every call if app->use_gpu = true.
-    if (fs->app_accel_evolve) {
-      vm_fluid_species_calc_app_accel(app, fs, tcurr);
     }
   }
   // Compute external EM field or applied currents if present and time-dependent
@@ -292,7 +290,7 @@ vm_fluid_em_coupling_update(
     gkyl_array_accumulate_offset(fl_em->curl_current, -field->info.epsilon0, curl_rhs, 0);
   }
 
-  fl_em->advance_func(app, fl_em, dt, app_accels, fluids);
+  fl_em->advance_func(app, fl_em, dt, fluids);
 
   // Restore the Jacobian and apply BCs to the updated fluids and field.
   for (int i = 0; i < num_fluid; ++i) {
@@ -345,6 +343,7 @@ vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
     gkyl_array_release(fl_em->fluid_stag[i]);
   }
   gkyl_array_release(fl_em->em_stag);
+  gkyl_array_release(fl_em->accel_zero);
   if (fl_em->em_ghost) {
     for (int i = 0; i < fl_em->num_fluid; ++i) {
       gkyl_array_release(fl_em->fluid_ghost[i]);

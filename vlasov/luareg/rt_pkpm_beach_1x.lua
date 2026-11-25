@@ -10,14 +10,22 @@
 -- antenna radiates to each side in free space has a magnetic field of 0.02 B_x, so the magnetic
 -- unit vector changes in time up to the edge. The upper boundary of the field, next to the antenna,
 -- is absorbing (G0.FieldBc.bcAbsorb). The fluid-field coupling is the staggered operator split with
--- the implicit fluid-Maxwell source step, which takes the applied current.
+-- the implicit fluid-Maxwell source step, which takes the applied current. The electrons (1 eV)
+-- are held about their initial state (the fluid state evaluated at the nodes;
+-- First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
+-- along b that holds the parallel pressure gradient, v_te^2 d ln n/dx away from the boundary
+-- cells, and subtracts what the discretization leaves. Without the hold the pressure gradient
+-- pushes the electrons until their space charge stops them, and E_x rings about the ambipolar
+-- field -(T_e/e) d ln n/dx at the local plasma frequency, up to 56 V/m.
 --
 -- Figures of merit at t = 5e-9 (200 x 8 cells, serendipity p1, 1000 steps), from the cell averages:
 -- the maximum of |E_perp| = sqrt(E_y^2 + E_z^2) is 2.79e5 V/m at x = 0.6275, 1.74 times the
 -- amplitude mu_0 c J_0 / 800 the antenna radiates to each side in free space; the maxima of |E_y|
 -- and |E_z| are 1.33 and 1.17 times that amplitude. |E_perp| stays below 0.7% of its maximum for x
--- < 0.466, beyond both cutoffs. The norm of the first-harmonic blocks of the distribution is at
--- most 0.42 of that of F (at x = 0.9075), and 0.24 in the cell at the absorbing edge.
+-- < 0.466, beyond both cutoffs, where |E_x| stays below 0.02 V/m (22 V/m without the hold) and the
+-- density changes by less than 1e-8; in the wave E_x reaches 3.2e3 V/m. The norm of the
+-- first-harmonic blocks of the distribution is at most 0.42 of that of F (at x = 0.9075), and 0.24
+-- in the cell at the absorbing edge.
 
 local Vlasov = G0.Vlasov
 
@@ -67,6 +75,27 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
+-- Normalized electron distributions [F, G, M0_perp (x, y, z), N_perp (x, y, z)]: a Maxwellian in
+-- w = v_par/xi and no first harmonic. The initial condition and the held background.
+function elcDist (t, xn)
+  local w = xn[2]
+
+  local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+
+  return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+end
+
+-- Electron fluid state: the plasma frequency profile (times deltaT) on the uniform background,
+-- temperature Te. The initial condition and the held background.
+function elcFluid (t, xn)
+  local x = xn[1]
+
+  local omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x)
+  local ne = (omegaPdt * omegaPdt + omega_p_floor * omega_p_floor) / factor -- Electron number density.
+
+  return mass_elc * ne, 0.0, 0.0, 0.0, 1.5 * ne * Te
+end
+
 vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
@@ -106,15 +135,13 @@ vlasovApp = Vlasov.App.new {
       projections = {
         {
           projectionID = G0.Projection.Func,
-
-          init = function (t, xn)
-            local w = xn[2]
-
-            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
-
-            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-          end
+          init = elcDist
         }
+      },
+      -- The initial state is held as the background.
+      background = {
+        projectionID = G0.Projection.Func,
+        init = elcDist
       },
 
       bcx = {
@@ -128,16 +155,10 @@ vlasovApp = Vlasov.App.new {
     },
 
     fluid = {
-      -- Initial conditions.
-      init = function (t, xn)
-        local x = xn[1]
-
-        -- Plasma frequency profile (times deltaT), on the uniform background.
-        local omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x)
-        local ne = (omegaPdt * omegaPdt + omega_p_floor * omega_p_floor) / factor -- Electron number density.
-
-        return mass_elc * ne, 0.0, 0.0, 0.0, 1.5 * ne * Te
-      end,
+      -- Initial conditions, held as the background, evaluated at the nodes (continuous).
+      init = elcFluid,
+      background = elcFluid,
+      evalOnNodes = true,
 
       bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }
     },

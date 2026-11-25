@@ -684,6 +684,33 @@ vm_fluid_species_can_pb_fluid_init(
   f->release_func = vm_fluid_species_can_pb_fluid_release;
 }
 
+void
+vm_fluid_species_project_state(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, evalf_t func, void *ctx, double t0
+)
+{
+  if (fluid_species->info.eval_on_nodes) {
+    struct gkyl_eval_on_nodes *ev = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .num_ret_vals = fluid_species->num_equations,
+      .eval = func,
+      .ctx = ctx,
+    });
+    gkyl_eval_on_nodes_advance(ev, t0, &app->local_ext, fluid_species->fluid_host);
+    gkyl_eval_on_nodes_release(ev);
+  } else {
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
+      &app->grid, &app->basis, app->poly_order + 1, fluid_species->num_equations, func, ctx
+    );
+    gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
+    gkyl_proj_on_basis_release(proj);
+  }
+  if (app->use_gpu) {
+    gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
+  }
+}
+
 // Methods common to all fluid equation types, assigned in
 // vm_fluid_species_init.
 static void
@@ -691,20 +718,9 @@ vm_fluid_species_apply_ic_enabled(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0
 )
 {
-  int poly_order = app->poly_order;
-
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-    &app->grid, &app->basis, poly_order + 1, fluid_species->num_equations, fluid_species->info.init,
-    fluid_species->info.ctx
+  vm_fluid_species_project_state(
+    app, fluid_species, fluid_species->info.init, fluid_species->info.ctx, t0
   );
-
-  // run updater
-  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
-  gkyl_proj_on_basis_release(proj);
-
-  if (app->use_gpu) {
-    gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
-  }
 
   // Copy the initial conditions into the buffers of fixed-function BCs, before
   // the limiter below applies the BCs.
@@ -721,7 +737,11 @@ vm_fluid_species_apply_ic_enabled(
     }
   }
 
-  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
+  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation. It sees the
+  // ghost cells of the boundary conditions, as the limiter of every stage does (the projection
+  // fills them with the continuation of the initial condition), so the initial state is one the
+  // stages keep.
+  vm_fluid_species_apply_bc(app, fluid_species, fluid_species->fluid);
   vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
 
   // Pre-compute applied acceleration in case it's time-independent
@@ -1095,12 +1115,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     );
   }
 
-  // Initialize applied acceleration for use in force update.
-  // Always used by fluid implicit sources, so always initialize.
+  // Initialize applied acceleration for use in force update: that of the input, plus the force of a
+  // held background (vm_fluid_species_background.c; zero until the background is captured).
   f->app_accel = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->app_accel, 0.0);
-  f->has_app_accel = false;
+  vm_fluid_species_background_init(app, f, &f->bg);
+  f->has_app_accel = f->bg.is_held;
   f->app_accel_evolve = false;
+  f->app_accel_host = 0;
+  f->app_accel_proj = 0;
   // setup applied acceleration
   if (f->info.app_accel) {
     if (f->eqn_type != GKYL_EQN_EULER && f->eqn_type != GKYL_EQN_ISO_EULER) {
@@ -1123,17 +1146,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     );
   }
 
-  // Forces in the RHS of the fluid: the applied acceleration without a field, and with it the
-  // Lorentz force of a momentum-carrying fluid when the Maxwell field is coupled explicitly.
-  // With the implicit fluid-EM coupling the source solve applies both.
+  // Forces in the RHS of the fluid: the Lorentz force of a momentum-carrying fluid when the
+  // Maxwell field is coupled explicitly, with the applied acceleration; otherwise the applied
+  // acceleration alone. The applied acceleration is always in the RHS, with the pressure gradient
+  // it may balance: with the implicit fluid-EM coupling the source solve applies only the Lorentz
+  // force (a body force in that solve, unbalanced by the pressure, drives the plasma oscillation).
   f->rhs_force_func = vm_fluid_species_rhs_force_none;
-  if (app->has_field) {
-    if (app->use_explicit_sources &&
-        (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER)) {
-      f->qmem = mkarr(app->use_gpu, 6 * app->basis.num_basis, app->local_ext.volume);
-      f->mom = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
-      f->rhs_force_func = vm_fluid_species_rhs_force_em;
-    }
+  if (app->has_field && app->use_explicit_sources &&
+      (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER)) {
+    f->qmem = mkarr(app->use_gpu, 6 * app->basis.num_basis, app->local_ext.volume);
+    f->mom = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
+    f->rhs_force_func = vm_fluid_species_rhs_force_em;
   } else if (f->has_app_accel) {
     f->rhs_force_func = vm_fluid_species_rhs_force_app_accel;
   }
@@ -1246,7 +1269,7 @@ vm_fluid_species_calc_app_accel(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
 )
 {
-  if (fluid_species->has_app_accel) {
+  if (fluid_species->app_accel_proj) {
     gkyl_proj_on_basis_advance(
       fluid_species->app_accel_proj, tm, &app->local_ext, fluid_species->app_accel_host
     );
@@ -1254,6 +1277,11 @@ vm_fluid_species_calc_app_accel(
     if (app->use_gpu) {
       gkyl_array_copy(fluid_species->app_accel, fluid_species->app_accel_host);
     }
+  } else if (fluid_species->has_app_accel) {
+    gkyl_array_clear(fluid_species->app_accel, 0.0);
+  }
+  if (fluid_species->bg.is_held) {
+    gkyl_array_accumulate(fluid_species->app_accel, 1.0, fluid_species->bg.accel);
   }
 }
 
@@ -1310,7 +1338,10 @@ vm_fluid_species_rhs(
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
-  return fluid_species->rhs_func(app, fluid_species, fluid, em, rhs);
+  double dt = fluid_species->rhs_func(app, fluid_species, fluid, em, rhs);
+  // A held background: subtract the remainder of the right-hand side on it.
+  vm_fluid_species_background_rhs(&fluid_species->bg, rhs);
+  return dt;
 }
 
 void
@@ -1463,12 +1494,13 @@ vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
     gkyl_array_release(f->mom);
   }
   gkyl_array_release(f->app_accel);
-  if (f->has_app_accel) {
+  if (f->app_accel_proj) {
     if (app->use_gpu) {
       gkyl_array_release(f->app_accel_host);
     }
     gkyl_proj_on_basis_release(f->app_accel_proj);
   }
+  vm_fluid_species_background_release(app, &f->bg);
 
   if (f->source_id) {
     vm_fluid_species_source_release(app, &f->src);

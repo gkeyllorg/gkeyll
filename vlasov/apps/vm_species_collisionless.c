@@ -131,11 +131,15 @@ vm_species_collisionless_init(
                    mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume) :
                    0;
 
-  // Initialize applied acceleration for use in force update.
+  // Initialize applied acceleration for use in force update: that of the input, plus the force of
+  // a held background (vm_species_background.c; zero until the background is captured).
   cls->app_accel = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(cls->app_accel, 0.0);
-  cls->has_app_accel = false;
+  cls->has_app_accel = vms->bg.is_held;
   cls->app_accel_evolve = false;
+  cls->app_accel_host = 0;
+  cls->app_accel_proj = 0;
+  cls->background_accel = vms->bg.is_held ? gkyl_array_acquire(vms->bg.accel) : 0;
   // setup applied acceleration
   if (vms->info.app_accel) {
     cls->has_app_accel = true;
@@ -338,12 +342,17 @@ vm_species_collisionless_init(
 void
 vm_species_collisionless_app_accel(gkyl_vlasov_app *app, struct vm_collisionless *cls, double tm)
 {
-  if (cls->has_app_accel) {
+  if (cls->app_accel_proj) {
     gkyl_proj_on_basis_advance(cls->app_accel_proj, tm, &app->local_ext, cls->app_accel_host);
     if (app->use_gpu) {
       // note: app_accel_host is same as app_accel when not on GPUs
       gkyl_array_copy(cls->app_accel, cls->app_accel_host);
     }
+  } else {
+    gkyl_array_clear(cls->app_accel, 0.0);
+  }
+  if (cls->background_accel) {
+    gkyl_array_accumulate(cls->app_accel, 1.0, cls->background_accel);
   }
 }
 
@@ -377,9 +386,12 @@ vm_species_collisionless_release(
   }
   gkyl_array_release(cls->pot_tot);
   gkyl_array_release(cls->app_accel);
-  if (cls->has_app_accel) {
+  if (cls->app_accel_proj) {
     gkyl_array_release(cls->app_accel_host);
     gkyl_proj_on_basis_release(cls->app_accel_proj);
+  }
+  if (cls->background_accel) {
+    gkyl_array_release(cls->background_accel);
   }
   gkyl_array_release(cls->vel_flux_surf);
   gkyl_hyper_dg_release(cls->slvr);

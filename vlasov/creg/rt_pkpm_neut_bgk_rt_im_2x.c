@@ -7,7 +7,8 @@
 // interface mode with one wavelength, u_y = 0.01 cos(k x) exp(-k |y - 1/4|), k = 8 pi. A static
 // uniform magnetic field along y, the direction of gravity, sets the field direction b; the
 // charge is zero, so the field only names the direction of the kinetic velocity. Gravity is an
-// applied acceleration in the implicit source step of the staggered operator split.
+// applied acceleration, which acts in the stages of the transport step of the staggered operator
+// split, with the pressure gradient it balances (the implicit source step takes no body force).
 // The collision frequency puts the mean free path at 1/140 of a cell at the bottom wall. The
 // BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 2 to 4).
 // Linear theory for a sharp interface in an incompressible fluid: growth rate sqrt(A g k) = 0.915

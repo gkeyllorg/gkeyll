@@ -10,14 +10,22 @@
 // antenna radiates to each side in free space has a magnetic field of 0.02 B_x, so the magnetic
 // unit vector changes in time up to the edge. The upper boundary of the field, next to the antenna,
 // is absorbing (GKYL_FIELD_ABSORB). The fluid-field coupling is the staggered operator split with
-// the implicit fluid-Maxwell source step, which takes the applied current.
+// the implicit fluid-Maxwell source step, which takes the applied current. The electrons (1 eV)
+// are held about their initial state (the fluid state evaluated at the nodes;
+// First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
+// along b that holds the parallel pressure gradient, v_te^2 d ln n/dx away from the boundary
+// cells, and subtracts what the discretization leaves. Without the hold the pressure gradient
+// pushes the electrons until their space charge stops them, and E_x rings about the ambipolar
+// field -(T_e/e) d ln n/dx at the local plasma frequency, up to 56 V/m.
 //
 // Figures of merit at t = 5e-9 (200 x 8 cells, serendipity p1, 1000 steps), from the cell averages:
 // the maximum of |E_perp| = sqrt(E_y^2 + E_z^2) is 2.79e5 V/m at x = 0.6275, 1.74 times the
 // amplitude mu_0 c J_0 / 800 the antenna radiates to each side in free space; the maxima of |E_y|
 // and |E_z| are 1.33 and 1.17 times that amplitude. |E_perp| stays below 0.7% of its maximum for x
-// < 0.466, beyond both cutoffs. The norm of the first-harmonic blocks of the distribution is at
-// most 0.42 of that of F (at x = 0.9075), and 0.24 in the cell at the absorbing edge.
+// < 0.466, beyond both cutoffs, where |E_x| stays below 0.02 V/m (22 V/m without the hold) and the
+// density changes by less than 1e-8; in the wave E_x reaches 3.2e3 V/m. The norm of the
+// first-harmonic blocks of the distribution is at most 0.42 of that of F (at x = 0.9075), and 0.24
+// in the cell at the absorbing edge.
 
 #include <math.h>
 #include <stdio.h>
@@ -410,6 +418,8 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+    // The initial state is held as the background.
+    .background = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
 
     .bcx = {.lower = {.type = GKYL_SPECIES_COPY}, .upper = {.type = GKYL_SPECIES_COPY}},
   };
@@ -417,6 +427,10 @@ main(int argc, char **argv)
   struct gkyl_vlasov_fluid_species elc_fluid = {
     .init = evalElcFluidInit,
     .ctx = &ctx,
+    // The initial state is held as the background, evaluated at the nodes (continuous).
+    .background = evalElcFluidInit,
+    .background_ctx = &ctx,
+    .eval_on_nodes = true,
 
     .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };

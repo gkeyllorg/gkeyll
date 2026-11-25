@@ -211,6 +211,54 @@ vm_pkpm_species_accumulate_current(
   app->stat.current_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// Forces in the right-hand side of the fluid equations, assigned in vm_pkpm_species_init. None:
+// no applied acceleration, with the implicit fluid-EM coupling (its solve applies the Lorentz
+// force).
+static void
+vm_pkpm_fluid_species_rhs_force_none(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, const struct gkyl_array *fluidin,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
+{
+}
+
+// The applied acceleration alone, with the implicit fluid-EM coupling: qmem = [app_accel, 0], and
+// the plasma frequency of the transport stage is zero (the source step resolves it).
+static void
+vm_pkpm_fluid_species_rhs_force_app_accel(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, const struct gkyl_array *fluidin,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
+{
+  gkyl_array_clear(fl->qmem, 0.0);
+  gkyl_array_accumulate_range(fl->qmem, 1.0, fl->app_accel, &app->local);
+  gkyl_dg_calc_pkpm_vars_source(
+    fl->pkpm.calc_pkpm_vars, &app->local, fl->qmem, app->src_omega_p_sq, fluidin, fl->cflrate, rhs
+  );
+}
+
+// The Lorentz force of the explicit fluid-EM coupling, with the applied acceleration: qmem = q/m
+// (E + E_ext) + app_accel, q/m (B + B_ext), from the physical fields of the stage (em, the evolved
+// field, carries the position-map Jacobian).
+static void
+vm_pkpm_fluid_species_rhs_force_em(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, const struct gkyl_array *fluidin,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
+{
+  double qbym = fl->charge / fl->mass;
+  gkyl_array_set(fl->qmem, qbym, app->field->em_no_J);
+  if (fl->has_app_accel) {
+    gkyl_array_accumulate_range(fl->qmem, 1.0, fl->app_accel, &app->local);
+  }
+  if (app->field->has_ext_em) {
+    gkyl_array_accumulate_range(fl->qmem, qbym, app->field->ext_em, &app->local);
+  }
+  gkyl_dg_calc_pkpm_vars_source(
+    fl->pkpm.calc_pkpm_vars, &app->local, fl->qmem, app->src_omega_p_sq, fluidin, fl->cflrate, rhs
+  );
+}
+
 void
 vlasov_pkpm_species_init(
   struct gkyl_vlasov_app *app, const struct gkyl_vlasov_species *inp, struct vlasov_species *sp
@@ -664,11 +712,18 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
   s->kinetic->is_first_integ_L2_write_call = true;
   s->fluid->is_first_integ_write_call = true;
 
-  // Initialize applied acceleration for use in force update.
+  // Held background (vm_pkpm_species_background.c), before the applied acceleration, which takes
+  // its force.
+  vm_pkpm_species_background_init(app, s);
+
+  // Initialize applied acceleration for use in force update: that of the input, plus the force of
+  // a held background (zero until the background is captured).
   s->fluid->app_accel = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(s->fluid->app_accel, 0.0);
-  s->fluid->has_app_accel = false;
+  s->fluid->has_app_accel = s->fluid->bg.is_held;
   s->fluid->app_accel_evolve = false;
+  s->fluid->app_accel_host = 0;
+  s->fluid->app_accel_proj = 0;
   // setup applied acceleration
   if (s->fluid->info.app_accel) {
     s->fluid->has_app_accel = true;
@@ -930,8 +985,15 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
   s->fluid->bc_func = vm_pkpm_fluid_species_apply_bc;
   s->fluid->limiter_func = vm_pkpm_fluid_species_no_limiter;
   s->fluid->positivity_func = vm_pkpm_species_apply_positivity;
-  // the fluid right-hand side applies its forces with the explicit coupling only
-  s->fluid->has_explicit_force = app->use_explicit_sources;
+  // The forces of the fluid right-hand side: the Lorentz force with the explicit coupling, and the
+  // applied acceleration in every case.
+  s->fluid->rhs_force_func = vm_pkpm_fluid_species_rhs_force_none;
+  if (app->use_explicit_sources) {
+    s->fluid->rhs_force_func = vm_pkpm_fluid_species_rhs_force_em;
+  } else if (s->fluid->has_app_accel) {
+    s->fluid->rhs_force_func = vm_pkpm_fluid_species_rhs_force_app_accel;
+  }
+  s->fluid->has_explicit_force = s->fluid->rhs_force_func != vm_pkpm_fluid_species_rhs_force_none;
 }
 
 // Initial distributions of a PKPM species. The user provides the normalized distributions [F, G,
@@ -939,16 +1001,18 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
 // its perpendicular-energy partner so that M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3; the
 // first-harmonic blocks are zero for a gyrotropic start), sampled at the physical coordinates of
 // the position map (identity: unchanged).
-static void
-vm_pkpm_kinetic_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *kin, double t0)
+void
+vm_pkpm_kinetic_species_project(
+  gkyl_vlasov_app *app, struct vm_species *kin, evalf_t func, void *ctx, double t0
+)
 {
   gkyl_proj_on_basis *proj_dist = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
     .grid = &kin->grid,
     .basis = &kin->basis,
     .num_quad = 8,
     .num_ret_vals = PKPM_DIST_NUM_BLOCKS,
-    .eval = kin->info.projection[0].func,
-    .ctx = kin->info.projection[0].ctx_func,
+    .eval = func,
+    .ctx = ctx,
     .c2p_func = vm_pos_c2p,
     .c2p_func_ctx = app->pos_map,
   });
@@ -983,6 +1047,16 @@ vm_pkpm_kinetic_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *kin, d
   if (app->use_gpu) {
     gkyl_array_copy(kin->f_host, kin->f);
   }
+}
+
+// Initial distributions of the kinetic aspect, copied into the buffers of the fixed-function
+// boundary conditions.
+static void
+vm_pkpm_kinetic_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *kin, double t0)
+{
+  vm_pkpm_kinetic_species_project(
+    app, kin, kin->info.projection[0].func, kin->info.projection[0].ctx_func, t0
+  );
 
   // copy the initial conditions into the buffers of the fixed-function boundary conditions
   for (int d = 0; d < app->cdim; ++d) {
@@ -995,25 +1069,41 @@ vm_pkpm_kinetic_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *kin, d
   }
 }
 
-// Initial fluid state [rho, rho ux, rho uy, rho uz, E] of a PKPM species, sampled at the physical
-// coordinates of the position map, with the applied acceleration of the initial time.
-static void
-vm_pkpm_fluid_species_project_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl, double t0)
+// A fluid state [rho, rho ux, rho uy, rho uz, E] (the initial condition or the background) into the
+// state of the fluid aspect, sampled at the physical coordinates of the position map: projected on
+// the basis or, with eval_on_nodes, evaluated at its nodes; with the position-map Jacobian.
+void
+vm_pkpm_fluid_species_project(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, evalf_t func, void *ctx, double t0
+)
 {
-  gkyl_proj_on_basis *proj_fluid = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = &app->grid,
-    .basis = &app->basis,
-    .num_quad = app->poly_order + 1,
-    .num_ret_vals = 5,
-    .eval = fl->info.init,
-    .ctx = fl->info.ctx,
-    .c2p_func = vm_pos_c2p,
-    .c2p_func_ctx = app->pos_map,
-  });
-
-  // projected onto the extended range, like the distributions
-  gkyl_proj_on_basis_advance(proj_fluid, t0, &app->local_ext, fl->fluid_host);
-  gkyl_proj_on_basis_release(proj_fluid);
+  // onto the extended range, like the distributions
+  if (fl->info.eval_on_nodes) {
+    struct gkyl_eval_on_nodes *ev = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .num_ret_vals = 5,
+      .eval = func,
+      .ctx = ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
+    gkyl_eval_on_nodes_advance(ev, t0, &app->local_ext, fl->fluid_host);
+    gkyl_eval_on_nodes_release(ev);
+  } else {
+    gkyl_proj_on_basis *proj_fluid = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .num_quad = app->poly_order + 1,
+      .num_ret_vals = 5,
+      .eval = func,
+      .ctx = ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
+    gkyl_proj_on_basis_advance(proj_fluid, t0, &app->local_ext, fl->fluid_host);
+    gkyl_proj_on_basis_release(proj_fluid);
+  }
 
   // note: fluid_host is the same as fluid when not on GPUs
   if (app->use_gpu) {
@@ -1026,6 +1116,14 @@ vm_pkpm_fluid_species_project_ic(gkyl_vlasov_app *app, struct vm_fluid_species *
   if (app->use_gpu) {
     gkyl_array_copy(fl->fluid_host, fl->fluid);
   }
+}
+
+// Initial fluid state of a PKPM species, with the applied acceleration of the initial time, copied
+// into the buffers of the fixed-function boundary conditions.
+static void
+vm_pkpm_fluid_species_project_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl, double t0)
+{
+  vm_pkpm_fluid_species_project(app, fl, fl->info.init, fl->info.ctx, t0);
 
   // pre-compute the applied acceleration (it is not recomputed when time-independent)
   vm_fluid_species_calc_app_accel(app, fl, t0);
@@ -1465,8 +1563,7 @@ vm_pkpm_kinetic_species_rhs(
   return app->cfl / omega_cfl;
 }
 
-// Right-hand side of the fluid equations of a species. The explicit force takes the physical
-// fields of the stage (em, the evolved field, carries the position-map Jacobian).
+// Right-hand side of the fluid equations of a species.
 double
 vm_pkpm_fluid_species_rhs(
   gkyl_vlasov_app *app, struct vm_fluid_species *fl, const struct gkyl_array *fluidin,
@@ -1498,24 +1595,9 @@ vm_pkpm_fluid_species_rhs(
     gkyl_dg_pkpm_mom_diffusion_advance(fl->pkpm.mom_diff, &app->local, fluidin, fl->cflrate, rhs);
   }
 
-  // If PKPM update is fully explicit, include the fluid-EM coupling in fluid update
-  if (app->use_explicit_sources) {
-    double qbym = fl->charge / fl->mass;
-    gkyl_array_set(fl->qmem, qbym, app->field->em_no_J);
-
-    // Accumulate applied acceleration and/or q/m*(external electromagnetic)
-    // fields onto qmem to get the total acceleration
-    if (fl->has_app_accel) {
-      gkyl_array_accumulate_range(fl->qmem, 1.0, fl->app_accel, &app->local);
-    }
-    if (app->field->has_ext_em) {
-      gkyl_array_accumulate_range(fl->qmem, qbym, app->field->ext_em, &app->local);
-    }
-
-    gkyl_dg_calc_pkpm_vars_source(
-      fl->pkpm.calc_pkpm_vars, &app->local, fl->qmem, app->src_omega_p_sq, fluidin, fl->cflrate, rhs
-    );
-  }
+  // The forces: the Lorentz force of the explicit coupling and the applied acceleration (always
+  // here, with the pressure gradient it may balance).
+  fl->rhs_force_func(app, fl, fluidin, em, rhs);
 
   tm = gkyl_wall_clock();
   gkyl_array_reduce_range(fl->omegaCfl_ptr, fl->cflrate, GKYL_MAX, &app->local);
@@ -2398,12 +2480,14 @@ vm_pkpm_species_release(const gkyl_vlasov_app *app, struct vlasov_species *s)
   }
 
   gkyl_array_release(s->fluid->app_accel);
-  if (s->fluid->has_app_accel) {
+  if (s->fluid->app_accel_proj) {
     if (app->use_gpu) {
       gkyl_array_release(s->fluid->app_accel_host);
     }
     gkyl_proj_on_basis_release(s->fluid->app_accel_proj);
   }
+  vm_species_background_release(app, &s->kinetic->bg);
+  vm_fluid_species_background_release(app, &s->fluid->bg);
 
   if (s->kinetic->pkpm.collision_id == GKYL_BGK_COLLISIONS) {
     vm_pkpm_species_bgk_release(app, &s->kinetic->pkpm.bgk);

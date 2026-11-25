@@ -559,6 +559,75 @@ vlasov_species_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp)
   sp->discard_step_func(app, sp);
 }
 
+// --- Held backgrounds (captured in gkyl_vlasov_app_apply_ic) --------------------
+
+bool
+vlasov_species_has_background(const struct vlasov_species *sp)
+{
+  return (sp->kinetic && sp->kinetic->bg.is_held) || (sp->fluid && sp->fluid->bg.is_held);
+}
+
+void
+vlasov_species_background_reset(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  if (sp->kinetic && sp->kinetic->bg.is_held) {
+    vm_species_background_reset(app, sp->kinetic, &sp->kinetic->bg);
+  }
+  if (sp->fluid && sp->fluid->bg.is_held) {
+    vm_fluid_species_background_reset(app, sp->fluid, &sp->fluid->bg);
+  }
+}
+
+void
+vlasov_species_background_project(gkyl_vlasov_app *app, struct vlasov_species *sp, double t0)
+{
+  switch (sp->type) {
+    case GKYL_SPECIES_VLASOV:
+      vm_species_background_project(app, sp->kinetic, &sp->kinetic->bg, t0);
+      break;
+    case GKYL_SPECIES_FLUID:
+      vm_fluid_species_background_project(app, sp->fluid, t0);
+      break;
+    case GKYL_SPECIES_PKPM:
+      vm_pkpm_species_background_project(app, sp, t0);
+      break;
+  }
+  vlasov_species_apply_bc(
+    app, sp, sp->kinetic ? sp->kinetic->f : 0, sp->fluid ? sp->fluid->fluid : 0, t0
+  );
+}
+
+void
+vlasov_species_background_calc_force(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, const struct gkyl_array *fout, const struct gkyl_array *fluidout
+)
+{
+  // The force acts on the fluid aspect of a species that has one (a PKPM species), else on its
+  // kinetic aspect.
+  if (sp->fluid) {
+    vm_fluid_species_background_calc_force(app, sp->fluid, &sp->fluid->bg, fluidin, fluidout);
+    vm_fluid_species_background_write(app, sp->fluid, &sp->fluid->bg);
+  } else {
+    vm_species_background_calc_force(app, sp->kinetic, &sp->kinetic->bg, fin, fout);
+    vm_species_background_write(app, sp->kinetic, &sp->kinetic->bg);
+  }
+}
+
+void
+vlasov_species_background_store(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fout,
+  const struct gkyl_array *fluidout
+)
+{
+  if (sp->kinetic && sp->kinetic->bg.is_held) {
+    vm_species_background_store(&sp->kinetic->bg, fout);
+  }
+  if (sp->fluid && sp->fluid->bg.is_held) {
+    vm_fluid_species_background_store(&sp->fluid->bg, fluidout);
+  }
+}
+
 // RK buffer of the kinetic (fluid) aspect selected by the stepper.
 static struct gkyl_array *
 kinetic_rk_buf(struct vm_species *d, enum vm_rk_buf b)

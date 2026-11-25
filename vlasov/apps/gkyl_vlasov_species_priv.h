@@ -240,11 +240,12 @@ struct vm_lte {
 };
 
 struct vm_collisionless {
-  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool has_app_accel; // the force includes an applied acceleration (app_accel or a held background)
   bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
-  struct gkyl_array *app_accel; // applied acceleration
-  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
+  struct gkyl_array *app_accel; // applied acceleration: that of app_accel plus background_accel
+  struct gkyl_array *app_accel_host; // host copy for projecting (NULL without app_accel)
+  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration (NULL without app_accel)
+  struct gkyl_array *background_accel; // force of a held background (bg.accel; NULL if not held)
 
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   bool use_preset_geom; // bool to determine if we are using triad input geom
@@ -617,6 +618,21 @@ struct vm_source {
   double *red_integ_diag; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+};
+
+// Held background of an aspect (First_Fourier_Harmonic_Notes/background_density_gradient.tex),
+// captured at the end of the initial conditions (gkyl_vlasov_app_apply_ic): the force per unit
+// mass that holds it, which joins the applied acceleration, and the remainder of the right-hand
+// side on it, which every stage subtracts. A PKPM species holds both aspects; the force acts on its
+// fluid only (its kinetic equations do not see an applied acceleration).
+struct vm_background {
+  bool is_held; // the aspect is held about a background
+  struct vm_proj proj; // projector of the background (kinetic species only)
+  struct gkyl_array *accel; // force per unit mass (3 components; NULL for a PKPM kinetic aspect)
+  struct gkyl_array *rhs; // remainder of the right-hand side on the background
+  // Stage method: nothing until the remainder is stored (and without a background), then its
+  // subtraction.
+  void (*rhs_func)(const struct vm_background *bg, struct gkyl_array *rhs);
 };
 
 // ---- PKPM species: sub-objects and the PKPM-only state of the two aspects ----
@@ -1107,6 +1123,7 @@ struct vm_species {
 
   int num_init; // Number of initial condition functions.
   struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
+  struct vm_background bg; // held background
 
   struct vm_lte lte; // object needed for the lte equilibrium
 
@@ -1293,11 +1310,12 @@ struct vm_fluid_species {
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
-  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool has_app_accel; // the force includes an applied acceleration (app_accel or a held background)
   bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
-  struct gkyl_array *app_accel; // applied acceleration
-  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
+  struct gkyl_array *app_accel; // applied acceleration: that of app_accel plus bg.accel
+  struct gkyl_array *app_accel_host; // host copy for projecting (NULL without app_accel)
+  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration (NULL without app_accel)
+  struct vm_background bg; // held background
 
   struct vm_coll_cross coll_cross; // collisions of a fluid species with other species (exchange)
 
@@ -1308,12 +1326,12 @@ struct vm_fluid_species {
     gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
   );
 
-  // Forces in the fluid's own RHS: the applied acceleration without a field, and with it the
-  // Lorentz force of a Maxwell field coupled explicitly (use_explicit_sources). None with the
-  // implicit fluid-EM coupling, which applies both.
-  bool has_explicit_force; // the RHS of the fluid applies its forces
+  // Forces in the fluid's own RHS: the applied acceleration in every case (with the pressure
+  // gradient it may balance), and with it the Lorentz force of a Maxwell field coupled explicitly
+  // (use_explicit_sources). With the implicit fluid-EM coupling the solve applies the Lorentz force.
+  bool has_explicit_force; // the RHS of the fluid applies a force
   struct gkyl_array *qmem; // [a, q/m B]: acceleration (applied + q/m E) and q/m times B (NULL
-    // unless the field is coupled explicitly)
+    // unless the field is coupled explicitly; always allocated for a PKPM species)
   struct gkyl_array *mom; // momentum density, for the current of the explicit coupling (same)
   void (*rhs_force_func)(
     gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid,
@@ -1653,6 +1671,22 @@ void vlasov_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *s
  * @param sp Species container
  */
 void vlasov_species_discard_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
+
+// Held backgrounds, captured in gkyl_vlasov_app_apply_ic (vlasov.c), over the aspects of a species:
+// is it held; forget a previous capture; put it on its background (with its BCs); the force that holds
+// it, from the right-hand side of a stage on the background without the force (written out once);
+// the remainder, the right-hand side with the force, which every stage then subtracts.
+bool vlasov_species_has_background(const struct vlasov_species *sp);
+void vlasov_species_background_reset(gkyl_vlasov_app *app, struct vlasov_species *sp);
+void vlasov_species_background_project(gkyl_vlasov_app *app, struct vlasov_species *sp, double t0);
+void vlasov_species_background_calc_force(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, const struct gkyl_array *fout, const struct gkyl_array *fluidout
+);
+void vlasov_species_background_store(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fout,
+  const struct gkyl_array *fluidout
+);
 
 /**
  * Combine RK buffers, out = c1*b1 + c2*b2, for each present aspect. The
@@ -3121,6 +3155,230 @@ void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s);
 
 /** The vm_field/vp_field API is declared in gkyl_vlasov_field_priv.h. */
 
+/** vm_species_background API (held background of a kinetic species, vm_species_background.c) */
+
+/**
+ * Initialize the held background of a kinetic species: none without a background projection;
+ * otherwise its projector, the arrays of the force and the remainder.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param bg Background object
+ */
+void vm_species_background_init(
+  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_background *bg
+);
+
+/**
+ * No background: no arrays and the empty stage method (the start of every kinetic aspect).
+ *
+ * @param bg Background object
+ */
+void vm_species_background_init_none(struct vm_background *bg);
+
+/**
+ * Allocate the remainder of a held kinetic aspect (of a kinetic or a PKPM species), the stage
+ * method still empty.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param bg Background object
+ */
+void vm_species_background_alloc_rhs(
+  struct gkyl_vlasov_app *app, const struct vm_species *s, struct vm_background *bg
+);
+
+/**
+ * Forget a previous capture: no force, no stage method.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param bg Background object
+ */
+void vm_species_background_reset(
+  gkyl_vlasov_app *app, struct vm_species *s, struct vm_background *bg
+);
+
+/**
+ * Project the background of a kinetic species into its distribution f.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param bg Background object
+ * @param t0 Time of the projection
+ */
+void vm_species_background_project(
+  gkyl_vlasov_app *app, struct vm_species *s, struct vm_background *bg, double t0
+);
+
+/**
+ * The force that holds the background of a kinetic species, from the right-hand side of a stage on
+ * the background: a with P[n a] = -M1(rhs) (weak division by the density of the background; the
+ * first moment of -div_v(a f) is n a). It joins the applied acceleration.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param bg Background object
+ * @param fin Background distribution
+ * @param rhs Right-hand side of the stage on the background, without the force
+ */
+void vm_species_background_calc_force(
+  gkyl_vlasov_app *app, struct vm_species *s, struct vm_background *bg,
+  const struct gkyl_array *fin, const struct gkyl_array *rhs
+);
+
+/**
+ * Write the force that holds the background, <name>-<species>_background_accel.gkyl.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param bg Background object
+ */
+void vm_species_background_write(
+  gkyl_vlasov_app *app, const struct vm_species *s, const struct vm_background *bg
+);
+
+/**
+ * Store the remainder, the right-hand side of a stage on the background with the force, and start
+ * subtracting it in every stage.
+ *
+ * @param bg Background object
+ * @param rhs Right-hand side of the stage on the background
+ */
+void vm_species_background_store(struct vm_background *bg, const struct gkyl_array *rhs);
+
+/**
+ * Stage method of a kinetic aspect: subtract the remainder from the right-hand side (nothing
+ * without a background or before the remainder is stored).
+ *
+ * @param bg Background object
+ * @param rhs Right-hand side of the stage, decremented
+ */
+void vm_species_background_rhs(const struct vm_background *bg, struct gkyl_array *rhs);
+
+/**
+ * Release the held background of a kinetic aspect.
+ *
+ * @param app Vlasov app object
+ * @param bg Background object
+ */
+void vm_species_background_release(
+  const struct gkyl_vlasov_app *app, const struct vm_background *bg
+);
+
+/** vm_fluid_species_background API (held background of a fluid aspect, vm_fluid_species_background.c) */
+
+/**
+ * Initialize the held background of a fluid species (Euler or isothermal Euler): none without a
+ * background function; otherwise the arrays of the force and the remainder.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param bg Background object
+ */
+void vm_fluid_species_background_init(
+  struct gkyl_vlasov_app *app, struct vm_fluid_species *f, struct vm_background *bg
+);
+
+/**
+ * No background: no arrays and the empty stage method (the start of every fluid aspect).
+ *
+ * @param bg Background object
+ */
+void vm_fluid_species_background_init_none(struct vm_background *bg);
+
+/**
+ * Allocate the force and the remainder of a held fluid aspect (of a fluid or a PKPM species), the
+ * stage method still empty.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param bg Background object
+ */
+void vm_fluid_species_background_alloc(
+  struct gkyl_vlasov_app *app, const struct vm_fluid_species *f, struct vm_background *bg
+);
+
+/**
+ * Forget a previous capture: no force, no stage method.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param bg Background object
+ */
+void vm_fluid_species_background_reset(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct vm_background *bg
+);
+
+/**
+ * Project the background of a fluid species into its state: on the basis or, with eval_on_nodes,
+ * at its nodes, then limited with the ghost cells of the boundary conditions, as the initial
+ * condition is.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param t0 Time of the projection
+ */
+void vm_fluid_species_background_project(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, double t0
+);
+
+/**
+ * The force that holds the background of a fluid aspect, from the right-hand side of a stage on the
+ * background: a with P[rho a] = -(momentum rows of rhs), by weak division (the state and the
+ * right-hand side of a PKPM species carry the same position-map Jacobian, so a is physical). It joins
+ * the applied acceleration.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param bg Background object
+ * @param fluidin Background state
+ * @param rhs Right-hand side of the stage on the background, without the force
+ */
+void vm_fluid_species_background_calc_force(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct vm_background *bg,
+  const struct gkyl_array *fluidin, const struct gkyl_array *rhs
+);
+
+/**
+ * Write the force that holds the background, <name>-<species>_background_accel.gkyl.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param bg Background object
+ */
+void vm_fluid_species_background_write(
+  gkyl_vlasov_app *app, const struct vm_fluid_species *f, const struct vm_background *bg
+);
+
+/**
+ * Store the remainder, the right-hand side of a stage on the background with the force, and start
+ * subtracting it in every stage.
+ *
+ * @param bg Background object
+ * @param rhs Right-hand side of the stage on the background
+ */
+void vm_fluid_species_background_store(struct vm_background *bg, const struct gkyl_array *rhs);
+
+/**
+ * Stage method of a fluid aspect: subtract the remainder from the right-hand side (nothing without
+ * a background or before the remainder is stored).
+ *
+ * @param bg Background object
+ * @param rhs Right-hand side of the stage, decremented
+ */
+void vm_fluid_species_background_rhs(const struct vm_background *bg, struct gkyl_array *rhs);
+
+/**
+ * Release the held background of a fluid aspect.
+ *
+ * @param app Vlasov app object
+ * @param bg Background object
+ */
+void vm_fluid_species_background_release(
+  const struct gkyl_vlasov_app *app, const struct vm_background *bg
+);
+
 /** vm_fluid_species_source API */
 
 /**
@@ -3190,6 +3448,20 @@ void vm_fluid_species_init(
  */
 void vm_fluid_species_apply_ic(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0
+);
+
+/**
+ * Project a fluid state (the initial condition or the background) into the state of an Euler,
+ * isothermal Euler or other fluid species: on the basis or, with eval_on_nodes, at its nodes.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid species object
+ * @param func Function returning the state
+ * @param ctx Context of func
+ * @param t0 Time of the evaluation
+ */
+void vm_fluid_species_project_state(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, evalf_t func, void *ctx, double t0
 );
 
 /**
@@ -3598,6 +3870,27 @@ void vm_pkpm_species_face_flux(
 
 /** Particle loss rates through the absorbing walls from the stored fluxes (into the bflux of the kinetic aspect). */
 void vm_pkpm_species_calc_bflux(gkyl_vlasov_app *app, struct vlasov_species *s);
+
+// Held background (vm_pkpm_species_background.c): the distributions (the background of the kinetic
+// block) and the fluid state (that of the fluid block), both or neither; the force, the remainder,
+// the stage methods and the release are those of the two aspects.
+void vm_pkpm_species_background_init(struct gkyl_vlasov_app *app, struct vlasov_species *s);
+
+// Project the background of a PKPM species into its state: the distributions, normalized to the
+// constraints at the nodes, and the fluid state, limited as the initial condition is.
+void vm_pkpm_species_background_project(gkyl_vlasov_app *app, struct vlasov_species *s, double t0);
+
+// The eight distributions given by func into the state of the kinetic aspect (projected, rescaled
+// to the constraints at the nodes, with the position-map Jacobian); f1 is used as a buffer.
+void vm_pkpm_kinetic_species_project(
+  gkyl_vlasov_app *app, struct vm_species *kin, evalf_t func, void *ctx, double t0
+);
+
+// A fluid state given by func into the state of the fluid aspect (on the basis or, with
+// eval_on_nodes, at its nodes; with the position-map Jacobian).
+void vm_pkpm_fluid_species_project(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, evalf_t func, void *ctx, double t0
+);
 
 // Source object: see the source member of gkyl_vlasov_kinetic_species in gkyl_vlasov.h.
 void vm_pkpm_species_source_init(

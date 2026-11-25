@@ -10,8 +10,10 @@
 -- gamma t) with gamma = 0.951 while it rises from 1e-6 to 1e-5 (0.949, 0.977) and is 3.62e-4 at t =
 -- 8.5 (4.15e-4, 3.65e-4), when the heavy fluid (rho > 1.5) reaches down to y = 0.1725 and the light
 -- fluid up to y = 0.6775 (0.1625 and 0.7125, 0.1413 and 0.7037). The total energy rises by 9.62e-5
--- while the potential energy g int rho y dV falls by 9.51e-5. The run keeps the mirror symmetry
--- about x = Lx / 2 to 4e-9.
+-- while the potential energy g int rho y dV falls by 9.51e-5. The departure from the mirror symmetry
+-- about x = Lx / 2 stays at round-off until t = 7 and is 3e-5 at the end; it measures round-off,
+-- which the nonlinear stage amplifies by about 1e11 (the C twin, whose initial state differs in the
+-- last bits, ends 1e-4 from this run and 1e-9 from the symmetry).
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

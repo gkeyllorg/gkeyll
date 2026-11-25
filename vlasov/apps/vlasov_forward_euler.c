@@ -53,24 +53,13 @@ vlasov_src_dt_explicit(
   return rate > 0.0 ? app->cfl / rate : DBL_MAX;
 }
 
-// Take a forward Euler step of the Vlasov-Maxwell system of equations
-// with the suggested time-step dt. Also supports just Maxwell's equations
-// and fluid equations (Euler's) with potential Vlasov-fluid coupling.
-// Note: this may not be the actual time-step taken. However, the function will never
-// take a time-step larger than dt even if it is allowed by stability.
-// The actual time-step and dt_suggested are returned in the status object.
-// The RK-state arrays are indexed by species and are NULL where a species
-// lacks that aspect. 'stage' is the SSP-RK3 stage (1, 2 or 3) this step
-// belongs to.
-void
-vlasov_forward_euler(
-  gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
+double
+vlasov_stage_rhs(
+  gkyl_vlasov_app *app, int stage, double tcurr, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
-  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
+  struct gkyl_array *fluidout[], struct gkyl_array *emout
 )
 {
-  app->stat.nfeuler += 1;
-
   double dtmin = DBL_MAX;
   int num_species = app->num_species;
 
@@ -127,6 +116,36 @@ vlasov_forward_euler(
       vlasov_species_rhs(app, &app->species[i], fin[i], fluidin[i], emin, fout[i], fluidout[i]);
     dtmin = fmin(dtmin, dt1);
   }
+  return dtmin;
+}
+
+// Take a forward Euler step of the Vlasov-Maxwell system of equations
+// with the suggested time-step dt. Also supports just Maxwell's equations
+// and fluid equations (Euler's) with potential Vlasov-fluid coupling.
+// Note: this may not be the actual time-step taken. However, the function will never
+// take a time-step larger than dt even if it is allowed by stability.
+// The actual time-step and dt_suggested are returned in the status object.
+// The RK-state arrays are indexed by species and are NULL where a species
+// lacks that aspect. 'stage' is the SSP-RK3 stage (1, 2 or 3) this step
+// belongs to.
+void
+vlasov_forward_euler(
+  gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
+  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
+)
+{
+  app->stat.nfeuler += 1;
+
+  int num_species = app->num_species;
+
+  // The field reads the stage distributions without changing them.
+  const struct gkyl_array *fin_field[num_species];
+  for (int i = 0; i < num_species; ++i) {
+    fin_field[i] = fin[i];
+  }
+
+  double dtmin = vlasov_stage_rhs(app, stage, tcurr, fin, fluidin, emin, fout, fluidout, emout);
 
   // Compute source term. Done here as the RHS update for all species should be
   // complete in case we need a bflux calculation for the source species.
