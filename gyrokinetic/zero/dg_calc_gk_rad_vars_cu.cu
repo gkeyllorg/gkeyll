@@ -14,6 +14,94 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+// Keep each indirect call restricted to its generated callback family.
+GKYL_CU_D static __forceinline__ void
+rad_nu_vpar_call(
+  rad_gyrokinetic_nu_t kernel, const double *vmap, const double *vmap_sq, double charge,
+  double mass, double a, double alpha, double beta, double gamma, double v0, const double *bmag,
+  double *surf, double *vol
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11;\n"
+               " st.param.b64 [a0], %1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " st.param.f64 [a2], %3;\n"
+               " st.param.f64 [a3], %4;\n"
+               " st.param.f64 [a4], %5;\n"
+               " st.param.f64 [a5], %6;\n"
+               " st.param.f64 [a6], %7;\n"
+               " st.param.f64 [a7], %8;\n"
+               " st.param.f64 [a8], %9;\n"
+               " st.param.b64 [a9], %10;\n"
+               " st.param.b64 [a10], %11;\n"
+               " st.param.b64 [a11], %12;\n"
+               " targets: .calltargets " GKYL_RAD_NU_VPAR_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(vmap), "l"(vmap_sq), "d"(charge), "d"(mass), "d"(a), "d"(alpha),
+                 "d"(beta), "d"(gamma), "d"(v0), "l"(bmag), "l"(surf), "l"(vol)
+               : "memory");
+}
+
+GKYL_CU_D static __forceinline__ void
+rad_nu_mu_call(
+  rad_gyrokinetic_nu_t kernel, const double *vmap, const double *vmap_sq, double charge,
+  double mass, double a, double alpha, double beta, double gamma, double v0, const double *bmag,
+  double *surf, double *vol
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11;\n"
+               " st.param.b64 [a0], %1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " st.param.f64 [a2], %3;\n"
+               " st.param.f64 [a3], %4;\n"
+               " st.param.f64 [a4], %5;\n"
+               " st.param.f64 [a5], %6;\n"
+               " st.param.f64 [a6], %7;\n"
+               " st.param.f64 [a7], %8;\n"
+               " st.param.f64 [a8], %9;\n"
+               " st.param.b64 [a9], %10;\n"
+               " st.param.b64 [a10], %11;\n"
+               " st.param.b64 [a11], %12;\n"
+               " targets: .calltargets " GKYL_RAD_NU_MU_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(vmap), "l"(vmap_sq), "d"(charge), "d"(mass), "d"(a), "d"(alpha),
+                 "d"(beta), "d"(gamma), "d"(v0), "l"(bmag), "l"(surf), "l"(vol)
+               : "memory");
+}
+
+GKYL_CU_D static __forceinline__ void
+rad_nI_nu_call(
+  rad_gyrokinetic_nI_nu_t kernel, const double *vnu_surf, const double *vnu,
+  const double *vsqnu_surf, const double *vsqnu, const double *nI, double *nvnu_surf, double *nvnu,
+  double *nvsqnu_surf, double *nvsqnu
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0, a1, a2, a3, a4, a5, a6, a7, a8;\n"
+               " st.param.b64 [a0], %1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " st.param.b64 [a2], %3;\n"
+               " st.param.b64 [a3], %4;\n"
+               " st.param.b64 [a4], %5;\n"
+               " st.param.b64 [a5], %6;\n"
+               " st.param.b64 [a6], %7;\n"
+               " st.param.b64 [a7], %8;\n"
+               " st.param.b64 [a8], %9;\n"
+               " targets: .calltargets " GKYL_RAD_NI_NU_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4, a5, a6, a7, a8), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(vnu_surf), "l"(vnu), "l"(vsqnu_surf), "l"(vsqnu), "l"(nI),
+                 "l"(nvnu_surf), "l"(nvnu), "l"(nvsqnu_surf), "l"(nvsqnu)
+               : "memory");
+}
+
 __global__ void
 gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(
   struct gkyl_dg_calc_gk_rad_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
@@ -50,12 +138,13 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(
     const double *vmap_d = (const double *)gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = (const double *)gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
-    up->rad_nu_vpar(
-      vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d, vnu_surf_d, vnu_d
+    rad_nu_vpar_call(
+      up->rad_nu_vpar, vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d,
+      vnu_surf_d, vnu_d
     );
-    up->rad_nu_mu(
-      vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d, vsqnu_surf_d,
-      vsqnu_d
+    rad_nu_mu_call(
+      up->rad_nu_mu, vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d,
+      vsqnu_surf_d, vsqnu_d
     );
   }
 }
@@ -124,8 +213,9 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
       double *nvsqnu_surf_d = (double *)gkyl_array_fetch(nvsqnu_surf, loc_phase);
       double *nvsqnu_d = (double *)gkyl_array_fetch(nvsqnu, loc_phase);
 
-      up->rad_nI_nu(
-        vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d
+      rad_nI_nu_call(
+        up->rad_nI_nu, vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d,
+        nvsqnu_surf_d, nvsqnu_d
       );
     }
   }
@@ -143,6 +233,9 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
   struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq
 )
 {
+  if (phase_range->volume == 0) {
+    return;
+  }
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads>>>(
