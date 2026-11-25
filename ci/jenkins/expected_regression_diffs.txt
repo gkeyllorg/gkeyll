@@ -103,7 +103,6 @@ gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v_p1   # finite precision 
 gyrokinetic/creg/rt_gk_sheath_flr_2x2v_p1   # finite precision changes in moments
 gyrokinetic/creg/rt_gk_lapd_cyl_nonuniformr_3x2v_p1   # finite precision changes in moments
 gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1   # finite precision changes in moments
-gyrokinetic/creg/rt_gk_multib_step_nonuniform_2x2v_p1   # V_CX sqrt(2) correction (Meier & Shumlak 2012 vth convention)
 gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1   # V_CX sqrt(2) correction (Meier & Shumlak 2012 vth convention)
 gyrokinetic/creg/rt_gk_neut_recycle_1x3v_p1   # V_CX sqrt(2) correction (Meier & Shumlak 2012 vth convention)
 gyrokinetic/creg/rt_gk_sheath_cons_1x2v_p1   # V_CX sqrt(2) correction (Meier & Shumlak 2012 vth convention)
