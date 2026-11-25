@@ -39,6 +39,8 @@ gyrokinetic_forward_euler(
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_stepped_moms_accumulate(&gkns->step_moms, smom_out_neut[i], 1.0, smom_in_neut[i]);
   }
+  gk_field_step_apar(app, app->field, fdot_args->aparout, dta, fdot_args->aparin);
+
   app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
   app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
 }
@@ -76,6 +78,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           smom_in[i] = gks->step_moms.f;
           smom_out[i] = gks->step_moms.f1;
         }
+        fdot_args->aparin = app->field->apar;
+        fdot_args->aparout = app->field->apar1;
+        gk_field_em_copy_range(
+          app->field, app->field->apar_curr, app->field->apar, &app->local_ext
+        ); // Update apar_curr to latest A_parallel.
         for (int i = 0; i < app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f;
@@ -116,6 +123,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
 
         // Store the field energies divided by dt for the energy rate and balance diagnostics.
         gk_field_calc_energy_dt(app, app->field, dt, true);
+        gk_field_calc_apar_energy_dt(app, app->field, dt, true);
 
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
@@ -140,6 +148,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           smom_in_neut[i] = gkns->step_moms.f1;
           smom_out_neut[i] = gkns->step_moms.fnew;
         }
+        fdot_args->aparin = app->field->apar1;
+        fdot_args->aparout = app->field->aparnew;
+        gk_field_em_copy_range(
+          app->field, app->field->apar_curr, app->field->apar1, &app->local_ext
+        ); // Update apar_curr to latest A_parallel.
 
         gyrokinetic_forward_euler(app, tcurr + dt, dt, fdot_args, &st);
 
@@ -150,7 +163,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             fin[i] = gks->f;
             smom_in[i] = gks->step_moms.f;
           }
-          gyrokinetic_calc_field(app, tcurr, fin, smom_in);
+          gyrokinetic_calc_field(app, tcurr, fin, smom_in); // Why don't we apply BCs here?
 
           // Collect stats.
           double dt_rel_diff = (dt - st.dt_actual) / st.dt_actual;
@@ -179,6 +192,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
               &gkns->step_moms, gkns->step_moms.f1, 1.0 / 4.0, gkns->step_moms.fnew
             );
           }
+          gk_field_em_combine(
+            app->field, app->field->apar1, 3.0 / 4.0, app->field->apar, 1.0 / 4.0,
+            app->field->aparnew, &app->local_ext
+          );
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Compute the fields and apply BCs.
@@ -213,6 +230,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           smom_in_neut[i] = gkns->step_moms.f1;
           smom_out_neut[i] = gkns->step_moms.fnew;
         }
+        fdot_args->aparin = app->field->apar1;
+        fdot_args->aparout = app->field->aparnew;
+        gk_field_em_copy_range(
+          app->field, app->field->apar_curr, app->field->apar1, &app->local_ext
+        ); // Update apar_curr to latest A_parallel.
 
         gyrokinetic_forward_euler(app, tcurr + dt / 2, dt, fdot_args, &st);
 
@@ -247,7 +269,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             // Update stepped moments.
             gk_stepped_moms_set(&gks->step_moms, gks->step_moms.f, 2.0 / 3.0, gks->step_moms.fnew);
           }
-
           for (int i = 0; i < app->num_neut_species; ++i) {
             struct gk_neut_species *gkns = &app->neut_species[i];
             gk_neut_species_combine(
@@ -259,6 +280,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
               &gkns->step_moms, gkns->step_moms.f, 2.0 / 3.0, gkns->step_moms.fnew
             );
           }
+          // Step A_parallel.
+          gk_field_em_combine(
+            app->field, app->field->apar1, 1.0 / 3.0, app->field->apar, 2.0 / 3.0,
+            app->field->aparnew, &app->local_ext
+          );
+          gk_field_em_copy_range(app->field, app->field->apar, app->field->apar1, &app->local_ext);
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Apply positivity shift if requested.
@@ -301,6 +328,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
 
           // Store the field energies divided by dt for the energy rate and balance diagnostics.
           gk_field_calc_energy_dt(app, app->field, dt, false);
+          gk_field_calc_apar_energy_dt(app, app->field, dt, false);
 
           state = RK_COMPLETE;
         }

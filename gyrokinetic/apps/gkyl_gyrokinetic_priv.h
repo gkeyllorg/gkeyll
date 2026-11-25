@@ -339,6 +339,7 @@ struct gk_rad_drag {
 
 struct gk_collisionless {
   enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
+  bool no_by; // Whether to neglect the toroidal field (b_y=0).
   bool write_diagnostics; // Whether to write diagnostics out.
   double scale_fac; // Factor multiplying collisionless terms.
 
@@ -348,11 +349,11 @@ struct gk_collisionless {
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
       struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
-      struct gkyl_array *apar; // A_parallel.
-      struct gkyl_array *apardot; // d/dt A_parallel.
-
-      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes (GK/EM cases).
-      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver (GK/EM cases).
+      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
+      struct gkyl_gk_collisionless_flux
+        *surf_flux_em_complete_op; // EM collisionless fluxes without Apardot contribution.
+      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
+      gkyl_dg_updater_gyrokinetic *slvr_em_complete; // EM without Apardot contribution.
 
       // Passive advection (only for GKYL_GK_COLLISIONLESS_PASSIVE).
       struct gkyl_array *passive_speeds; // Conf-space passive speeds.
@@ -362,6 +363,10 @@ struct gk_collisionless {
 
       // Methods chosen at runtime.
       void (*flux_func)(
+        gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless *gkcls,
+        const struct gkyl_array *fin
+      );
+      void (*flux_func_em_complete)(
         gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless *gkcls,
         const struct gkyl_array *fin
       );
@@ -384,6 +389,10 @@ struct gk_collisionless {
     };
   };
   void (*rhs_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
+    const struct gkyl_array *fin, struct gkyl_array *rhs
+  );
+  void (*rhs_em_complete_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
     const struct gkyl_array *fin, struct gkyl_array *rhs
   );
@@ -1239,6 +1248,7 @@ enum gk_species_balance_comp {
 enum gk_app_balance_comp {
   GK_APP_BALANCE_COMP_FIELD_DOT = GK_SPECIES_BALANCE_COMP_COUNT, // dE_field/dt.
   GK_APP_BALANCE_COMP_BG_DOT, // d/dt int rho_bg phi.
+  GK_APP_BALANCE_COMP_APAR_DOT, // d/dt of -int |grad_perp A_par|^2/(2 mu0) (0 if electrostatic).
   GK_APP_BALANCE_COMP_COUNT // Number of components (for internal use).
 };
 
@@ -1322,6 +1332,8 @@ struct gk_species {
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
+  struct gkyl_array *gyro_apar; // Gyroaveraged parallel vector potential.
+  struct gkyl_array *gyro_apardot; // Gyroaveraged parallel vector potential time derivative.
 
   struct gk_species_moment
     sheath_moms; // Maxwellian moment array to get temperature and density for sheath BCs.
@@ -1330,6 +1342,7 @@ struct gk_species {
     *temp_sheath; // Third maxwellian moment times mass, at the sheath used for surrogate BCs.
 
   struct gk_species_moment m0; // Computes charge density.
+  struct gk_species_moment m1; // Computes current density.
   struct gk_species_moment *moms; // Diagnostic moments
   struct gk_integ_moms integ_moms; // Integrated moments (requested + needed by the balance).
 
@@ -1424,8 +1437,21 @@ struct gk_species {
 
   struct gk_positivity positivity; // Positivity enforcing operator.
 
-  // Pointer to various functions selected at runtime.
-  double (*rhs_func)(
+  // Pointer to full RHS (ES + [Apar + Apardot]).
+  void (*rhs_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+    struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  );
+  // Pointer to RHS star function (ES + [Apar]).
+  void (*rhs_em_complete_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+    struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  );
+  void (*bflux_update)(
+    gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+    struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  );
+  double (*get_cfl)(
     gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
     struct gkyl_array *rhs, struct gkyl_array **bflux_moms
   );
@@ -1458,6 +1484,7 @@ struct gk_species {
 
   // Quantities used for FLR model:
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
+  struct gkyl_array *m1_gyroavg; // Gyroaveraged particle flow.
   struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
   struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
@@ -1670,8 +1697,10 @@ struct gk_field_adiabatic {
 
 struct gk_field {
   struct gk_field_ts_fem_perpproj *ts_fem_perpproj; // Optional boundary projection resources.
+  struct gk_field_ts_fem_perpproj *ts_fem_perpproj_apar; // Same for A_parallel (EM only).
   void (*ts_fem_perpproj_func)(
-    const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *potential
+    const gkyl_gyrokinetic_app *app, struct gk_field_ts_fem_perpproj *proj,
+    struct gkyl_array *potential
   );
   struct gkyl_gyrokinetic_field info; // Data for field.
 
@@ -1680,10 +1709,13 @@ struct gk_field {
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
+  bool is_em; // Whether we solve the EM field equations.
+  bool calc_init_apar; // Whether to initialize A_parallel with Ampere's law solve.
 
   // Arrays for local charge density, global charge density, and global smoothed (in z) charge density.
   struct gkyl_array *rho_c;
-  struct gkyl_array *rho_c_global_dg;
+  struct gkyl_array
+    *rho_c_global_dg; // Auxiliary array for global charge density but also used in smoothing.
   struct gkyl_array *rho_c_global_smooth;
   struct gkyl_array *phi_fem, *phi_smooth; // Arrays for updates.
 
@@ -1695,21 +1727,39 @@ struct gk_field {
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
   // for solving subset of Poisson solves with parallelization in z
 
-  // organization of the different equation objects and the required data and solvers
-  union {
-    struct {
-      struct gkyl_ambi_bolt_potential *ambi_pot;
-      struct gkyl_array *sheath_vals[2 * GKYL_MAX_CDIM];
-    };
-    // EM GK model
-    struct {
-      struct gkyl_array *apar_fem; // array for A_parallel
-      struct gkyl_array *apardot_fem; // array for d/dt A_parallel
-    };
-  };
+  // Organization of the different equation objects and the required data and solvers.
+  struct gkyl_ambi_bolt_potential *ambi_pot;
+  struct gkyl_array *sheath_vals[2 * GKYL_MAX_CDIM];
+  // EM GK model.
+  struct gkyl_array *apar, *apar1, *aparnew; // Array for A_parallel and RK stages.
+  struct gkyl_array *apar_curr; // A_parallel at current RK stage.
+  struct gkyl_array *apar_smooth_aux; // Auxiliary array for smoothing A_parallel in z.
+  struct gkyl_array *apar_host; // Host copy for use IO.
+  struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
+  struct gkyl_array *apardot_host; // Host copy for use IO.
+  struct gkyl_array *amperesol; // Array for Ampere's law solution.
+  struct gkyl_array *amperesol_host; // Host copy for use IO.
+  struct gkyl_array *currentDens; // Current density.
+  struct gkyl_array *currentDens_global; // Current density.
+  struct gkyl_array *currentDensdot; // Time derivative of current density.
+  struct gkyl_array *dApartdtSlvr_kSq; // Contains sum_s q_s^2/m_s n_s.
+  struct gkyl_array
+    *dApartdtSlvr_lhs_factor; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
+  struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
+  gkyl_dg_bin_op_mem *div_mem; // Memory for div operation in 1x Ohm's law.
+  struct gkyl_array
+    *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0 or kperp^2/mu0 for 1D).
+  struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for Apar.
+  struct gkyl_fem_parproj *fem_apar_parproj_sol; // FEM smoother for Apar in the SOL.
+  struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
+  struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
+  struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
+  enum gkyl_fem_parproj_bc_type fem_parproj_ampere_bc; // Type of BC for projecting onto FEM basis.
 
   double es_energy_fac_1d;
   struct gkyl_array *es_energy_fac;
+  double apar_energy_fac_1d;
+  struct gkyl_array *apar_energy_fac;
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
@@ -1744,6 +1794,9 @@ struct gk_field {
   struct gkyl_array_integrate *calc_em_energy; // Operator computing EM energy.
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
+  gkyl_dynvec
+    integ_apar_energy; // integrated EM energy components (separate from electrostatic energy for debugging purposes)
+  gkyl_dynvec integ_apardot_energy; // time derivative of integrated EM energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
 
   // Energies/dt at the beginning (old) and end (new) of a time step, for the
@@ -1755,9 +1808,29 @@ struct gk_field {
     *bg_energy_red_new; // memory for use in GPU reduction of the background-charge energy.
   gkyl_dynvec integ_energy_dot; // d/dt of integrated energy components.
   bool is_first_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
+  double *apar_energy_red_old,
+    *apar_energy_red_new; // memory for use in GPU reduction of old Apar energy.
+  gkyl_dynvec
+    integ_apar_energy_dot; // d/dt of integrated EM energy components (separate from electrostatic energy for debugging purposes)
+  bool is_first_apar_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
+
+  void (*remove_em_zonal_func)(
+    gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
+  ); // Function to remove zonal component.
+  struct gkyl_array_average *fs_avg_op; // Updater for flux surface averaging.
+  struct gkyl_array *fs_avg; // Array for storing flux-surface averaged quantities.
+  struct gkyl_array
+    *fs_avg_conf_one; // Array of ones in configuration space for flux-surface averaging.
+  struct gkyl_range fs_avg_range; // Range for flux-surface average arrays.
+  struct gkyl_basis fs_avg_basis; // Basis for flux-surface average arrays.
+  struct gkyl_range fs_avg_range_ext; // Range for flux-surface average arrays.
+  int *fs_avg_subdir; // Subscript for flux-surface average direction.
 
   // Pointer to function that stores the energies/dt at the beginning or end of a time step.
   void (*calc_energy_dt_func)(
+    gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
+  );
+  void (*calc_apar_energy_dt_func)(
     gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
   );
 
@@ -1787,8 +1860,48 @@ struct gk_field {
     gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
     struct gkyl_array *arr_fem
   );
+  void (*fem_projection_par_apar_func)(
+    gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
+    struct gkyl_array *arr_fem
+  );
+  void (*twistshift_func)(
+    struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar
+  );
+
+  // Pointer to function for electromagnetic field solve.
+  void (*accumulate_current)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
+  );
+  void (*accumulate_ohms_kSq)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
+  );
+  void (*accumulate_current_dot)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[]
+  );
+  void (*ampere_solve)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out
+  );
+  void (*ohm_solve)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out
+  );
+  void (*step_apar)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out, double a,
+    const struct gkyl_array *inp
+  );
+  void (*em_combine_func)(
+    struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
+    const struct gkyl_array *arr2, const struct gkyl_range *rng
+  );
+  void (*em_copy_func)(
+    struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+  );
   // Pointer to function to calculate the potential.
   void (*rhs_phi_func)(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+  void (*em_rhs_func)(
+    struct gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],
+    struct gkyl_array *rhs_in[]
+  );
   // Pointer to function that calculates the field energy.
   void (*calc_energy_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
   // Pointer to function that accumulates the charge density.
@@ -1885,6 +1998,12 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
+  bool omegaH_es_only; // Use the electrostatic omega_H bound even with EM fields.
+  bool omegaH_em; // Whether omega_H includes the inductive (finite beta) term.
+  struct gkyl_array *omegaH_GA; // Cell values of omegaH_gf^2 * kperp.w.kperp (0 in ghosts).
+  struct gkyl_array *omegaH_A; // Cell values of kperp.w.kperp, w = J g^ij/mu0 (1 in ghosts).
+  struct gkyl_array *omegaH_num, *omegaH_den; // Buffers for the EM omega_H^2 per cell.
+  double *omegaH_red; // Reduction buffer for the EM omega_H^2.
   // Shift (for TS BC) as a function of x, and objects associated with it.
   struct gkyl_range delta_ts_x_rng;
   struct gkyl_basis delta_ts_x_basis;
@@ -2697,6 +2816,20 @@ void gk_species_collisionless_flux(
  * @param rhs collisionless contribution to df/dt.
  */
 void gk_species_collisionless_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+/**
+ * Compute RHS star (ES + Aparallel).
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Pointer to species.
+ * @param gkcls Species collisionless object.
+ * @param fin Input distribution function.
+ * @param rhs collisionless contribution to df/dt.
+ */
+void gk_species_collisionless_rhs_em_complete(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
@@ -3917,16 +4050,59 @@ void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, 
 void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0);
 
 /**
- * Compute RHS from species distribution function
+ * Compute RHS from species distribution function. 
+ * In EM simulation, this does not include contribution from Apardot and vpar surface flux.
  *
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
  * @param fin Input distribution function.
  * @param rhs On output, the RHS from the species object.
  * @param bflux_moms Output boundary flux moments.
+ */
+void gk_species_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+);
+
+/**
+ * Complete the EM RHS by adding the contribution from Apardot and vpar surface flux.
+ * 
+ * @param app gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from the species object.
+ * @param bflux_moms Output boundary flux moments.
+ */
+void gk_species_rhs_em_complete(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+);
+
+/**
+ * Update the boundary flux moments from species distribution function
+ *
+ * @param app gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from the species object.
+ * @param bflux_moms Output boundary flux moments (for diagnostics, stepped in time).
+ */
+void gk_species_update_bflux(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+);
+
+/**
+ * Reduce and return the CFL condition from species distribution function
+ *
+ * @param app gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from the species object.
+ * @param bflux_moms Output boundary flux moments (for diagnostics, stepped in time).
  * @return Maximum stable time-step.
  */
-double gk_species_rhs(
+double gk_species_get_cfl(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 );
@@ -5084,6 +5260,97 @@ void gk_field_accumulate_rho_c(
 );
 
 /**
+ * Accumulate current density for Ampere solve.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param fin[] Input distribution function (num_species size).
+ */
+void gk_field_accumulate_current_dens(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
+);
+
+/**
+ * Accumulate time derivative of current density for Ohm solve.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param rhs_in[] right-hand side of the ES GK equation for each species.
+ */
+void gk_field_accumulate_current_dens_dot(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[]
+);
+
+/**
+ * Accumulate kSq term for Ohm solve.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param fin[] Input distribution function (num_species size).
+ */
+void gk_field_accumulate_ohms_kSq(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
+);
+
+/**
+ * Compute initial magnetic vector parallel component
+ * 
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param out Output array. (apar)
+ */
+void gk_field_calc_apar_ic(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out
+);
+
+/**
+ * Step the parallel component of the magnetic vector potential, apar, forward in time.
+ * 
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param out Output array. (apar)
+ * @param dt Timestep.
+ * @param inp Input array. (apardot from Ohm's law)
+ */
+void gk_field_step_apar(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out, double dt,
+  const struct gkyl_array *inp
+);
+
+/**
+ * Combine method for Apar stepping, disabled if electrostatic.
+ *
+ * @param field Pointer to field.
+ * @param out Output array.
+ * @param c1 Scaling factor.
+ * @param arr1 Input array.
+ * @param c2 Scaling factor.
+ * @param arr2 Input array.
+ * @param rng Range.
+ */
+void gk_field_em_combine(
+  struct gk_field *field, struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng
+);
+
+/**
+ * Copy method for Apar stepping, disabled if electrostatic.
+ *
+ * @param field Pointer to field.
+ * @param out Output array.
+ * @param inp Input array.
+ * @param range Range.
+ */
+void gk_field_em_copy_range(
+  struct gk_field *field, struct gkyl_array *out, const struct gkyl_array *inp,
+  const struct gkyl_range *range
+);
+
+/**
+ * Compute electrostatic potential, phi, from charge density and
+ * time derivative of the parallel component of the vector potential, apardot,
+ * from the m1 moment of the GK rhs computed in the last gyrokinetic_rhs call,
+ * and from the kSq term computed in the last gk_field_accumulate_rho_c call.
  * Compute the adiabatic response (K and the background charge density) from the t=0 moments
  * of the adiabatic species, and initialize the field solver that depends on it. Call once
  * the species initial conditions are applied.
@@ -5098,9 +5365,21 @@ void gk_field_adiabatic_init(struct gkyl_gyrokinetic_app *app, struct gk_field *
  *
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
- * @param em Output field.
  */
 void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+/**
+ * Compute Apardot from Ohm's law using the m1 moment of the GK electrostatic RHS.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param fin[] Input distribution function (num_species size).
+ * @param rhs_in[] right-hand side of the ES GK equation for each species.
+ */
+void gk_field_em_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],
+  struct gkyl_array *rhs_in[]
+);
 
 /**
  * Read the field from a file.
@@ -5142,21 +5421,38 @@ void gk_field_calc_energy_dt(
 );
 
 /**
- * Field terms of the energy balance: the field energy and the background-charge
- * energy int rho_bg phi, and their rates of change over the last time step.
- * Uses the field energy diagnostics at time tm, which must be computed first.
+ * Field terms of the energy balance: the field energy, the A_parallel energy
+ * -int |grad_perp A_par|^2/(2 mu0) (zero if electrostatic) and the
+ * background-charge energy int rho_bg phi, and their rates of change over the
+ * last time step. Uses the field energy diagnostics at time tm, which must be
+ * computed first.
  *
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
  * @param tm Time of the field energy diagnostics.
  * @param energy Field energy.
  * @param energy_dot Rate of change of the field energy.
+ * @param apar_energy A_parallel energy.
+ * @param apar_energy_dot Rate of change of the A_parallel energy.
  * @param bg_energy Background-charge energy.
  * @param bg_energy_dot Rate of change of the background-charge energy.
  */
 void gk_field_calc_energy_balance(
   gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm, double *energy,
-  double *energy_dot, double *bg_energy, double *bg_energy_dot
+  double *energy_dot, double *apar_energy, double *apar_energy_dot, double *bg_energy,
+  double *bg_energy_dot
+);
+
+/**
+ * Compute Apar energy divided by dt for energy balance diagnostics.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param dt Time step.
+ * @param is_old Whether this is the beginning of the time step.
+ */
+void gk_field_calc_apar_energy_dt(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
 );
 
 /**
@@ -5254,7 +5550,8 @@ void gyrokinetic_calc_field_and_apply_bc(
 );
 
 /**
- * Compute the combined gyrokinetic RHS and its rank-local CFL timestep.
+ * Compute the combined gyrokinetic RHS (and dA_parallel/dt into fdot_args->aparout
+ * in EM simulations) and its rank-local CFL timestep.
  * This does not choose the native timestep or reduce the estimate across ranks.
  *
  * @param app Gyrokinetic app.

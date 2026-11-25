@@ -381,7 +381,7 @@ gk_app_balance_init(
   gkbal->num_diags = diags->num_balance_diags;
   for (int d = 0; d < gkbal->num_diags; d++) {
     gkbal->diag_types[d] = diags->balance_diags[d];
-    // Species components, and field_dot and bg_dot for the energy.
+    // Species components, and field_dot, bg_dot and apar_dot for the energy.
     gkbal->num_comp[d] = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY ?
                            GK_APP_BALANCE_COMP_COUNT :
                            GK_SPECIES_BALANCE_COMP_COUNT;
@@ -426,13 +426,16 @@ gk_app_balance_calc(
     if (dt > 0.0) {
       if (gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY && app->field->update_field) {
         // Field terms of the energy balance.
-        double energy, field_dot, bg_energy, bg_dot;
-        gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
-        // mom_err = src + src_bgk - bflux - (mom_dot - field_dot + bg_dot).
-        bal_vals[GK_SPECIES_BALANCE_COMP_ERR] += field_dot - bg_dot;
+        double energy, field_dot, apar_energy, apar_dot, bg_energy, bg_dot;
+        gk_field_calc_energy_balance(
+          app, app->field, tm, &energy, &field_dot, &apar_energy, &apar_dot, &bg_energy, &bg_dot
+        );
+        // mom_err = src + src_bgk - bflux - (mom_dot - field_dot - apar_dot + bg_dot).
+        bal_vals[GK_SPECIES_BALANCE_COMP_ERR] += field_dot + apar_dot - bg_dot;
         bal_vals[GK_APP_BALANCE_COMP_FIELD_DOT] = field_dot;
         bal_vals[GK_APP_BALANCE_COMP_BG_DOT] = bg_dot;
-        mom_tot += bg_energy - energy;
+        bal_vals[GK_APP_BALANCE_COMP_APAR_DOT] = apar_dot;
+        mom_tot += bg_energy - energy - apar_energy;
       }
       bal_vals[GK_SPECIES_BALANCE_COMP_ERR_NORM] =
         bal_vals[GK_SPECIES_BALANCE_COMP_ERR] * dt / mom_tot;
@@ -464,8 +467,9 @@ gk_app_balance_write(struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gk
             .elem_type = GKYL_MP_STRING,
             .cval = is_energy ?
                       "Energy balance summed over species: mom_err = src_mom + src_bgk_mom - "
-                      "bflux_tot_mom - (mom_dot - field_dot + bg_dot), with field_dot "
-                      "= dE_field/dt and bg_dot = d/dt int rho_bg phi." :
+                      "bflux_tot_mom - (mom_dot - field_dot - apar_dot + bg_dot), with field_dot "
+                      "= dE_field/dt, bg_dot = d/dt int rho_bg phi and apar_dot = "
+                      "-d/dt int |grad_perp A_par|^2/(2 mu0)." :
                       "Balance summed over species: mom_err = src_mom + src_bgk_mom - "
                       "bflux_tot_mom - mom_dot.",
           },
@@ -474,7 +478,7 @@ gk_app_balance_write(struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gk
             .elem_type = GKYL_MP_STRING,
             .cval = is_energy ?
                       "mom_err, mom_err_norm, mom_dot, src_mom, src_bgk_mom, bflux_tot_mom, "
-                      "field_dot, bg_dot" :
+                      "field_dot, bg_dot, apar_dot" :
                       "mom_err, mom_err_norm, mom_dot, src_mom, src_bgk_mom, bflux_tot_mom",
           },
         };

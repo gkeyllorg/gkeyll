@@ -18,6 +18,8 @@ struct gkyl_gyrokinetic_fdot_args {
   struct gkyl_array ***smom_in_neut; // Neutral stepped-moment lists.
   struct gkyl_array ***smom_out; // Charged output stepped-moment lists.
   struct gkyl_array ***smom_out_neut; // Neutral output stepped-moment lists.
+  const struct gkyl_array *aparin; // Input A_parallel (NULL if not evolved).
+  struct gkyl_array *aparout; // Output dA_parallel/dt or updated A_parallel.
 };
 
 /**

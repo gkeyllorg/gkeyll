@@ -43,6 +43,9 @@ gyrokinetic_multib_forward_euler(
       sb_args->smom_in_neut[i] = smom_in_neut[li_neut + i];
       sb_args->smom_out_neut[i] = smom_out_neut[li_neut + i];
     }
+    // A_parallel is not evolved in multiblock.
+    sb_args->aparin = NULL;
+    sb_args->aparout = NULL;
     gyrokinetic_rhs(sbapp, tcurr, dt, sb_args, st);
     dtmin = fmin(dtmin, st->dt_actual);
   }

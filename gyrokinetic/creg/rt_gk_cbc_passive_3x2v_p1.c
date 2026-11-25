@@ -424,11 +424,11 @@ create_ctx(void)
   double inv_asp_ratio = a_mid / R0;
 
   // Grid parameters
-  int Nx = 32;
-  int Ny = 16;
-  int Nz = 16;
-  int Nvpar = 2;
-  int Nmu = 2;
+  int Nx = 48 / 8;
+  int Ny = 24 / 4;
+  int Nz = 16 / 4;
+  int Nvpar = 8 / 2;
+  int Nmu = 4 / 2;
   int poly_order = 1;
 
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.

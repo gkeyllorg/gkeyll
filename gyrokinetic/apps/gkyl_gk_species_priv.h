@@ -29,7 +29,15 @@ void gk_species_gyroaverage_enabled(
   struct gkyl_array *field_gyroavg
 );
 
-double gk_species_rhs_static(
+void gk_species_rhs_static(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+);
+
+/**
+ * Time step of a static species: no restriction.
+ */
+double gk_species_get_cfl_static(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 );
@@ -166,7 +174,7 @@ void gk_species_fluid_file_import_init(
 
 void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self, double t0);
 
-double gk_species_rhs(
+void gk_species_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 );
