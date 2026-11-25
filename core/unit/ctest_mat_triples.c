@@ -132,9 +132,46 @@ test_mat_triples_3_ho()
   gkyl_mat_triples_release(tri);
 }
 
+void
+test_mat_triples_mixed_order_ho()
+{
+  // A row-major and a column-major triples used in turn: get, accum and clear on one
+  // must work after inserting into the other (the map comparator is shared).
+  gkyl_mat_triples *tri_row = gkyl_mat_triples_new(3, 3);
+  gkyl_mat_triples_set_rowmaj_order(tri_row);
+  gkyl_mat_triples *tri_col = gkyl_mat_triples_new(3, 3);
+
+  gkyl_mat_triples_insert(tri_row, 0, 2, 1.1);
+  gkyl_mat_triples_insert(tri_row, 1, 0, 2.1);
+  gkyl_mat_triples_insert(tri_row, 2, 1, 3.2);
+  gkyl_mat_triples_insert(tri_col, 0, 2, 4.1);
+  gkyl_mat_triples_insert(tri_col, 1, 0, 5.1);
+  gkyl_mat_triples_insert(tri_col, 2, 1, 6.2);
+
+  TEST_CHECK(gkyl_mat_triples_get(tri_row, 1, 0) == 2.1);
+  TEST_CHECK(gkyl_mat_triples_get(tri_row, 2, 1) == 3.2);
+  gkyl_mat_triples_insert(tri_col, 2, 2, 7.0);
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_triples_accum(tri_row, 0, 2, 1.0), 2.1, 1e-15));
+  TEST_CHECK(gkyl_mat_triples_size(tri_row) == 3);
+
+  gkyl_mat_triples_insert(tri_col, 1, 1, 8.0);
+  gkyl_mat_triples_clear(tri_row, 0.5);
+  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri_row);
+  while (gkyl_mat_triples_iter_next(iter)) {
+    TEST_CHECK(gkyl_mat_triples_iter_at(iter).val == 0.5);
+  }
+  gkyl_mat_triples_iter_release(iter);
+  TEST_CHECK(gkyl_mat_triples_get(tri_col, 1, 0) == 5.1);
+  TEST_CHECK(gkyl_mat_triples_size(tri_col) == 5);
+
+  gkyl_mat_triples_release(tri_col);
+  gkyl_mat_triples_release(tri_row);
+}
+
 TEST_LIST = {
   {"mat_triples_1_ho", test_mat_triples_1_ho},
   {"mat_triples_2_ho", test_mat_triples_2_ho},
   {"mat_triples_3_ho", test_mat_triples_3_ho},
+  {"mat_triples_mixed_order_ho", test_mat_triples_mixed_order_ho},
   {NULL, NULL}
 };

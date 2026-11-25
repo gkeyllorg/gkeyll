@@ -44,6 +44,13 @@ struct gkyl_mat_triples {
   int ordering;
 };
 
+// Set the comparison function based on the matrix ordering
+static inline void
+set_mat_idx_cmp(const struct gkyl_mat_triples *tri)
+{
+  mat_idx_cmp = tri->ordering == COLMAJOR ? mat_idx_cmp_col : mat_idx_cmp_row;
+}
+
 struct gkyl_mat_triples_iter {
   bool is_first; // first time?
   int nrem; /// number of addresses remaining
@@ -93,11 +100,7 @@ GKYL_CU_DH double
 gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i < gkyl_range_shape(&tri->range, 0) && j < gkyl_range_shape(&tri->range, 1));
-  if (tri->ordering == COLMAJOR) {
-    mat_idx_cmp = mat_idx_cmp_col;
-  } else {
-    mat_idx_cmp = mat_idx_cmp_row;
-  }
+  set_mat_idx_cmp(tri);
 
   long loc = gkyl_ridx(tri->range, i, j);
   csmap_triple_put(
@@ -111,11 +114,7 @@ GKYL_CU_DH double
 gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i < gkyl_range_shape(&tri->range, 0) && j < gkyl_range_shape(&tri->range, 1));
-  if (tri->ordering == COLMAJOR) {
-    mat_idx_cmp = mat_idx_cmp_col;
-  } else {
-    mat_idx_cmp = mat_idx_cmp_row;
-  }
+  set_mat_idx_cmp(tri);
 
   long loc = gkyl_ridx(tri->range, i, j);
   struct csmap_triple_value *mt =
@@ -138,6 +137,7 @@ double
 gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j)
 {
   long loc = gkyl_ridx(tri->range, i, j);
+  set_mat_idx_cmp(tri);
   const struct csmap_triple_value *mt =
     csmap_triple_get(&tri->triples, (struct mat_idx){.row = i, .col = j});
   return mt ? mt->second.val : 0.0;
@@ -195,15 +195,11 @@ gkyl_mat_triples_iter_at(const gkyl_mat_triples_iter *iter)
 void
 gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
 {
-  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
-  while (gkyl_mat_triples_iter_next(iter)) {
-    struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-
-    struct csmap_triple_value *mtm =
-      csmap_triple_get_mut(&tri->triples, (struct mat_idx){.row = mt.row, .col = mt.col});
-    mtm->second.val = val;
+  csmap_triple_iter it = csmap_triple_begin(&tri->triples);
+  for (size_t k = 0; k < csmap_triple_size(tri->triples); k++) {
+    it.ref->second.val = val;
+    csmap_triple_next(&it);
   }
-  gkyl_mat_triples_iter_release(iter);
 }
 
 void

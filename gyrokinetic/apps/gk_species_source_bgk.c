@@ -1,15 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void
-proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
-{
-  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
-  int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
-  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
-  gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
-}
-
 static double
 gk_species_source_bgk_volume_integrate(
   gkyl_gyrokinetic_app *app, struct gk_source_bgk *src, const struct gkyl_array *arrin
@@ -519,43 +510,19 @@ gk_species_source_bgk_init(
         &app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local
       );
 
-      // Project the user provided function (we use here Jrate_df as a temporary array).
-      struct gkyl_array *Jrate_fmax_host =
-        app->use_gpu ? mkarr(false, src->Jrate_df->ncomp, src->Jrate_df->size) :
-                       gkyl_array_acquire(src->Jrate_df);
-      struct gk_proj_on_basis_c2p_func_ctx proj_feq_shape_c2p_ctx = {
-        .cdim = app->cdim,
-        .vdim = gks->local_vel.ndim,
-        .vel_map = gks->vel_map,
-        .pos_map = app->position_map,
-      };
-      gkyl_proj_on_basis *proj_feq_shape = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-        .grid = &gks->grid,
-        .basis = &gks->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = gks->basis.poly_order + 1,
-        .num_ret_vals = 1,
-        .eval = gks->info.source_bgk.feq_shape,
-        .ctx = gks->info.source_bgk.feq_shape_ctx,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_feq_shape_c2p_ctx,
-      });
-      gkyl_proj_on_basis_advance(proj_feq_shape, 0.0, &gks->local, Jrate_fmax_host);
-      gkyl_array_copy(src->Jrate_df, Jrate_fmax_host);
-      gkyl_proj_on_basis_release(proj_feq_shape);
-      gkyl_array_release(Jrate_fmax_host);
-
-      // Multiply feq by the same Jacobians as the distribution function.
-      // (Similar to gk_species_projection_calc.)
-      gkyl_dg_mul_conf_phase_op_range(
-        &app->basis, &gks->basis, src->Jrate_df, app->gk_geom->geo_corn.bmag, src->Jrate_df,
-        &app->local, &gks->local
-      );
-      gkyl_array_scale_by_cell(src->Jrate_df, gks->vel_map->jacobvel);
-      gkyl_dg_mul_conf_phase_op_range(
-        &app->basis, &gks->basis, src->Jrate_df, app->gk_geom->geo_int.jacobgeo, src->Jrate_df,
-        &app->local, &gks->local
-      );
+      // Project the equilibrium distribution times its Jacobians (we use Jrate_df to store it).
+      struct gkyl_gyrokinetic_projection feq_inp = gks->info.source_bgk.projection;
+      if (gks->info.source_bgk.feq_shape) {
+        feq_inp = (struct gkyl_gyrokinetic_projection){
+          .proj_id = GKYL_PROJ_FUNC,
+          .func = gks->info.source_bgk.feq_shape,
+          .ctx_func = gks->info.source_bgk.feq_shape_ctx,
+        };
+      }
+      struct gk_proj proj_feq;
+      gk_species_projection_init(app, gks, feq_inp, &proj_feq);
+      gk_species_projection_calc(app, gks, &proj_feq, src->Jrate_df, 0.0);
+      gk_species_projection_release(app, &proj_feq);
 
       // Methods chosen at runtime.
       src->rhs_func = gk_species_source_bgk_rhs_feq_enabled;
