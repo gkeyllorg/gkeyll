@@ -289,47 +289,8 @@ GKYL_CU_D static const gkyl_dg_pkpm_io_kern_list ten_pkpm_io_kernels[] = {
   {NULL, pkpm_vars_io_3x_ser_p1, NULL} // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), (in x) (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_x_kernels[] = {
-  {NULL, pkpm_vars_accel_x_1x_ser_p1, pkpm_vars_accel_x_1x_ser_p2}, // 0
-  {NULL, pkpm_vars_accel_x_2x_ser_p1, NULL}, // 1
-  {NULL, pkpm_vars_accel_x_3x_ser_p1, NULL} // 2
-};
-
-// PKPM acceleration variables, e.g., bb:grad(u), (in y) (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_y_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, pkpm_vars_accel_y_2x_ser_p1, NULL}, // 1
-  {NULL, pkpm_vars_accel_y_3x_ser_p1, NULL} // 2
-};
-
-// PKPM acceleration variables, e.g., bb:grad(u), (in z) (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_z_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, pkpm_vars_accel_z_3x_ser_p1, NULL} // 2
-};
-
-// PKPM acceleration variables, e.g., bb:grad(u), (Tensor kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_x_kernels[] = {
-  {NULL, pkpm_vars_accel_x_1x_ser_p1, pkpm_vars_accel_x_1x_ser_p2}, // 0
-  {NULL, pkpm_vars_accel_x_2x_ser_p1, pkpm_vars_accel_x_2x_tensor_p2}, // 1
-  {NULL, pkpm_vars_accel_x_3x_ser_p1, NULL} // 2
-};
-
-// PKPM acceleration variables, e.g., bb:grad(u), (in y) (Tensor kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_y_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, pkpm_vars_accel_y_2x_ser_p1, pkpm_vars_accel_y_2x_tensor_p2}, // 1
-  {NULL, pkpm_vars_accel_y_3x_ser_p1, NULL} // 2
-};
-
-// PKPM acceleration variables, e.g., bb:grad(u), (in z) (Tensor kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_z_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, pkpm_vars_accel_z_3x_ser_p1, NULL} // 2
-};
+// Acceleration selection tables for all directions and supported bases.
+#include <gkyl_dg_calc_pkpm_accel_registry_priv.h>
 
 // PKPM penalization variables, e.g., total momentum penalization and
 // Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Serendipity kernels)

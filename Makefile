@@ -120,8 +120,9 @@ endif
 # one resident 256-thread block per SM. Capping the whole family at a register-cliff
 # value (128 -> 2 blocks/SM, 64 -> 4 blocks/SM) trades a few spills for occupancy,
 # which these latency-bound kernels need. nvlink requires every function a capped
-# kernel can reach (for an indirect call: every address-taken function with the same
-# PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
+# kernel can reach to fit the cap. Explicit CUDA call-target lists restrict this
+# to the registered family; unconstrained calls can also match unrelated functions
+# with the same PTX prototype. A cap
 # covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
 # kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
 # FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
@@ -134,12 +135,10 @@ endif
 MOM_MAX_REGS ?= 64
 FLUX_MAX_REGS ?= 128
 BINOP_MAX_REGS ?= 64
-# Density-weighted radiation drag kernels share the weighted-moment indirect-call
-# prototype. Their register usage must fit MOM_MAX_REGS even though moments never
-# select them. Cap only rad_gyrokinetic_drag_nI_nu_*; leave other radiation kernels
-# uncapped. Default to the moment budget; overrides above it (or disabling this cap
-# alone) can make nvlink fail. Rebuild affected objects after changing register caps.
-RAD_MAX_REGS ?= $(MOM_MAX_REGS)
+# Performance budget for density-weighted radiation drag kernels only. Explicit
+# call-target lists make this independent of MOM_MAX_REGS. Set empty to uncap;
+# rebuild affected objects after changing register caps.
+RAD_MAX_REGS ?= 128
 NVCC_MOM_FLAGS =
 NVCC_FLUX_FLAGS =
 NVCC_BINOP_FLAGS =
