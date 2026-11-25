@@ -338,7 +338,8 @@ struct gk_rad_drag {
 };
 
 struct gk_collisionless {
-  enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
+  enum gkyl_gk_collisionless_type
+    collisionless_id; // Allocated collisionless type, retained when disabled.
   bool write_diagnostics; // Whether to write diagnostics out.
   double scale_fac; // Factor multiplying collisionless terms.
 
@@ -1280,6 +1281,13 @@ struct gk_species_wall_potential {
 };
 
 // Species data.
+struct gk_orbit_average {
+  struct gkyl_orbit_average_gyrokinetic *up; // Cached frozen-field projector.
+  struct gkyl_array *source_input; // Original projected source, retained for phase resets.
+  double min_blend; // Last implicit update's minimum accepted relaxation fraction.
+  long num_limited_blocks; // Last implicit update's positivity-limited blocks.
+};
+
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
   bool is_fluid; // Species grid, basis and ranges describe configuration space.
@@ -1396,6 +1404,7 @@ struct gk_species {
   struct gk_proj proj_init; // Projector for initial conditions.
 
   struct gk_collisionless collisionless; // Collisionless terms.
+  struct gk_orbit_average orbit_average; // Implicit OAP replacement.
 
   struct gk_source src; // Plasma source.
 
@@ -1917,6 +1926,7 @@ struct gkyl_gyrokinetic_app {
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
+  bool has_implicit_coll_scheme; // Whether the split includes implicit physical collisions.
 
   struct gkyl_gyrokinetic_stat stat; // Statistics.
 
@@ -2660,6 +2670,31 @@ void gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_s
  * @param lte Species lte object to release
  */
 void gk_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte);
+
+/** gk_species_orbit_average API */
+
+/** Initialize species orbit averaging; the frozen projector is built on first use. */
+void gk_species_orbit_average_init(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_orbit_average *orbit
+);
+
+/** Reset orbit options and discard the cached projector at a POA phase boundary. */
+void gk_species_orbit_average_reset(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_orbit_average *orbit,
+  struct gkyl_gyrokinetic_orbit_average inp
+);
+
+/** Build a frozen orbit projector before any state is advanced; false on invalid input. */
+bool gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+
+/** Apply the implicit orbit substep using the accepted physical timestep. */
+void gk_species_orbit_average_advance(gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt);
+
+/** Release the cached projector and communication buffer (safe when disabled). */
+void gk_species_orbit_average_release(const struct gk_orbit_average *orbit);
+
+/** Apply orbit substeps and synchronize boundaries after the accepted base update. */
+void gyrokinetic_update_orbit_average(gkyl_gyrokinetic_app *app, double dt);
 
 /** gk_species_collisionless API */
 
@@ -3510,6 +3545,13 @@ void gk_species_kinetic_read_distf_from_file(
 void gk_species_source_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source *src
 );
+
+/**
+ * Schedule the next output of a static source after its shape changes.
+ *
+ * @param src Species source.
+ */
+void gk_species_source_refresh_output(struct gk_source *src);
 
 /**
  * Compute species applied source term.
@@ -5313,12 +5355,10 @@ struct gkyl_update_status gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, 
 void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0);
 
 /**
- * Take time-step using a first order operator split combining 
- * the RK3 method for the collisionless advection with a first order implicit
- * method for BGK collisions. The first order implicit step occurs *after* the 
- * RK3 step and utilizes the stable RK3 time step. Also sets the status object
- * which has the actual and suggested dts used. These can be different
- * from the actual time-step.
+ * Take a time-step using SSP-RK3 for explicit terms followed by implicit
+ * physical collisions and orbit relaxation, when enabled. The implicit
+ * substeps use the accepted RK3 time step. The composition is first order.
+ * Returns the actual and suggested time steps in the status object.
  *
  * @param app Gyrokinetic app.
  * @param dt0 Suggessted time step.

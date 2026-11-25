@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_orbit_average_gyrokinetic.h>
 
 void
 gk_species_source_write_disabled(
@@ -137,6 +138,15 @@ gk_species_source_write_mom_init_only(
 }
 
 void
+gk_species_source_refresh_output(struct gk_source *src)
+{
+  if (src->source_id && !src->evolve) {
+    src->write_func = gk_species_source_write_init_only;
+    src->write_mom_func = gk_species_source_write_mom_init_only;
+  }
+}
+
+void
 gk_species_source_calc_integrated_mom_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm
 )
@@ -255,8 +265,8 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void
-gk_species_source_calc(
+static void
+gk_species_source_project(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source *src,
   struct gkyl_array *f_buffer, double tm
 )
@@ -269,6 +279,20 @@ gk_species_source_calc(
       gkyl_array_accumulate(src->source, 1., f_buffer);
     }
   }
+}
+
+void
+gk_species_source_calc(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source *src,
+  struct gkyl_array *f_buffer, double tm
+)
+{
+  // IC and restart load the field after the species. Discard any old
+  // source projector and defer distribution until the frozen field is ready.
+  if (gks->orbit_average.source_input) {
+    gk_species_orbit_average_reset(app, gks, &gks->orbit_average, gks->info.orbit_average);
+  }
+  gk_species_source_project(app, gks, src, f_buffer, tm);
 }
 
 void
@@ -395,7 +419,13 @@ gk_species_source_adapt_enabled(
   }
 
   // Reproject the source
-  gk_species_source_calc(app, gks, &gks->src, f_buffer, tm);
+  gk_species_source_project(app, gks, src, f_buffer, tm);
+  if (gks->orbit_average.source_input) {
+    gkyl_array_copy(gks->orbit_average.source_input, src->source);
+    if (!gkyl_orbit_average_gyrokinetic_distribute_source(gks->orbit_average.up, src->source)) {
+      gkyl_exit("Orbit distribution of the adapted source failed.");
+    }
+  }
 }
 
 static void
@@ -494,8 +524,7 @@ gk_species_source_init(
       src->write_func = gk_species_source_write_enabled;
       src->write_mom_func = gk_species_source_write_mom_enabled;
     } else {
-      src->write_func = gk_species_source_write_init_only;
-      src->write_mom_func = gk_species_source_write_mom_init_only;
+      gk_species_source_refresh_output(src);
     }
 
     // Set up the adaptive source.
@@ -616,21 +645,34 @@ gk_species_source_rhs(
   app->stat.species_src_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// Frame-zero and phase-boundary diagnostics may precede the first time step.
+static void
+gk_species_source_prepare_output(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  if (gks->info.orbit_average.distribute_source && !gks->orbit_average.up &&
+      !gk_species_orbit_average_prepare(app, gks)) {
+    gkyl_exit("Could not prepare the orbit-distributed source for diagnostics.");
+  }
+}
+
 void
 gk_species_source_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
+  gk_species_source_prepare_output(app, gks);
   gks->src.write_func(app, gks, tm, frame);
 }
 
 void
 gk_species_source_write_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
+  gk_species_source_prepare_output(app, gks);
   gks->src.write_mom_func(app, gks, tm, frame);
 }
 
 void
 gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
 {
+  gk_species_source_prepare_output(app, gks);
   gks->src.calc_integrated_mom_func(app, gks, tm);
 }
 
