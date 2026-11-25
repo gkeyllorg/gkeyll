@@ -15,6 +15,35 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+// Constrain the indirect call to this interface's registry. The runtime pointer
+// still selects the kernel; unrelated functions with the same PTX signature are
+// not candidates. Every selected kernel must occur in the registry.
+GKYL_CU_D static __forceinline__ void
+pkpm_accel_call(
+  pkpm_accel_t kernel, const double *dxv, const double *prim_surf_l, const double *prim_surf_c,
+  const double *prim_surf_r, const double *prim_c, const double *bvar_c, const double *nu_c,
+  double *pkpm_accel
+)
+{
+  asm volatile("{\n"
+               " .param .b64 a0, a1, a2, a3, a4, a5, a6, a7;\n"
+               " st.param.b64 [a0], %1;\n"
+               " st.param.b64 [a1], %2;\n"
+               " st.param.b64 [a2], %3;\n"
+               " st.param.b64 [a3], %4;\n"
+               " st.param.b64 [a4], %5;\n"
+               " st.param.b64 [a5], %6;\n"
+               " st.param.b64 [a6], %7;\n"
+               " st.param.b64 [a7], %8;\n"
+               " targets: .calltargets " GKYL_PKPM_ACCEL_CALL_TARGETS ";\n"
+               " call %0, (a0, a1, a2, a3, a4, a5, a6, a7), targets;\n"
+               "}\n"
+               :
+               : "l"(kernel), "l"(dxv), "l"(prim_surf_l), "l"(prim_surf_c), "l"(prim_surf_r),
+                 "l"(prim_c), "l"(bvar_c), "l"(nu_c), "l"(pkpm_accel)
+               : "memory");
+}
+
 __global__ static void
 gkyl_dg_calc_pkpm_vars_set_cu_kernel(
   gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
@@ -272,8 +301,9 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(
       const double *prim_surf_l = (const double *)gkyl_array_cfetch(prim_surf, linl);
       const double *prim_surf_r = (const double *)gkyl_array_cfetch(prim_surf, linr);
 
-      up->pkpm_accel[dir](
-        up->conf_grid.dx, prim_surf_l, prim_surf_c, prim_surf_r, prim_d, bvar_d, nu_d, pkpm_accel_d
+      pkpm_accel_call(
+        up->pkpm_accel[dir], up->conf_grid.dx, prim_surf_l, prim_surf_c, prim_surf_r, prim_d,
+        bvar_d, nu_d, pkpm_accel_d
       );
     }
   }

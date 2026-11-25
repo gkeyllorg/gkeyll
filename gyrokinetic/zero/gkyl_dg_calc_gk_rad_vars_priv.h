@@ -61,30 +61,8 @@ struct gkyl_dg_calc_gk_rad_vars {
   double cellav_norm_conf; // Normalization of configuration space cell average
 };
 
-// Radiation drag surface and volume expansions in vpar (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_nu_vpar_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1, NULL}, // 1
-  {NULL, rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1, NULL}, // 2
-  {NULL, rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1, NULL} // 3
-};
-
-// Radiation drag surface and volume expansions in mu (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_nu_mu_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, rad_gyrokinetic_drag_numu_1x2v_ser_p1, NULL}, // 1
-  {NULL, rad_gyrokinetic_drag_numu_2x2v_ser_p1, NULL}, // 2
-  {NULL, rad_gyrokinetic_drag_numu_3x2v_ser_p1, NULL} // 3
-};
-
-// Density-weighted radiation drag surface and volume expansions (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list ser_rad_gyrokinetic_nI_nu_kernels[] =
-  {
-    {NULL, NULL, NULL}, // 0
-    {NULL, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1, NULL}, // 1
-    {NULL, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1, NULL}, // 2
-    {NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL} // 3
-};
+// Generated selection tables and CUDA call targets.
+#include <gkyl_dg_calc_gk_rad_vars_registry_priv.h>
 
 GKYL_CU_D static rad_gyrokinetic_nu_t
 choose_rad_gyrokinetic_nu_vpar_kern(int cdim, int vdim, int poly_order)
