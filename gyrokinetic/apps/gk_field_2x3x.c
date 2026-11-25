@@ -1058,6 +1058,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   // FLR effects (operators created in gk_field_flr_new once the species,
   // which provide the reference gyroradii, are initialized).
+  // With the Pade model of each mu cell the species are gyroaveraged while the field equations
+  // are those without FLR effects (long wavelength polarization).
   gkf->use_flr = gkf->info.flr.type != GKYL_GK_FLR_NONE &&
                  gkf->info.flr.type != GKYL_GK_FLR_PADE_MU;
   gkf->invert_flr = gk_field_invert_flr_none;

@@ -365,21 +365,6 @@ eval_temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[0] = init_profile(xn[0], app->Te0, app->LTi, app); // LTe = LTi.
 }
 
-// Equilibrium Maxwellian (density, flow and temperature of the IC) for the Krook buffers.
-static void
-eval_feq_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  double x = xn[0], z = xn[2], vpar = xn[3], mu = xn[4];
-  double n = init_profile(x, app->n0, app->Ln, app);
-  double T = init_profile(x, app->Ti0, app->LTi, app);
-  double u;
-  eval_upar_ion(t, xn, &u, ctx);
-  double B = Bmag(r_x(x, app->r0), z, ctx);
-  fout[0] =
-    n / pow(2.0 * M_PI * T / app->mi, 1.5) * exp(-(0.5 * app->mi * pow(vpar - u, 2) + mu * B) / T);
-}
-
 // Krook rate: nu_krook in num_cell_buff cells at each x wall, tanh transition (Grandgirard et al. 2016 Eq. 49).
 static void
 eval_krook_rate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -521,11 +506,11 @@ create_ctx(void)
   double inv_asp_ratio = r0 / R_axis;
 
   // Grid parameters
-  int Nx = 4; // dx = 2 rho_s.
-  int Ny = 2; // dy = 7.5 rho_s: ky*rho_s up to 0.42; Ny = 32 resolves the linear peak (~0.45).
-  int Nz = 4;
-  int Nvpar = 2;
-  int Nmu = 2;
+  int Nx = 48 / 8;
+  int Ny = 24 / 4;
+  int Nz = 16 / 4;
+  int Nvpar = 8 / 2;
+  int Nmu = 4 / 2;
   int poly_order = 1;
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
 
@@ -684,18 +669,20 @@ main(int argc, char **argv)
     // Fixed Maxwellian ghost cells: the walls act as a reservoir for the radial
     // magnetic drift (zero-flux and copy BCs build up boundary layers).
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+      },
 
     // Krook buffers at the x walls.
     .source_bgk =
@@ -703,8 +690,7 @@ main(int argc, char **argv)
         .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
         .rate_profile = eval_krook_rate,
         .rate_profile_ctx = &ctx,
-        .feq_shape = eval_feq_ion,
-        .feq_shape_ctx = &ctx,
+        .projection = ion_bc,
       },
 
     .num_diag_moments = 4,
@@ -715,6 +701,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   if (ctx.magnetic_shear) {
@@ -762,8 +750,10 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx.B_axis,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -807,6 +797,9 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = parallelism,
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
   };
 
   // Set app output name from the executable name (argv[0]).

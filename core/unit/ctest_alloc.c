@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <acutest.h>
 #include <gkyl_alloc.h>
 
@@ -138,6 +140,39 @@ test_alloc_mem_buff_dev()
   test_mem_buff(true);
 }
 
+static void
+test_calloc_hodev(bool use_gpu)
+{
+  // Zeroed allocation on the host or the device.
+  int nelem = 7;
+  double *arr = gkyl_calloc_hodev(use_gpu, nelem, sizeof(double));
+  double arr_ho[nelem];
+  for (int i = 0; i < nelem; i++) {
+    arr_ho[i] = 1.0;
+  }
+  if (use_gpu) {
+    gkyl_cu_memcpy(arr_ho, arr, nelem * sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    memcpy(arr_ho, arr, nelem * sizeof(double));
+  }
+  for (int i = 0; i < nelem; i++) {
+    TEST_CHECK(arr_ho[i] == 0.0);
+  }
+  gkyl_free_hodev(use_gpu, arr);
+}
+
+void
+test_calloc_hodev_ho()
+{
+  test_calloc_hodev(false);
+}
+
+void
+test_calloc_hodev_dev()
+{
+  test_calloc_hodev(true);
+}
+
 #ifdef GKYL_HAVE_CUDA
 void
 test_malloc_dev()
@@ -207,7 +242,9 @@ TEST_LIST = {
   {"aligned_alloc_ho", test_aligned_alloc_ho},
   {"aligned_realloc_ho", test_aligned_realloc_ho},
   {"alloc_mem_buff_ho", test_alloc_mem_buff_ho},
+  {"calloc_hodev_ho", test_calloc_hodev_ho},
 #ifdef GKYL_HAVE_CUDA
+  {"calloc_hodev_dev", test_calloc_hodev_dev},
   {"malloc_dev", test_malloc_dev},
   {"malloc_array_dev", test_malloc_array_dev},
   {"alloc_mem_buff_dev", test_alloc_mem_buff_dev},

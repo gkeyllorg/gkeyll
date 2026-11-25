@@ -40,51 +40,46 @@ gk_species_flr_none_gyroaverage(
   struct gkyl_array *field_gyroavg
 )
 {
-  // Do nothing.
 }
 
 static void
-gk_species_flr_gyroaverage_density_none(
+gk_species_flr_none_gyroaverage_density(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *jac_dens_in, struct gkyl_array *jac_dens_gyroavg
 )
 {
-  // Do nothing.
 }
 
 static void
-gk_species_flr_gyroaverage_moment_none(
+gk_species_flr_none_gyroaverage_moment(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *jac_mom_in, struct gkyl_array *jac_mom_gyroavg
 )
 {
-  // Do nothing.
 }
 
 static void
-gk_species_flr_gyroaverage_em_none(gkyl_gyrokinetic_app *app, struct gk_species *species)
+gk_species_flr_none_gyroaverage_em(gkyl_gyrokinetic_app *app, struct gk_species *species)
 {
-  // Do nothing.
 }
 
 static void
-gk_species_flr_release_none(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
+gk_species_flr_none_release(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
 {
-  // Do nothing.
 }
 
 static void
-gk_species_flr_new_none(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_flr_none_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
-  // Connect directly gyroaveraged and non-gyroaveraged quantities.
+  // The gyroaveraged potential and density are the potential and the density.
   gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
   gk_species_flr_hamil_mu_independent(app, gks);
 
   gks->gyroaverage = gk_species_flr_none_gyroaverage;
-  gks->gyroaverage_density = gk_species_flr_gyroaverage_density_none;
-  gks->gyroaverage_moment = gk_species_flr_gyroaverage_moment_none;
-  gks->flr.release_func = gk_species_flr_release_none;
+  gks->gyroaverage_density = gk_species_flr_none_gyroaverage_density;
+  gks->gyroaverage_moment = gk_species_flr_none_gyroaverage_moment;
+  gks->flr.release_func = gk_species_flr_none_release;
 }
 
 /** Pade approximant of the gyroaverage. **/
@@ -132,7 +127,7 @@ gk_species_flr_pade_gyroaverage_moment(
 }
 
 static void
-gk_species_flr_pade_gyroaverage_density( // ACDH: This function seems useless and could be unified with gk_species_flr_pade_gyroaverage_moment right?
+gk_species_flr_pade_gyroaverage_density(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *jac_dens_in, struct gkyl_array *jac_dens_gyroavg
 )
@@ -586,7 +581,7 @@ gk_species_flr_gyromatrix_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gks->gyroaverage = gk_species_flr_gyromatrix_gyroaverage;
   gks->gyroaverage_density = gk_species_flr_gyromatrix_gyroaverage_density_init;
   // Set in gk_species_flr_em_new for electromagnetic fields, the only users of the flow.
-  gks->gyroaverage_moment = gk_species_flr_gyroaverage_moment_none;
+  gks->gyroaverage_moment = gk_species_flr_none_gyroaverage_moment;
   gks->flr.release_func = gk_species_flr_gyromatrix_release;
 }
 
@@ -906,7 +901,7 @@ gk_species_flr_pade_mu_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gks->gyroaverage = gk_species_flr_pade_mu_gyroaverage;
   gks->gyroaverage_density = gk_species_flr_pade_mu_gyroaverage_density_init;
   // Set in gk_species_flr_em_new for electromagnetic fields, the only users of the flow.
-  gks->gyroaverage_moment = gk_species_flr_gyroaverage_moment_none;
+  gks->gyroaverage_moment = gk_species_flr_none_gyroaverage_moment;
   gks->flr.release_func = gk_species_flr_pade_mu_release;
 }
 
@@ -940,13 +935,13 @@ gk_species_flr_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
       gk_species_flr_pade_mu_new(app, gks);
       break;
     default:
-      gk_species_flr_new_none(app, gks);
+      gk_species_flr_none_new(app, gks);
       break;
   }
   // A_parallel and its time derivative are gyroaveraged only by the gyromatrix and Pade of each
   // mu cell models with electromagnetic fields (see gk_species_flr_em_new).
-  gks->gyroaverage_apar = gk_species_flr_gyroaverage_em_none;
-  gks->gyroaverage_apardot = gk_species_flr_gyroaverage_em_none;
+  gks->gyroaverage_apar = gk_species_flr_none_gyroaverage_em;
+  gks->gyroaverage_apardot = gk_species_flr_none_gyroaverage_em;
 }
 
 void

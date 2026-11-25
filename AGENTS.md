@@ -22,6 +22,8 @@ of its software, identify bugs and other issues, troubleshoot and make suggestio
 - Test and verify new and edited code.
 - Take into consideration the ideas and guidelines colleagues give you, but be
   creative and suggest alternative approaches.
+- Do not commit code changes yourself; let your human colleagues review the
+  code first, and let them commit it when they are satisfied.
 
 ## Skills and detailed instructions
 

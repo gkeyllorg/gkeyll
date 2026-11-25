@@ -27,15 +27,15 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
     struct gk_species *gks = &app->species[i];
     fin[i] = gks->f;
     fout[i] = gks->f1;
-    bflux_in[i] = gks->bflux.f;
-    bflux_out[i] = gks->bflux.f;
+    bflux_in[i] = gks->step_moms.f;
+    bflux_out[i] = gks->step_moms.f;
   }
   for (int i = 0; i < neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     fin_neut[i] = gkns->f;
     fout_neut[i] = gkns->f1;
-    bflux_in_neut[i] = gkns->bflux.f;
-    bflux_out_neut[i] = gkns->bflux.f;
+    bflux_in_neut[i] = gkns->step_moms.f;
+    bflux_out_neut[i] = gkns->step_moms.f;
   }
 
   // Compute df/dt from implicit terms.

@@ -58,6 +58,7 @@ struct sheath_ctx {
   double nu_Q_ion; // Ion heating rate [1/s].
   double nu_Q_elc; // Electron heating rate [1/s].
   double floor_Q; // Floor in heating term.
+  double floor_T; // Floor of the heating temperature shape.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -129,21 +130,24 @@ create_ctx(void)
   double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
   // Grid parameters.
-  int Nx = 4; // Cell count (configuration space: x-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
+  // Coarser grids (Nx <= 10) make the BGK heating source inject particles.
+  int Nx = 12; // Cell count (configuration space: x-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
+  int Nvpar = 4; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 2; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
+  // Velocity domain sized for the heated plasma (T up to ~2T), which the heating
+  // Maxwellian would otherwise overflow, mostly in mu.
   double vpar_max_elc =
-    4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
+    6.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc =
-    (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte, 2.0) /
+    (3.0 / 2.0) * 0.5 * mass_elc * pow(6.0 * vte, 2.0) /
     (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion =
-    4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
+    6.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion =
-    (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) /
+    (3.0 / 2.0) * 0.5 * mass_ion * pow(6.0 * vti, 2.0) /
     (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
 
@@ -156,13 +160,18 @@ create_ctx(void)
 
   double heating_power_elc = 453e3; // Electron heating power [W].
   double heating_power_ion = 453e3; // Ion heating power [W].
-  double nu_Q_ion = Lz / c_s; // Ion heating rate [1/s].
-  double nu_Q_elc = nu_elc; // Electron heating rate [1/s].
+  // Heating rates delivering the power with a heating Maxwellian a few T at most, so it
+  // stays on the velocity grid (P = (3/2)*nu_Q*n0*dT_Q*area_Q for a uniform temperature).
+  double dT_Q = 0.5 * Te; // Target excess of the heating temperature.
+  double area_Q = sqrt(2.0 * M_PI) * xsigma_src * 0.5 * Lz; // Heated area (x-z plane).
+  double nu_Q_ion = heating_power_ion / (1.5 * n0 * dT_Q * area_Q); // Ion heating rate [1/s].
+  double nu_Q_elc = heating_power_elc / (1.5 * n0 * dT_Q * area_Q); // Electron heating rate [1/s].
   double floor_Q = 1e-8; // Minimum heating amplitude.
+  double floor_T = 0.2; // Minimum of the heating temperature shape.
 
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 6.0e-6; // Final simulation time.
+  double t_end = 1.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq =
     0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
@@ -208,6 +217,7 @@ create_ctx(void)
     .nu_Q_ion = nu_Q_ion,
     .nu_Q_elc = nu_Q_elc,
     .floor_Q = floor_Q,
+    .floor_T = floor_T,
     .Nx = Nx,
     .Nz = Nz,
     .Nvpar = Nvpar,
@@ -537,13 +547,13 @@ heat_temp_shape_func_ion(
 
   double xmu_src = app->xmu_src;
   double xsigma_src = app->xsigma_src;
-  double floor_Q = app->floor_Q;
+  double floor_T = app->floor_T;
 
   double Lz = app->Lz;
 
   double s_T = 0.0;
   if (fabs(z) < 0.25 * Lz) {
-    s_T = GKYL_MAX2(exp(-pow(x - xmu_src, 2.0) / (2.0 * pow(xsigma_src, 2.0))), floor_Q);
+    s_T = GKYL_MAX2(exp(-pow(x - xmu_src, 2.0) / (2.0 * pow(xsigma_src, 2.0))), floor_T);
   } else {
     s_T = 1.0e-40;
   }
@@ -584,13 +594,13 @@ heat_temp_shape_func_elc(
 
   double xmu_src = app->xmu_src;
   double xsigma_src = app->xsigma_src;
-  double floor_Q = app->floor_Q;
+  double floor_T = app->floor_T;
 
   double Lz = app->Lz;
 
   double s_T = 0.0;
   if (fabs(z) < 0.25 * Lz) {
-    s_T = GKYL_MAX2(exp(-pow(x - xmu_src, 2.0) / (2.0 * pow(xsigma_src, 2.0))), floor_Q);
+    s_T = GKYL_MAX2(exp(-pow(x - xmu_src, 2.0) / (2.0 * pow(xsigma_src, 2.0))), floor_T);
   } else {
     s_T = 1.0e-40;
   }
@@ -782,7 +792,6 @@ main(int argc, char **argv)
                GKYL_F_MOMENT_M2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -798,10 +807,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 5,
     .diag_moments =
@@ -817,7 +828,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
   };
 
@@ -881,7 +891,6 @@ main(int argc, char **argv)
                GKYL_F_MOMENT_M2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_M2},
-            //        .time_integrated = true,
           },
       },
 
@@ -897,10 +906,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 5,
     .diag_moments =
@@ -909,6 +920,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
 
     .boundary_flux_diagnostics =
       {
@@ -916,15 +929,16 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -954,6 +968,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

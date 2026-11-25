@@ -1,4 +1,5 @@
 #include <math.h>
+
 #include <stdio.h>
 #include <time.h>
 
@@ -6,20 +7,34 @@
 #include <gkyl_const.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_gen_miller_eqdsk.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_run.h>
 #include <gkyl_math.h>
 
 #include <rt_arg_parse.h>
 
+// Electromagnetic counterpart of rt_gk_tcv_iwl_adapt_source_num_3x2v_p1.c (numerical Miller
+// equilibrium).
+// Computational coordinates are (psi, alpha, normalized poloidal arc length).
+// Keep the original outer surface and put the LCFS at 2/5 of the uniform psi grid;
+// this slightly changes the inner surface. Nx must therefore be divisible by 5.
+// Density, temperature, and Gaussian envelopes are evaluated in the minor-radius
+// coordinate and Miller angle. These profiles are independent of alpha; only the binormal
+// domain width needs conversion by Cy. The meter-based y bounds are translated by a
+// Miller geometry function.
+
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
   int cdim, vdim;
   // Geometry and magnetic field parameters
-  double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref, x_LCFS;
+  double Zvert_axis, Rmajor_axis, a_shift, R0, rminor_LCFS, x_inner, r0, B0, kappa, delta, q0, Cy,
+    Bref, x_LCFS;
+  struct gkyl_gen_miller_eqdsk_inp miller;
+  gkyl_gen_miller_eqdsk *equilibrium; // Flux table for profile callbacks; owned by main.
   // Plasma parameters
   int num_species;
-  double me, qe, mi, qi, n0, Te0, Ti0;
+  double me, qe, mi, qi, n0, Te0, Ti0, c_s, rho_s;
   // Collision parameters
   double nuFrac, nuElc, nuIon;
   // Source parameters
@@ -44,166 +59,79 @@ struct gk_app_ctx {
   double dt_failure_tol;
 };
 
-// Geometry related functions
-double
-r_x(double x, double a_mid, double x_inner)
-{
-  return x + a_mid - x_inner;
-}
-
-// cubic polynomial fit to TCV NT q profile (discharge #65130)
-double
-qprofile(double R)
-{
-  double qfit[4] = {497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627};
-  return qfit[0] * pow(R, 3) + qfit[1] * pow(R, 2) + qfit[2] * R + qfit[3];
-}
-
-double
-R_rtheta(double r, double theta, void *ctx)
-{
-  // Major radius as a function of minor radius r and poloidal angle theta.
-  struct gk_app_ctx *app = ctx;
-  double a_shift = app->a_shift;
-  double R_axis = app->R_axis;
-  double delta = app->delta;
-  return R_axis - a_shift * r * r / (2. * R_axis) + r * cos(theta + asin(delta) * sin(theta));
-}
-
-double
-Z_rtheta(double r, double theta, void *ctx)
+static void
+miller_kappa(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  double Z_axis = app->Z_axis;
-  double kappa = app->kappa;
-  return Z_axis + kappa * r * sin(theta);
+  out[0] = app->kappa;
 }
 
-double
-dRdr(double r, double theta, void *ctx)
+static void
+miller_delta(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  double a_shift = app->a_shift;
-  double R_axis = app->R_axis;
-  double delta = app->delta;
-  return -a_shift * r / (R_axis) + cos(theta + asin(delta) * sin(theta));
+  out[0] = app->delta;
 }
 
-double
-dRdtheta(double r, double theta, void *ctx)
+static void
+miller_a_shift(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  double delta = app->delta;
-  return -r * sin(theta + asin(delta) * sin(theta)) * (1. + asin(delta) * cos(theta));
+  out[0] = app->a_shift;
 }
 
-double
-dZdr(double r, double theta, void *ctx)
+static double
+qsafety(double R, void *ctx)
 {
-  struct gk_app_ctx *app = ctx;
-  double kappa = app->kappa;
-  return kappa * sin(theta);
+  // Evaluate the cubic fit to the TCV negative-triangularity q profile (discharge 65130).
+  return ((497.3420166252413 * R - 1408.736172826569) * R + 1331.4134861681464) * R -
+         419.00692601227627;
 }
 
-double
-dZdtheta(double r, double theta, void *ctx)
+static double
+psi_at_rMrlo(const struct gk_app_ctx *app, double rMrlo)
 {
-  struct gk_app_ctx *app = ctx;
-  double kappa = app->kappa;
-  return kappa * r * cos(theta);
+  // Convert the minor radial coordinate r-r_min (rMrlo) to poloidal flux (psi).
+  return gkyl_gen_miller_eqdsk_psi_at_r(app->equilibrium, rMrlo + app->rminor_LCFS - app->x_inner);
 }
 
-double
-Jr(double r, double theta, void *ctx)
+static double
+rMrlo_at_psi(const struct gk_app_ctx *app, double psi)
 {
-  return R_rtheta(r, theta, ctx) * (dRdr(r, theta, ctx) * dZdtheta(r, theta, ctx) -
-                                    dRdtheta(r, theta, ctx) * dZdr(r, theta, ctx));
+  // Minor radial coordinate r-r_min (rMrlo) for a given poloidal flux (psi).
+  return gkyl_gen_miller_eqdsk_r_at_psi(app->equilibrium, psi) - app->rminor_LCFS + app->x_inner;
 }
 
-struct integrand_ctx {
-  struct gk_app_ctx *app_ctx;
-  double r;
+struct source_profile_ctx {
+  const struct gk_app_ctx *app;
+  double center[3], sigma[3], floor;
 };
 
-double
-integrand(double t, void *int_ctx)
+static void
+source_profile(double t, const double *xn, double *fout, void *ctx)
 {
-  struct integrand_ctx *inctx = int_ctx;
-  double r = inctx->r;
-  struct gk_app_ctx *app = inctx->app_ctx;
-  return Jr(r, t, app) / pow(R_rtheta(r, t, app), 2);
+  // A source Gaussian in the analytic input's radial coordinate and Miller angle.
+  const struct source_profile_ctx *src = ctx;
+  double x = rMrlo_at_psi(src->app, xn[0]);
+  double theta = gkyl_gen_miller_eqdsk_theta_at_theta_tok(src->app->equilibrium, xn[2]);
+  double dx = (x - src->center[0]) / src->sigma[0];
+  // The analytic input wraps parallel Gaussian distances in the IWL domain.
+  double dtheta = remainder(theta - src->center[2], src->app->Lz) / src->sigma[2];
+  fout[0] = exp(-0.5 * (dx * dx + dtheta * dtheta)) + src->floor;
 }
 
-double
-Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0 * R0 / R;
-}
-
-double
-dPsidr(double r, double theta, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
-  struct gkyl_qr_res integral;
-  integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2. * M_PI, 7, 1e-10);
-
-  double R = R_rtheta(r, theta, ctx);
-  double Bt = Bphi(R, ctx);
-  double R_omp = R_rtheta(r, 0.0, ctx);
-  return (R * Bt / (2. * M_PI * qprofile(R_omp))) * integral.res;
-}
-
-double
-alpha(double r, double theta, double phi, void *ctx)
-{
-  double twrap = theta;
-  while (twrap < -M_PI) {
-    twrap = twrap + 2. * M_PI;
-  }
-  while (M_PI < twrap) {
-    twrap = twrap - 2. * M_PI;
-  }
-
-  struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
-  struct gkyl_qr_res integral;
-  if (0. < twrap) {
-    integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., twrap, 7, 1e-10);
-  } else {
-    integral = gkyl_dbl_exp(integrand, &tmp_ctx, twrap, 0., 7, 1e-10);
-    integral.res = -integral.res;
-  }
-
-  double R = R_rtheta(r, theta, ctx);
-  double Bt = Bphi(R, ctx);
-
-  return phi - R * Bt * integral.res / dPsidr(r, theta, ctx);
-}
-
-double
-gradr(double r, double theta, void *ctx)
-{
-  return (R_rtheta(r, theta, ctx) / Jr(r, theta, ctx)) *
-         sqrt(pow(dRdtheta(r, theta, ctx), 2) + pow(dZdtheta(r, theta, ctx), 2));
-}
-
-void
+static void
 zero_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-// Density initial condition (like TCV exp profile)
-void
+static void
 density_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  // Density fit at the minor radius corresponding to psi.
   struct gk_app_ctx *app = ctx;
+  double x = rMrlo_at_psi(app, xn[0]);
   double n0 = 5e19;
   double x0 = -0.03;
   double c1 = 0.5;
@@ -212,12 +140,12 @@ density_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   fout[0] = n0 * (c1 * (1. + tanh(c2 * (-10 * (x + x0)))) + c3);
 }
 
-// Electron temperature initial conditions
-void
+static void
 temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  // Electron temperature fit at the minor radius corresponding to psi.
   struct gk_app_ctx *app = ctx;
+  double x = rMrlo_at_psi(app, xn[0]);
   double T0 = 200 * GKYL_ELEMENTARY_CHARGE;
   double x0 = -0.03; // position of the transition region
   double c0 = 1.3; // multiplicative factor
@@ -227,12 +155,12 @@ temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, v
   fout[0] = c0 * T0 * (c1 * (1. + tanh(c2 * (-10 * (x + x0)))) + c3);
 }
 
-// Ion temperature initial conditions
-void
+static void
 temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  // Ion temperature fit at the minor radius corresponding to psi.
   struct gk_app_ctx *app = ctx;
+  double x = rMrlo_at_psi(app, xn[0]);
   double T0 = 200 * GKYL_ELEMENTARY_CHARGE;
   double x0 = -0.04; // position of the transition region
   double c0 = 1.0; // multiplicative factor
@@ -242,36 +170,10 @@ temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, v
   fout[0] = c0 * T0 * (c1 * (1. + tanh(c2 * (-10 * (x + x0)))) + c3);
 }
 
-// Geometry evaluation functions for the gk app
-void
-mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
-{
-  double x = xc[0], y = xc[1], z = xc[2];
-
-  struct gk_app_ctx *app = ctx;
-  double a_mid = app->a_mid;
-  double x_inner = app->x_inner;
-  double Cy = app->Cy;
-
-  double r = r_x(x, a_mid, x_inner);
-
-  // Map to cylindrical (R, Z, phi) coordinates.
-  double R = R_rtheta(r, z, ctx);
-  double Z = Z_rtheta(r, z, ctx);
-  double phi = y / Cy + alpha(r, z, 0, ctx);
-
-  // Map to Cartesian (X, Y, Z) coordinates.
-  double X = R * cos(phi);
-  double Y = R * sin(phi);
-  xp[0] = X;
-  xp[1] = Y;
-  xp[2] = Z;
-}
-
-// Taken from rt gk d3d 3x2c, is this the non uniform v grid mapping?
-void
+static void
 mapc2p_vel_elc(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
 {
+  // Map electron velocity coordinates to physical parallel velocity and magnetic moment.
   struct gk_app_ctx *app = ctx;
   double vpar_max_elc = app->vpar_max_elc;
   double mu_max_elc = app->mu_max_elc;
@@ -288,9 +190,10 @@ mapc2p_vel_elc(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
   vp[1] = mu_max_elc * pow(cmu, 2);
 }
 
-void
+static void
 mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
 {
+  // Map ion velocity coordinates to physical parallel velocity and magnetic moment.
   struct gk_app_ctx *app = ctx;
   double vpar_max_ion = app->vpar_max_ion;
   double mu_max_ion = app->mu_max_ion;
@@ -307,36 +210,13 @@ mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
   vp[1] = mu_max_ion * pow(cmu, 2);
 }
 
-void
-bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static bool
+create_ctx(struct gk_app_ctx *out)
 {
-  double x = xc[0], y = xc[1], z = xc[2];
-  struct gk_app_ctx *app = ctx;
-  double a_mid = app->a_mid;
-  double Cy = app->Cy;
-  double x_inner = app->x_inner;
-  double r = r_x(x, a_mid, x_inner);
-  double Bt = Bphi(R_rtheta(r, z, ctx), ctx);
-  double Bp = dPsidr(r, z, ctx) / R_rtheta(r, z, ctx) * gradr(r, z, ctx);
+  // Build the Miller equilibrium and derive the simulation parameters from it.
+  // Simulation context (out) must remain alive while geometry functions run.
+  // Return true when the equilibrium was created successfully.
 
-  double drdtheta = dRdtheta(r, z, ctx);
-  double dzdtheta = dZdtheta(r, z, ctx);
-  double den = sqrt(pow(drdtheta, 2) + pow(dzdtheta, 2));
-  double B_r = Bp * drdtheta / den;
-  double B_z = Bp * dzdtheta / den;
-  double phi = y / Cy + alpha(r, z, 0, ctx);
-  double R = R_rtheta(r, z, ctx);
-
-  // xc are computational coords.
-  // Set Cartesian components of magnetic field.
-  fout[0] = B_r * cos(phi) + Bt * sin(phi);
-  fout[1] = B_r * sin(phi) - Bt * cos(phi);
-  fout[2] = B_z;
-}
-
-struct gk_app_ctx
-create_ctx(void)
-{
   int cdim = 3, vdim = 2; // Dimensionality.
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
@@ -345,29 +225,59 @@ create_ctx(void)
   double qe = -eV; // electron charge
 
   // Geometry and magnetic field.
-  double a_shift = 0.5; // Parameter in Shafranov shift.
-  double Z_axis = 0.1414361745; // Magnetic axis height [m].
-  double R_axis = 0.8867856264; // Magnetic axis major radius [m].
-  double B_axis = 1.4; // Magnetic field at the magnetic axis [T].
-  double R_LCFSmid = 1.0870056099999; // Major radius of the LCFS at the outboard midplane [m
+  double Zvert_axis = 0.1414361745; // Magnetic axis height [m], passed explicitly to the generator.
+  double Rmajor_axis = 0.8867856264; // Magnetic axis major radius [m].
+  double bmag_axis = 1.4; // Magnetic field at the magnetic axis [T].
+  double R_LCFSmid = 1.0870056099999; // Major radius of the LCFS at the outboard midplane [m].
   double x_inner = 0.04; // Radial extent inside LCFS
   double x_outer = 0.08; // Radial extent outside LCFS
-  double Rmid_min = R_LCFSmid - x_inner; // Minimum midplane major radius of simulation box [m].
-  double Rmid_max = R_LCFSmid + x_outer; // Maximum midplane major radius of simulation box [m].
-  double R0 = 0.5 * (Rmid_min + Rmid_max); // Major radius of the simulation box [m].
-
-  // Minor radius at outboard midplane [m]. Redefine it with
-  // Shafranov shift, to ensure LCFS radial location.
-  double a_mid =
-    fabs(a_shift) < 1e-13 ?
-      R_LCFSmid - R_axis :
-      R_axis / a_shift -
-        sqrt(R_axis * (R_axis - 2 * a_shift * R_LCFSmid + 2 * a_shift * R_axis)) / a_shift;
-
-  double r0 = R0 - R_axis; // Minor radius of the simulation box [m].
-  double B0 = B_axis * (R_axis / R0); // Magnetic field magnitude in the simulation box [T].
+  double R0 = R_LCFSmid + 0.5 * (x_outer - x_inner); // Physical outboard reference radius [m].
+  double a_shift = 0.5; // Parameter in Shafranov shift.
   double kappa = 1.4; // Elongation (=1 for no elongation).
   double delta = -0.38; // Triangularity (=0 for no triangularity).
+  double Ly_length_over_rho_s = 150.0; // Length of binormal domain divided by rho_s.
+
+  // Miller shape functions need the final context address.
+  *out = (struct gk_app_ctx){
+    .cdim = cdim,
+    .vdim = vdim,
+    .a_shift = a_shift,
+    .kappa = kappa,
+    .delta = delta,
+  };
+
+  out->miller = (struct gkyl_gen_miller_eqdsk_inp){
+    .input_coord_limits_type =
+      {GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP, GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH, 0},
+    .Rmajor_axis = Rmajor_axis,
+    .Zvert_axis = Zvert_axis,
+    .bmag_axis = -fabs(bmag_axis),
+    .Rmajor_LCFS = R_LCFSmid,
+    .kappa = miller_kappa,
+    .kappa_ctx = out,
+    .delta = miller_delta,
+    .delta_ctx = out,
+    .a_shift = miller_a_shift,
+    .a_shift_ctx = out,
+    .qsafety = qsafety,
+    .has_Rmajor_omp_bounds = true,
+  };
+  double rminor_LCFS = gkyl_gen_miller_eqdsk_rminor_at_R_omp(&out->miller, R_LCFSmid);
+  double outer_R = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&out->miller, rminor_LCFS + x_outer);
+  out->miller.Rmajor_omp_bounds[0] = Rmajor_axis;
+  out->miller.Rmajor_omp_bounds[1] = outer_R;
+  out->equilibrium = gkyl_gen_miller_eqdsk_inew(&out->miller);
+  if (!out->equilibrium) {
+    return false;
+  }
+
+  rminor_LCFS = gkyl_gen_miller_eqdsk_get_info(out->equilibrium)->rminor_LCFS;
+  double B0 = gkyl_gen_miller_eqdsk_bmag_at_RZ(out->equilibrium, R0, Zvert_axis);
+  if (!isfinite(B0) || B0 <= 0) {
+    gkyl_gen_miller_eqdsk_release(out->equilibrium);
+    out->equilibrium = NULL;
+    return false;
+  }
 
   // Plasma parameters. Chosen based on the value of a cubic sline
   // between the last TS data inside the LCFS and the probe data in
@@ -375,8 +285,8 @@ create_ctx(void)
   int num_species = 2;
   double AMU = 2.01410177811;
   double mi = mp * AMU; // Deuterium ions.
-  double Te0 = 100 * eV; // Ion reference temperature [J].
-  double Ti0 = 100 * eV; // Electron reference temperature [J].
+  double Te0 = 100 * eV; // Electron reference temperature [J].
+  double Ti0 = 100 * eV; // Ion reference temperature [J].
   double n0 = 2.0e19; // Reference density [1/m^3].
   double Bref = 1.129; // Reference magnetic field [T].
   double vte = sqrt(Te0 / me), vti = sqrt(Ti0 / mi);
@@ -384,20 +294,27 @@ create_ctx(void)
   double omega_ci = fabs(qi * B0 / mi);
   double rho_s = c_s / omega_ci;
 
-  // Configuration domain parameters
-  double Lx = Rmid_max - Rmid_min; // Domain size along x.
-  double x_min = 0.;
-  double x_max = Lx;
-  double x_LCFS = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
-  double q0 = qprofile(R0); // Safety factor in the center of domain.
-  double Cy = r0 / q0; // Normalization in binormal coordinate.
-
-  double Ly = 150 * rho_s; // Domain size along y.
-  // Adjust the domain size along y to have integer toroidal mode number.
-  // We need: 2*pi*Cy/Ly = integer.
-  Ly = 2. * M_PI * Cy / round(2. * M_PI * Cy / Ly);
-  double y_min = -Ly / 2.;
-  double y_max = Ly / 2.;
+  double Lx = x_inner + x_outer; // Width of the x domain [m].
+  out->rminor_LCFS = rminor_LCFS;
+  out->x_inner = x_inner;
+  double x_LCFS =
+    gkyl_round_to_e16_9(gkyl_gen_miller_eqdsk_get_info(out->equilibrium)->psi_boundary);
+  double psi_upper = psi_at_rMrlo(out, Lx);
+  double psi_lower = (x_LCFS - 0.4 * psi_upper) / 0.6;
+  double x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(out->equilibrium, psi_lower);
+  double psi_bounds[2] = {psi_lower, psi_upper};
+  double requested_Ly = Ly_length_over_rho_s * rho_s;
+  double y_bounds[2] = {-0.5 * requested_Ly, 0.5 * requested_Ly};
+  struct gkyl_gen_miller_eqdsk_binormal_extent binormal;
+  if (!gkyl_gen_miller_eqdsk_set_binormal_extents(
+        out->equilibrium, psi_bounds, y_bounds, &binormal
+      )) {
+    gkyl_gen_miller_eqdsk_release(out->equilibrium);
+    out->equilibrium = NULL;
+    return false;
+  }
+  double r0 = binormal.r0, q0 = binormal.q0, Cy = binormal.Cy, Ly = binormal.Ly;
+  double y_min = y_bounds[0], y_max = y_bounds[1];
 
   double Lz = 2. * M_PI - 1e-10; // Domain size along magnetic field.
   double z_min = -Lz / 2.;
@@ -417,22 +334,20 @@ create_ctx(void)
   // Source parameters
   int num_sources = 2;
   double P_exp = 0.34e6; // P_sol measured [W]
-  double vol_frac =
-    1.0 / (2. * M_PI * Cy / Ly); // Volume fraction of the simulation box (=0.5 here).
-  double P_inj =
-    P_exp * vol_frac /
-    num_species; // Injection power normalized to the volume fraction and per species [W]
+  double vol_frac = 1.0 / binormal.n_tor; // Toroidal fraction of the simulation box.
+  // Injection power normalized to the volume fraction and per species [W].
+  double P_inj = P_exp * vol_frac / num_species;
   // Core source:
-  // - Injects energy only in the core region (0.25MW per species).
-  // - The particles injection is only the one that are lost through the inner radial boundary.
+  // - Injects the prescribed power in the core region.
+  // - Replaces particles lost through the inner radial boundary.
   bool adapt_energy_srcCORE =
     true; // The source will compensate the losses in energy according to given boundaries.
   bool adapt_particle_srcCORE =
     true; // The source will compensate the losses in particle according to given boundaries.
   double energy_srcCORE = P_inj; // What the source must inject in energy [W]
   double particle_srcCORE = 0.0; // What the source must inject in particle [1/s]
-  double center_srcCORE[3] = {x_min, 0.0, -Lz / 4}; // This is the position of the ion source,
-  double sigma_srcCORE[3] = {0.03 * Lx, 0.0, Lz / 6}; // the electron source will be at +Lz/2.
+  double center_srcCORE[3] = {0.0, 0.0, -Lz / 4}; // This is the position of the ion source,
+  double sigma_srcCORE[3] = {0.03 * Lx, 0.0, Lz / 6}; // the electron source will be at +Lz/4.
   double floor_srcCORE = 1e-10;
   // Recycling source:
   // - Reinjects particles that are absorbed by the wall.
@@ -441,13 +356,12 @@ create_ctx(void)
   bool adapt_particle_srcRECY = true;
   double energy_srcRECY = 0.0; // [W]
   double particle_srcRECY = 0.0; // [1/s]
-  double center_srcRECY[3] = {0.5 * x_LCFS, 0.0, M_PI};
-  double sigma_srcRECY[3] = {0.25 * x_LCFS, 0.0, 0.05 * Lz};
+  double center_srcRECY[3] = {0.5 * x_inner, 0.0, M_PI};
+  double sigma_srcRECY[3] = {0.25 * x_inner, 0.0, 0.05 * Lz};
   double floor_srcRECY = 1e-10;
 
   // Grid parameters (reduced resolution for the regression test, minimal recommended values in comments)
-  int Nx =
-    15; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int Nx = 15; // The LCFS is at 2/5 of the domain, so Nx must be divisible by 5.
   int Ny = 8; // (16)
   int Nz = 8; // (12)
   int Nvpar = 4; // (12)
@@ -465,31 +379,36 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_app_ctx ctx = {
+  struct gk_app_ctx ctx_tmp = {
     .cdim = cdim,
     .vdim = vdim,
-    .a_shift = a_shift,
-    .R_axis = R_axis,
+    .Zvert_axis = Zvert_axis,
+    .Rmajor_axis = Rmajor_axis,
+    .miller = out->miller,
+    .equilibrium = out->equilibrium,
     .R0 = R0,
-    .a_mid = a_mid,
+    .rminor_LCFS = rminor_LCFS,
     .x_inner = x_inner,
     .r0 = r0,
     .B0 = B0,
+    .a_shift = a_shift,
     .kappa = kappa,
     .delta = delta,
     .q0 = q0,
     .Cy = Cy,
+    .c_s = c_s,
+    .rho_s = rho_s,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
     .x_min = x_min,
-    .x_max = x_max,
+    .x_max = outer_R,
+    .x_LCFS = x_LCFS,
     .y_min = y_min,
     .y_max = y_max,
     .z_min = z_min,
     .z_max = z_max,
     .Bref = Bref,
-    .x_LCFS = x_LCFS,
     .num_species = num_species,
     .me = me,
     .qe = qe,
@@ -534,7 +453,9 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
-  return ctx;
+
+  *out = ctx_tmp;
+  return true;
 }
 
 int
@@ -553,7 +474,8 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gk_app_ctx ctx = create_ctx(); // context for init functions
+  struct gk_app_ctx ctx = {0}; // Stable context for Miller callbacks and profiles.
+  bool initialized = create_ctx(&ctx);
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
   for (int d = 0; d < ctx.cdim; d++) {
@@ -566,11 +488,50 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
+  int failed = !initialized || cells_x[0] < 5 || cells_x[0] % 5 != 0;
+  int any_failed;
+  gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &failed, &any_failed);
+  if (any_failed) {
+    fprintf(stderr, "TCV Miller input requires a valid equilibrium and Nx divisible by 5.\n");
+    gkyl_gen_miller_eqdsk_release(ctx.equilibrium);
+    gkyl_gyrokinetic_comms_release(comm);
+#ifdef GKYL_HAVE_MPI
+    if (app_args.use_mpi) {
+      MPI_Finalize();
+    }
+#endif
+    return 1;
+  }
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+  if (rank == 0) {
+    printf(
+      "TCV Miller: R_omp=[%.12g, %.12g] m, psi_LCFS=%.12g Wb/rad (2/5 of radial grid).\n",
+      ctx.x_min, ctx.x_max, ctx.x_LCFS
+    );
+  }
+
+  struct source_profile_ctx core_elc = {
+    .app = &ctx,
+    .center = {ctx.center_srcCORE[0], 0, -ctx.center_srcCORE[2]},
+    .sigma = {ctx.sigma_srcCORE[0], 0, ctx.sigma_srcCORE[2]},
+    .floor = ctx.floor_srcCORE,
+  };
+  struct source_profile_ctx core_ion = core_elc;
+  core_ion.center[2] = ctx.center_srcCORE[2];
+  struct source_profile_ctx recycling = {
+    .app = &ctx,
+    .center = {ctx.center_srcRECY[0], 0, ctx.center_srcRECY[2]},
+    .sigma = {ctx.sigma_srcRECY[0], 0, ctx.sigma_srcRECY[2]},
+    .floor = ctx.floor_srcRECY,
+  };
+
   // Definition of the sources projections.
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], -ctx.center_srcCORE[2]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+    .configuration_profile = source_profile,
+    .configuration_profile_ctx = &core_elc,
     .total_num_particles = ctx.particle_srcCORE,
     .total_kin_energy = ctx.energy_srcCORE,
     .temp_max = 5.0 * ctx.Te0,
@@ -579,8 +540,8 @@ main(int argc, char **argv)
   };
   struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+    .configuration_profile = source_profile,
+    .configuration_profile_ctx = &core_ion,
     .total_num_particles = ctx.particle_srcCORE,
     .total_kin_energy = ctx.energy_srcCORE,
     .temp_max = 5.0 * ctx.Ti0,
@@ -589,8 +550,8 @@ main(int argc, char **argv)
   };
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
-    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
+    .configuration_profile = source_profile,
+    .configuration_profile_ctx = &recycling,
     .total_num_particles = ctx.particle_srcRECY,
     .total_kin_energy = ctx.energy_srcRECY,
     .temp_max = 5.0 * ctx.Te0,
@@ -599,8 +560,8 @@ main(int argc, char **argv)
   };
   struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
-    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
+    .configuration_profile = source_profile,
+    .configuration_profile_ctx = &recycling,
     .total_num_particles = ctx.particle_srcRECY,
     .total_kin_energy = ctx.energy_srcRECY,
     .temp_max = 5.0 * ctx.Ti0,
@@ -642,8 +603,7 @@ main(int argc, char **argv)
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
   };
 
-  // Species definitions
-  // electrons
+  // Electrons
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe,
@@ -655,12 +615,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
-
-    // .init_from_file = {
-    //    .type = GKYL_IC_IMPORT_F,
-    //    .file_name = "restart-elc.gkyl",
-    //    .jacobtot_inv_file_name = "restart-jacobtot_inv.gkyl",
-    // },
 
     .projection =
       {
@@ -704,10 +658,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -727,9 +683,11 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
-  // ions
+  // Ions
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi,
@@ -741,12 +699,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
-
-    // .init_from_file = {
-    //    .type = GKYL_IC_IMPORT_F,
-    //    .file_name = "restart-ion.gkyl",
-    //    .jacobtot_inv_file_name = "restart-jacobtot_inv.gkyl",
-    // },
 
     .projection =
       {
@@ -790,10 +742,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -813,6 +767,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   struct gkyl_poisson_bias_line target_corner_bcs[] = {
@@ -825,35 +781,35 @@ main(int argc, char **argv)
       .perp_dirs = {0, 2}, // Directions perpendicular to line.
       .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
       .val = 0.0, // Biasing value.
-    }
+    },
   };
 
   struct gkyl_poisson_bias_line_list bias_line_list = {.num_bias_line = 2, .bl = target_corner_bcs};
 
   // field
   struct gkyl_gyrokinetic_field field = {
+    .gkfield_id = GKYL_GK_FIELD_EM,
     .polarization_bmag = ctx.Bref,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .ampere_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .mu0 = GKYL_MU0,
     .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
 
-  // Geometry
+  // The app writes <app-name>-miller.geqdsk and initializes numerical tokamak geometry.
+  // It also derives the LCFS split and core twist shifts from that equilibrium.
   struct gkyl_gyrokinetic_geometry geometry = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.},
-    .mapc2p = mapc2p, // mapping of computational to physical space
-    .c2p_ctx = &ctx,
-    .bfield_func = bfield_func, // magnetic field
-    .bfield_ctx = &ctx,
-    .has_LCFS = true,
-    .x_LCFS = ctx.x_LCFS,
+    .geometry_id = GKYL_GEOMETRY_MILLER,
+    .miller_grid_info = ctx.miller,
   };
 
   // Parallelism
@@ -861,6 +817,15 @@ main(int argc, char **argv)
     .comm = comm,
     .cuts = {app_args.cuts[0], app_args.cuts[1], app_args.cuts[2]},
     .use_gpu = app_args.use_gpu,
+  };
+
+  // Binormal angle alpha uses y = Cy*alpha; rho_s is the reference sound gyroradius.
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+    {.key = "Rmajor_axis", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Rmajor_axis},
+    {.key = "Te0", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Te0},
+    {.key = "c_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.c_s},
   };
 
   // GK app
@@ -881,12 +846,21 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
+
     .num_species = ctx.num_species,
     .species = {elc, ion},
 
     .field = field,
 
     .parallelism = parallelism,
+
+    .metadata =
+      {
+        .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+        .attributes = additional_metadata,
+      },
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -909,6 +883,8 @@ main(int argc, char **argv)
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
+
+  gkyl_gen_miller_eqdsk_release(ctx.equilibrium);
 
   gkyl_gyrokinetic_comms_release(comm);
 

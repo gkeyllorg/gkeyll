@@ -6,6 +6,8 @@ void test_cudss_simple_dev();
 void test_cudss_ops_dev();
 void test_cudss_ops_update_amat_dev();
 void test_cudss_ops_multiple_rhs_dev();
+void test_cudss_ops_update_amat_multiple_rhs_dev();
+void test_cudss_ops_multiple_prob_dev();
 #else
 void test_cusolver_qr();
 void test_cusolver_rf();
@@ -22,6 +24,8 @@ TEST_LIST = {
   {"cudss_ops_dev", test_cudss_ops_dev},
   {"cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev},
   {"cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev},
+  {"cudss_ops_update_amat_multiple_rhs_dev", test_cudss_ops_update_amat_multiple_rhs_dev},
+  {"cudss_ops_multiple_prob_dev", test_cudss_ops_multiple_prob_dev},
 #else
   {"cusolver_qr_dev", test_cusolver_qr},
   {"cusolver_rf_dev", test_cusolver_rf},

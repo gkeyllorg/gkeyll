@@ -265,24 +265,20 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+      },
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
-    //    .num_integrated_diag_moments = 1,
-    //    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    //    .time_rate_diagnostics = true,
-    //
-    //    .boundary_flux_diagnostics = {
-    //      .num_diag_moments = 1,
-    //      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    //      .num_integrated_diag_moments = 1,
-    //      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    ////      .time_integrated = true,
-    //    },
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
+
+    .boundary_flux_diagnostics =
+      {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Field.
@@ -323,6 +319,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 1,
     .species = {elc},

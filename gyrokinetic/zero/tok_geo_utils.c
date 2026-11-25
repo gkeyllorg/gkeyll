@@ -19,8 +19,8 @@ find_upper_turning_point(
   double Rup[4], dRdZup[4];
   double dRup[4], dZup[4];
   while (true) {
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
-    int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
     //printf("nlo, nup = %d %d; zlo, zup = %g %g\n", nlo, nup, zlo, zup);
     if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
       // However I need to think thos through more. I think it is ok only when xpt
@@ -58,8 +58,8 @@ find_lower_turning_point(
   double Rlo[4], dRdZlo[4];
   double dRlo[4], dZlo[4];
   while (true) {
-    int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
     //printf("psi = %g;lo, nup = %d %d; zlo, zup = %g %g\n", psi_curr, nlo, nup, zlo, zup);
     if (nlo > 0) {
       *zmin = zlo;
@@ -92,8 +92,8 @@ find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, double
   double Rlo[4], dRdZlo[4];
   double dRlo[4], dZlo[4];
   while (true) {
-    int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
     //if(nlo==1){
     //  if (Rlo[0] < geo->rleft)
     //    nlo=0;
@@ -134,8 +134,8 @@ find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, double
   double Rup[4], dRdZup[4];
   double dRup[4], dZup[4];
   while (true) {
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
-    int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
     if (nup == 1) {
       if (Rup[0] < geo->rleft) {
         nup = 0;
@@ -616,6 +616,14 @@ tok_geo_set_extent(
     }
   }
 
+  // Computational theta increases along B_p. Reverse bounds without exchanging
+  // the physical block, limiter, or divertor locations.
+  if (geo->theta_orientation < 0) {
+    double lower_ref = *theta_lo;
+    *theta_lo = -*theta_up;
+    *theta_up = -lower_ref;
+  }
+
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
@@ -1086,6 +1094,7 @@ tok_set_ridders(
            (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO) ||
            (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID) ||
            (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP)) {
+    arc_ctx->right = true;
     *ridders_min = -arcL_curr;
     *ridders_max = arc_ctx->arcL_tot - arcL_curr;
     *rclose = arc_ctx->rclose;
@@ -1094,6 +1103,7 @@ tok_set_ridders(
              (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO) ||
              (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) ||
              (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)) {
+    arc_ctx->right = false;
     *ridders_min = arc_ctx->arcL_tot - arcL_curr;
     *ridders_max = -arcL_curr;
     *rclose = arc_ctx->rclose;

@@ -22,6 +22,8 @@
 //     [K - K_0 rho^2 nabla_perp^2] (Phi_0 - <Phi_0>),
 //   with K_0 the J-weighted average of K (see gk_field_adiabatic_k_avg), i.e. the updater's
 //   Laplacian term with factor K_0 rho^2/eps_pol.
+// Only adiabatic electrons are implemented in 2x/3x; methods specific to them are named
+// gk_field_adiab_elc_*.
 
 // Add the background charge density of the adiabatic species to rho_c.
 static void
@@ -30,12 +32,27 @@ gk_field_adiabatic_accumulate_rho_c_bg(gkyl_gyrokinetic_app *app, struct gk_fiel
   gkyl_array_accumulate_range(field->rho_c, 1.0, field->gk_adiab.rho_bg, &app->local);
 }
 
+// Energy of the background charge, factor * int rho_bg phi.
+static void
+gk_field_adiabatic_energy_bg(
+  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, double factor, double *out
+)
+{
+  const struct gk_field_adiabatic *ad = &gkf->gk_adiab;
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, ad->rho_bg_phi, 0, ad->rho_bg, 0, gkf->phi_smooth, &app->local
+  );
+  gkyl_array_integrate_advance(ad->calc_bg_energy, ad->rho_bg_phi, factor, 0, &app->local, 0, out);
+}
+
+/** 1x: K is added to the weight of the parallel projection. **/
+
 // Integral of a conf-space array over the global domain.
 static double
 gk_field_adiabatic_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_array *arr)
 {
-  double *integ = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-  double *integ_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  double *integ = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  double *integ_red = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
   struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
   );
@@ -45,13 +62,11 @@ gk_field_adiabatic_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_
   double integ_ho[1];
   if (app->use_gpu) {
     gkyl_cu_memcpy(integ_ho, integ_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_free(integ);
-    gkyl_cu_free(integ_red);
   } else {
     integ_ho[0] = integ_red[0];
-    gkyl_free(integ);
-    gkyl_free(integ_red);
   }
+  gkyl_free_hodev(app->use_gpu, integ);
+  gkyl_free_hodev(app->use_gpu, integ_red);
   gkyl_array_integrate_release(int_op);
   return integ_ho[0];
 }
@@ -133,7 +148,7 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   ad->calc_energy = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu
   );
-  ad->energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  ad->energy_red = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
   // Factor of the Laplacian term in the response with FLR effects, K_0 rho^2/eps_pol, with the
   // constant K_0 the J-weighted average of K (from the t=0 moments of the adiabatic species).
@@ -176,12 +191,12 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   );
 }
 
-// Solve the field equation with the adiabatic response, apply the FLR correction, then smooth
+// Solve the field equation with the adiabatic response, apply the FLR correction and smooth
 // phi along z.
 static void
 gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
-  // Solve -div(eps grad_perp phi) + K (phi - <phi>) = rho.
+  // Solve -div(eps grad_perp phi) + K (phi - <phi>) = rho (for Phi_0 with FLR effects).
   gkyl_fem_poisson_perp_adiabatic_advance(field->gk_adiab.solver, field->rho_c, field->phi_smooth);
 
   field->invert_flr(app, field, field->phi_smooth);
@@ -238,11 +253,7 @@ gk_field_adiab_elc_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_array_release(ad->phi_fsa);
   gkyl_array_release(ad->phi_buff);
   gkyl_array_integrate_release(ad->calc_energy);
-  if (app->use_gpu) {
-    gkyl_cu_free(ad->energy_red);
-  } else {
-    gkyl_free(ad->energy_red);
-  }
+  gkyl_free_hodev(app->use_gpu, ad->energy_red);
 }
 
 void
@@ -259,6 +270,13 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   ad->kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   gkf->accumulate_rhoc_bg_func = gk_field_adiabatic_accumulate_rho_c_bg;
+  if (gkf->energy_balance) {
+    ad->rho_bg_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    ad->calc_bg_energy = gkyl_array_integrate_new(
+      &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
+    );
+    gkf->energy_bg_func = gk_field_adiabatic_energy_bg;
+  }
   if (app->cdim > 1) {
     // Adiabatic electrons respond to phi - <phi>, only valid on closed field lines.
     assert(!app->gk_geom->has_LCFS);
@@ -303,4 +321,8 @@ gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_fie
   gkf->gk_adiab.release_func(app, gkf);
   gkyl_array_release(gkf->gk_adiab.rho_bg);
   gkyl_array_release(gkf->gk_adiab.kJ);
+  if (gkf->energy_balance) {
+    gkyl_array_release(gkf->gk_adiab.rho_bg_phi);
+    gkyl_array_integrate_release(gkf->gk_adiab.calc_bg_energy);
+  }
 }

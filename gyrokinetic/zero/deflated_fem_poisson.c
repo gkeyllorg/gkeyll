@@ -206,8 +206,8 @@ deflated_fem_poisson_solve_plane(
   if (up->isdirichletvar) {
     // Deflate the BC field.
     gkyl_deflate_zsurf_advance(
-      deflator, zidx, &up->global_sub_range, &up->deflated_local, phibc, plane_data->deflated_phibc,
-      1
+      deflator, zidx, &up->global_sub_range, &up->deflated_local, phibc,
+      plane_data->deflated_phibc, 1
     );
   }
   // Do the poisson solve

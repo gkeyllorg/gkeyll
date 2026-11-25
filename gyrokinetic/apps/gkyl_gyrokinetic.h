@@ -73,6 +73,12 @@ struct gkyl_gyrokinetic_projection {
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
       double gaussian_std_dev
         [GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      // Optional nonnegative configuration envelope for MAXWELLIAN_GAUSSIAN.
+      // Evaluated once at t=0 in grid coordinates; overrides gaussian_mean/std_dev.
+      // The callback handles periodic wrapping and adds any desired profile floor.
+      // Its volume integral is normalized to one by the projection updater.
+      void (*configuration_profile)(double t, const double *xn, double *fout, void *ctx);
+      void *configuration_profile_ctx;
       double total_num_particles; // Total number of particle (M0 moment).
       double total_kin_energy; // Total kinetic energy (0.5*mass*M2 moment).
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
@@ -87,13 +93,33 @@ struct gkyl_gyrokinetic_projection {
   };
 };
 
+// Balance diagnostics: time rate of change of a conserved quantity vs its
+// sources and boundary fluxes. The particle balance is that of the number of
+// particles, sum_s int f. The energy balance is that of the energy
+// sum_s int H f - E_field + E_apar + int rho_bg phi, with E_field the field
+// energy, E_apar = int |grad_perp A_par|^2/(2 mu0) the A_parallel energy (if
+// electromagnetic) and rho_bg the background charge density of the adiabatic
+// species (all absent with a static field). The energy balance of a single
+// species omits the field terms, so its error is the energy the species
+// exchanges with the field.
+enum gkyl_gyrokinetic_balance_diag {
+  GKYL_GK_BALANCE_PARTICLE = 0, // Particle balance.
+  GKYL_GK_BALANCE_ENERGY, // Energy balance.
+  GKYL_GK_BALANCE_COUNT // Number of options (for internal use).
+};
+
+// File-name strings corresponding to the enum options above.
+static const char *gkyl_gyrokinetic_balance_diag_strs[] = {"particle", "energy"};
+
 struct gkyl_phase_diagnostics_inp {
   int num_diag_moments; // Number of diagnostic moments.
-  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
-    integrated_diag_moments[12]; // List of integrated diagnostic moments.
-  bool time_integrated; // Whether to use time integrated diags.
+    integrated_diag_moments[GKYL_F_MOMENT_COUNT]; // List of integrated diagnostic moments.
+  int num_balance_diags; // Number of balance diagnostics (only used by the app).
+  enum gkyl_gyrokinetic_balance_diag
+    balance_diags[GKYL_GK_BALANCE_COUNT]; // List of balance diagnostics (only used by the app).
 };
 
 // Parameters for collisionless terms.
@@ -175,7 +201,6 @@ struct gkyl_gyrokinetic_source {
   // Sources whose shape is imported directly from a file (used only when
   // source_id == GKYL_SOURCE_FROMFILE).
   struct gkyl_gyrokinetic_ic_import source_import[GKYL_MAX_SOURCES];
-
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
@@ -193,13 +218,18 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 // 2. nu(x)*(f_M(n_S,upar,T) - f)
 //    nu(x)*(f_M(n,upar_S,T) - f)
 //    nu(x)*(f_M(n,upar,T_S) - f)
-//    for external model
+//    for external model or
+// 3. nu(x)*(F_eq - f)
+//    for static model, with F_eq the projection of feq_shape or, if feq_shape
+//    is not given, that specified by projection.
 struct gkyl_gyrokinetic_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x,y,z).
   void *rate_profile_ctx;
   void (*feq_shape)(double t, const double *xn, double *fout, void *ctx); // F_eq(x,y,z,vpar,mu).
   void *feq_shape_ctx;
+  struct gkyl_gyrokinetic_projection
+    projection; // Projection object input (e.g. for MAXWELLIAN_PRIM).
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
@@ -209,6 +239,7 @@ struct gkyl_gyrokinetic_source_bgk {
   // n_s = max(n_s, damping factor*n)
   // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
+  struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
 // Emitting BCs inputs.
@@ -276,12 +307,20 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_gyrokinetic_core_parallel_bcs
     core_parallel_bcs; // BCs info in closed flux surface region.
 
-  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp
     tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info; // Context for Miller geometry.
+
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
+  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
+
+  // Optional function to return the gk_geometry pointer to the user,
+  // so they can use it or store it in their context.
+  void (*set_gk_geometry)(const struct gk_geometry *geo, void *ctx);
+  void *set_gk_geometry_ctx;
 };
 
 // Parameters for species radiation.
@@ -486,11 +525,14 @@ struct gkyl_gyrokinetic_species {
   bool scale_with_polarization;
 
   int num_diag_moments; // number of diagnostic moments
-  enum gkyl_distribution_moments diag_moments[12]; // list of diagnostic moments
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // list of diagnostic moments
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
-    integrated_diag_moments[12]; // List of integrated diagnostic moments.
+    integrated_diag_moments[GKYL_F_MOMENT_COUNT]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  int num_balance_diags; // Number of balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag
+    balance_diags[GKYL_GK_BALANCE_COUNT]; // List of balance diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
@@ -547,15 +589,13 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
-
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
   int num_diag_moments; // Number of diagnostic moments.
-  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // List of diagnostic moments.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
@@ -636,7 +676,10 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
-// Additional metadata users can provide.
+// Additional metadata users can provide. Output files automatically include the
+// original key names in input_metadata_keys. Duplicate keys, including collisions
+// with Gkeyll metadata, are rejected when lists are combined or serialized.
+// input_metadata_keys and is_multib are reserved for internal application use.
 struct gkyl_gyrokinetic_metadata_inp {
   struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
   int num_attributes; // Number of attributes.
@@ -657,6 +700,9 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.7).
   bool omegaH_es_only; // Use the electrostatic omega_H dt bound also when solving EM fields.
+
+  // App level diagnostics.
+  struct gkyl_phase_diagnostics_inp diagnostics;
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -997,6 +1043,43 @@ void gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(
  * @param sidx Index of species whose integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Compute the moment balance of a plasma species from its integrated moment diagnostics.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
+ */
+void gkyl_gyrokinetic_app_calc_species_balance(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, double dt
+);
+
+/**
+ * Write the balance diagnostic of a plasma species to file.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to write.
+ */
+void gkyl_gyrokinetic_app_write_species_balance(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Compute the balance diagnostics including all species and fields.
+ *
+ * @param app App object.
+ * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
+ */
+void gkyl_gyrokinetic_app_calc_balance(gkyl_gyrokinetic_app *app, double tm, double dt);
+
+/**
+ * Write the balance diagnostics summed over species to file. Appended to the
+ * same file after the first write.
+ *
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_balance(gkyl_gyrokinetic_app *app);
 
 /**
  * Write integrated diagnostic moments for neutral species to file. Integrated
@@ -1347,12 +1430,14 @@ void gkyl_gyrokinetic_app_write_neut_species_conf(
 void gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
- * Calculate integrated diagnostic moments for all species (including sources).
+ * Calculate integrated diagnostic moments for all species (including sources),
+ * and the balance diagnostics.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm);
+void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm, double dt);
 
 /**
  * Calculate the L2 norm for all species.

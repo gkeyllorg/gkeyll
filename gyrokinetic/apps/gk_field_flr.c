@@ -155,7 +155,6 @@ gk_field_invert_flr_op(gkyl_gyrokinetic_app *app, struct gk_field *field, struct
 void
 gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
-  // Do nothing.
 }
 
 static void

@@ -711,8 +711,7 @@ test_deflated_fem_poisson_dg(int cdim, bool use_gpu)
   struct dg_test_ctx ctx = {.cdim = cdim, .z_lower = lower[cdim - 1], .dz = grid.dx[cdim - 1]};
   struct gkyl_array *rho_perp_ho = gkyl_array_new(GKYL_DOUBLE, num_basis, size);
   struct gkyl_array *par_ho = gkyl_array_new(GKYL_DOUBLE, num_basis, size);
-  gkyl_proj_on_basis *proj_perp =
-    gkyl_proj_on_basis_new(&grid, &basis, 2, 1, rho_func_dg_perp, &ctx);
+  gkyl_proj_on_basis *proj_perp = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, rho_func_dg_perp, &ctx);
   gkyl_proj_on_basis *proj_par = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, rho_func_dg_par, &ctx);
   gkyl_proj_on_basis_advance(proj_perp, 0.0, &local, rho_perp_ho);
   gkyl_proj_on_basis_advance(proj_par, 0.0, &local, par_ho);
