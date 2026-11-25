@@ -4600,8 +4600,7 @@ gkyl_gyrokinetic_app_read_geometry(
       "geo_int_g_ij_neut"
     );
     gyrokinetic_app_geometry_read_and_copy(
-      app, app->gk_geom->geo_int.gij_neut, arr_ho6, geometry_inp->geometry_path,
-      "geo_int_gij_neut"
+      app, app->gk_geom->geo_int.gij_neut, arr_ho6, geometry_inp->geometry_path, "geo_int_gij_neut"
     );
   }
   gyrokinetic_app_geometry_read_and_copy(
