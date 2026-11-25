@@ -646,7 +646,10 @@ gk_species_radiation_init(
         rad->collide_with[i] = gk_find_species(app, gks->info.radiation.collide_with[i]);
         rad->is_neut_species[i] = false;
         // allocate density calculation needed for radiation update
-        gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], GKYL_F_MOMENT_M0, false);
+        gk_species_moment_init(
+          app, rad->collide_with[i], &rad->moms[i], GKYL_F_MOMENT_M0, GKYL_F_MOMENT_WEIGHT_NONE,
+          false
+        );
       }
 
       if (status == 1) {
@@ -704,7 +707,9 @@ gk_species_radiation_init(
     rad->nvsqnu = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
     // Allocate moments needed for temperature update.
-    gk_species_moment_init(app, gks, &rad->prim_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+    gk_species_moment_init(
+      app, gks, &rad->prim_moms, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_WEIGHT_NONE, false
+    );
 
     rad->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     rad->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -740,7 +745,7 @@ gk_species_radiation_init(
       rad->emissivity_denominator =
         mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-      gk_species_moment_init(app, gks, &rad->m2, GKYL_F_MOMENT_M2, false);
+      gk_species_moment_init(app, gks, &rad->m2, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_WEIGHT_NONE, false);
       for (int i = 0; i < rad->num_cross_collisions; ++i) {
         // Allocate emissivity.
         rad->emissivity[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -750,7 +755,9 @@ gk_species_radiation_init(
       }
 
       // Allocate data and updaters for integrated moments.
-      gk_species_moment_init(app, gks, &rad->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+      gk_species_moment_init(
+        app, gks, &rad->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_WEIGHT_NONE, true
+      );
       int num_mom = rad->integ_moms.num_mom;
       rad->red_integ_diag = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
       rad->red_integ_diag_global = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));

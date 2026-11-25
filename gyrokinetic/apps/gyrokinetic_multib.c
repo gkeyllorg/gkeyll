@@ -532,6 +532,7 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   struct gkyl_gyrokinetic_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
+  mbapp->fdot_args = (struct gkyl_gyrokinetic_multib_fdot_args){0};
 
   strcpy(mbapp->name, mbinp->name);
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
@@ -629,6 +630,40 @@ and the maximum number of cuts in a block is %d\n\n",
   return mbapp;
 }
 
+// Allocate only the top-level pointer arrays; all state data are borrowed.
+static void
+gyrokinetic_multib_fdot_args_init(struct gkyl_gyrokinetic_multib_app *app)
+{
+  struct gkyl_gyrokinetic_multib_fdot_args *args = &app->fdot_args;
+  args->num_species = app->num_species;
+  args->num_neut_species = app->num_neut_species;
+  args->nblocks_local = app->num_local_blocks;
+  size_t num_charged = (size_t)app->num_local_blocks * app->num_species;
+  args->fin = num_charged ? gkyl_calloc(num_charged, sizeof(*args->fin)) : NULL;
+  args->fout = num_charged ? gkyl_calloc(num_charged, sizeof(*args->fout)) : NULL;
+  args->smom_in = num_charged ? gkyl_calloc(num_charged, sizeof(*args->smom_in)) : NULL;
+  args->smom_out = num_charged ? gkyl_calloc(num_charged, sizeof(*args->smom_out)) : NULL;
+  size_t num_neut = (size_t)app->num_local_blocks * app->num_neut_species;
+  args->fin_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->fin_neut)) : NULL;
+  args->fout_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->fout_neut)) : NULL;
+  args->smom_in_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->smom_in_neut)) : NULL;
+  args->smom_out_neut = num_neut ? gkyl_calloc(num_neut, sizeof(*args->smom_out_neut)) : NULL;
+}
+
+// Release pointer storage without releasing any borrowed state arrays.
+static void
+gyrokinetic_multib_fdot_args_release(struct gkyl_gyrokinetic_multib_fdot_args *args)
+{
+  gkyl_free(args->fin);
+  gkyl_free(args->fout);
+  gkyl_free(args->smom_in);
+  gkyl_free(args->smom_out);
+  gkyl_free(args->fin_neut);
+  gkyl_free(args->fout_neut);
+  gkyl_free(args->smom_in_neut);
+  gkyl_free(args->smom_out_neut);
+}
+
 gkyl_gyrokinetic_multib_app *
 gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
 {
@@ -648,6 +683,7 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   struct gkyl_gyrokinetic_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
+  mbapp->fdot_args = (struct gkyl_gyrokinetic_multib_fdot_args){0};
 
   strcpy(mbapp->name, mbinp->name);
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
@@ -1083,6 +1119,8 @@ and the maximum number of cuts in a block is %d\n\n",
 
   mbapp->dts = gkyl_dynvec_new(GKYL_DOUBLE, 1); // Dynvector to store time steps.
   mbapp->is_first_dt_write_call = true;
+
+  gyrokinetic_multib_fdot_args_init(mbapp);
 
   gkyl_free(rank_list);
   gkyl_free(branks);
@@ -2402,6 +2440,8 @@ gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app *mbapp)
 void
 gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
 {
+  gyrokinetic_multib_fdot_args_release(&mbapp->fdot_args);
+
   for (int i = 0; i < mbapp->num_neut_species; ++i) {
     for (int bI = 0; bI < mbapp->num_local_blocks; ++bI) {
       gkyl_multib_comm_conn_release(mbapp->mbcc_sync_neut[i].send[bI]);
