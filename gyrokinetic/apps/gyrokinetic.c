@@ -4818,6 +4818,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   // Append to existing integrated diagnostics.
   app->is_first_dt_write_call = false;
   gk_s->integ_moms.is_first_write = false;
+  if (gk_s->info.frequency_diagnostics) {
+    gk_s->is_first_frequencies_write_call = false;
+  }
   gk_s->is_first_L2norm_write_call = false;
   for (int d = 0; d < gk_s->gksbal.num_diags; ++d) {
     gk_s->gksbal.is_first_write[d] = false;

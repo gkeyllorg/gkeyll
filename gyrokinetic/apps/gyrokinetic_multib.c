@@ -264,6 +264,7 @@ singleb_app_new_solver(
       species_inp.integrated_diag_moments[n] = sp->integrated_diag_moments[n];
     }
     species_inp.time_rate_diagnostics = sp->time_rate_diagnostics;
+    species_inp.frequency_diagnostics = sp->frequency_diagnostics;
     species_inp.num_balance_diags = sp->num_balance_diags;
     for (int n = 0; n < species_inp.num_balance_diags; ++n) {
       species_inp.balance_diags[n] = sp->balance_diags[n];

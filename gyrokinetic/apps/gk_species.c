@@ -495,6 +495,10 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
 
   gk_integ_moms_calc_append(app, gks, &gks->integ_moms, gks->f, tm);
 
+  if (!gks->is_fluid && gks->info.frequency_diagnostics) {
+    gk_species_frequencies_calc(app, gks, tm);
+  }
+
   if (gks->time_rate_diags) {
     // Integrated moments of (f_new - f_old)/dt over the last time step.
     for (int m = 0; m < gks->fdot_integ_moms.num; m++) {
@@ -519,6 +523,9 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
   struct timespec wst = gkyl_wall_clock();
 
   gk_integ_moms_write(app, gks, &gks->integ_moms, "", "Volume integrated moments.");
+  if (!gks->is_fluid && gks->info.frequency_diagnostics) {
+    gk_species_frequencies_write(app, gks);
+  }
   if (gks->time_rate_diags) {
     gk_integ_moms_write(
       app, gks, &gks->fdot_integ_moms, "fdot_", "Volume integrated moments of time rate of change."
