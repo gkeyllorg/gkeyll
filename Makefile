@@ -134,13 +134,21 @@ endif
 MOM_MAX_REGS ?= 64
 FLUX_MAX_REGS ?= 128
 BINOP_MAX_REGS ?= 64
+# Density-weighted radiation drag kernels share the weighted-moment indirect-call
+# prototype. Their register usage must fit MOM_MAX_REGS even though moments never
+# select them. Cap only rad_gyrokinetic_drag_nI_nu_*; leave other radiation kernels
+# uncapped. Default to the moment budget; overrides above it (or disabling this cap
+# alone) can make nvlink fail. Rebuild affected objects after changing register caps.
+RAD_MAX_REGS ?= $(MOM_MAX_REGS)
 NVCC_MOM_FLAGS =
 NVCC_FLUX_FLAGS =
 NVCC_BINOP_FLAGS =
+NVCC_RAD_FLAGS =
 ifdef USING_NVCC
 	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
 	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
 	NVCC_BINOP_FLAGS = $(if $(BINOP_MAX_REGS),-maxrregcount=$(BINOP_MAX_REGS))
+	NVCC_RAD_FLAGS = $(if $(RAD_MAX_REGS),-maxrregcount=$(RAD_MAX_REGS))
 endif
 
 CFLAGS += ${HAVE_APP_FLAGS}
@@ -255,7 +263,7 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS NVCC_RAD_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH

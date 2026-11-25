@@ -212,7 +212,7 @@ clamp_cflrate_by_omega_max(
 )
 {
   // buffer = min(1, omega_max/cflrate) * time_dilation_scale_const
-  gkyl_array_invert_by_cell(fdmul->buffer, cflrate);
+  gkyl_array_comp_op(fdmul->buffer, GKYL_INV, 1.0, cflrate, 0.0, NULL);
   gkyl_array_scale(fdmul->buffer, omega_max);
   gkyl_array_min_by_cell(fdmul->buffer, fdmul->buffer, 1.0);
   gkyl_array_scale(fdmul->buffer, fdmul->time_dilation_scale_const);

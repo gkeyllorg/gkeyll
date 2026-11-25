@@ -206,15 +206,19 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   gk_species_init_io(app, gks);
 
   // Allocate moment operators to compute M0 and Maxwellian moments.
-  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
-  gk_species_moment_init(app, gks, &gks->lte.moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_WEIGHT_NONE, false);
+  gk_species_moment_init(
+    app, gks, &gks->lte.moms, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_WEIGHT_NONE, false
+  );
 
   // Fluid species are not gyroaveraged (they provide no reference gyroradius).
   gk_species_flr_new(app, gks);
 
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment) * gks->info.num_diag_moments);
   for (int m = 0; m < gks->info.num_diag_moments; ++m) {
-    gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
+    gk_species_moment_init(
+      app, gks, &gks->moms[m], gks->info.diag_moments[m], GKYL_F_MOMENT_WEIGHT_NONE, false
+    );
   }
 
   if (gks->info.init_from_file.type == GKYL_IC_IMPORT_NONE) {

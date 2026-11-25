@@ -649,7 +649,9 @@ gk_species_source_bgk_init(
       src->Jrate_cap = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
       // Correction moments of the operator.
-      gk_species_moment_init(app, gks, &src->correct_mom_op, GKYL_F_MOMENT_M0M1M2, false);
+      gk_species_moment_init(
+        app, gks, &src->correct_mom_op, GKYL_F_MOMENT_M0M1M2, GKYL_F_MOMENT_WEIGHT_NONE, false
+      );
 
       // Methods chosen at runtime.
       src->rhs_func = gk_species_source_bgk_rhs_external_enabled;

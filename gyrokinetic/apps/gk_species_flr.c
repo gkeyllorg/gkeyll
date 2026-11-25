@@ -973,7 +973,9 @@ gk_species_flr_em_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
     gks->gyro_apardot = mkarr(app->use_gpu, pm->num_mu * num_basis, size);
     gkyl_array_clear(gks->gyro_apar, 0.0);
     gkyl_array_clear(gks->gyro_apardot, 0.0);
-    gk_species_moment_init(app, gks, &pm->m1_mu, GKYL_F_MOMENT_M1, false);
+    gk_species_moment_init(
+      app, gks, &pm->m1_mu, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_WEIGHT_NONE, false
+    );
 
     gks->gyroaverage_moment = gk_species_flr_pade_mu_gyroaverage_moment;
     gks->gyroaverage_apar = gk_species_flr_pade_mu_gyroaverage_apar;
@@ -998,7 +1000,9 @@ gk_species_flr_em_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gkyl_array_clear(gks->gyro_apardot, 0.0);
   gm->flow_cells = mkarr(app->use_gpu, gm->num_mu * num_basis, size);
   gkyl_array_clear(gm->flow_cells, 0.0);
-  gk_species_moment_init(app, gks, &gm->m1_mu, GKYL_F_MOMENT_M1, false);
+  gk_species_moment_init(
+    app, gks, &gm->m1_mu, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_WEIGHT_NONE, false
+  );
 
   gks->gyroaverage_moment = gk_species_flr_gyromatrix_gyroaverage_moment;
   gks->gyroaverage_apar = gk_species_flr_gyromatrix_gyroaverage_apar;

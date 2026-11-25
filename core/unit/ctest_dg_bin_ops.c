@@ -541,12 +541,14 @@ test_inv_1d(int poly_order, bool use_gpu)
     const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, i);
 
     const double A0R2 = pow(A[0], 2);
-    const double A1R2 = pow(A[1], 2);
+    const double A1R2 = poly_order > 0 ? pow(A[1], 2) : 0.0;
     double det = -0.5 * (A1R2 - 1.0 * A0R2);
 
     double A_inv_expected[basis.num_basis];
     A_inv_expected[0] = A[0] / det;
-    A_inv_expected[1] = -(1.0 * A[1]) / det;
+    if (poly_order > 0) {
+      A_inv_expected[1] = -(1.0 * A[1]) / det;
+    }
 
     for (int k = 0; k < basis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12));
@@ -567,12 +569,14 @@ test_inv_1d(int poly_order, bool use_gpu)
     const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, loc);
 
     const double A0R2 = pow(A[0], 2);
-    const double A1R2 = pow(A[1], 2);
+    const double A1R2 = poly_order > 0 ? pow(A[1], 2) : 0.0;
     double det = -0.5 * (A1R2 - 1.0 * A0R2);
 
     double A_inv_expected[basis.num_basis];
     A_inv_expected[0] = A[0] / det;
-    A_inv_expected[1] = -(1.0 * A[1]) / det;
+    if (poly_order > 0) {
+      A_inv_expected[1] = -(1.0 * A[1]) / det;
+    }
 
     for (int k = 0; k < basis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12));
@@ -2981,6 +2985,12 @@ test_bin_ops_inv_1d_p1_ho()
 }
 
 void
+test_bin_ops_inv_1d_p0_ho()
+{
+  test_inv_1d(0, false);
+}
+
+void
 test_bin_ops_2d_p1_ho()
 {
   test_2d(1, false);
@@ -3321,6 +3331,12 @@ test_bin_ops_inv_1d_p1_dev()
 }
 
 void
+test_bin_ops_inv_1d_p0_dev()
+{
+  test_inv_1d(0, true);
+}
+
+void
 test_bin_ops_2d_p1_dev()
 {
   test_2d(1, true);
@@ -3490,6 +3506,7 @@ test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
 
 TEST_LIST = {
   {"test_bin_ops_1d_p1_ho", test_bin_ops_1d_p1_ho},
+  {"test_bin_ops_inv_1d_p0_ho", test_bin_ops_inv_1d_p0_ho},
   {"test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho},
   {"test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho},
   {"test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho},
@@ -3508,6 +3525,7 @@ TEST_LIST = {
    test_bin_ops_conf_phase_accumulate_subtract_p2_ho},
 #ifdef GKYL_HAVE_CUDA
   {"test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev},
+  {"test_bin_ops_inv_1d_p0_dev", test_bin_ops_inv_1d_p0_dev},
   {"test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev},
   {"test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev},
   {"test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev},
