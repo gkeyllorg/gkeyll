@@ -1224,7 +1224,7 @@ test_mom_gyrokinetic_2x2v_p2_dev()
 // modal inputs. The stack geometry/map fixtures own only the fields read by
 // this updater and retain one reference until both updaters have been released.
 static void
-test_mom_gyrokinetic_dispatch_all()
+test_mom_gyrokinetic_dispatch_all_dev()
 {
   const enum gkyl_distribution_moments moments[] = {
     GKYL_F_MOMENT_M0,
@@ -1371,7 +1371,7 @@ TEST_LIST = {
   {"test_mom_gyrokinetic_2x2v_p1_ho", test_mom_gyrokinetic_2x2v_p1_ho},
 // { "test_mom_gyrokinetic_2x2v_p2_ho", test_mom_gyrokinetic_2x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_mom_gyrokinetic_dispatch_all", test_mom_gyrokinetic_dispatch_all},
+  {"test_mom_gyrokinetic_dispatch_all_dev", test_mom_gyrokinetic_dispatch_all_dev},
   {"test_mom_gyrokinetic_1x1v_p1_dev", test_mom_gyrokinetic_1x1v_p1_dev},
   // { "test_mom_gyrokinetic_1x1v_p2_dev", test_mom_gyrokinetic_1x1v_p2_dev },
   {"test_mom_gyrokinetic_1x2v_p1_dev", test_mom_gyrokinetic_1x2v_p1_dev},
