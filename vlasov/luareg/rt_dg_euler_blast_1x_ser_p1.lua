@@ -5,11 +5,11 @@
 -- 1; pressure 1000 left of x = 0.1, 0.01 between 0.1 and 0.9, and 100 right of 0.9, to t = 0.038.
 -- The reference is a second-order finite-volume solution (MUSCL, HLLE) on 6400 cells.
 --
--- Figures of merit (serendipity p1, 160 cells, 757 steps): L1 errors of the cell averages against
--- the reference of 7.3% (density, of the mean density), 0.54% (velocity, of the largest |u| + c_s)
--- and 2.6% (pressure, of the mean pressure); largest density 3.67 at x = 0.778 (reference 4.15 at x
--- = 0.784 on the same cells), largest pressure 311.3 (reference 318.5), largest velocity 13.26
--- (reference 13.17). The mass and the energy change by 3e-14 and 4e-14 of their initial values.
+-- Figures of merit (serendipity p1, 160 cells, 818 steps): L1 errors of the cell averages against
+-- the reference of 5.5% (density, of the mean density), 0.35% (velocity, of the largest |u| + c_s)
+-- and 2.2% (pressure, of the mean pressure); largest density 4.16 at x = 0.791 (reference 4.15 at x
+-- = 0.784 on the same cells), largest pressure 330.2 (reference 318.5), largest velocity 13.26
+-- (reference 13.17). The mass and the energy change by 4e-14 and 5e-14 of their initial values.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

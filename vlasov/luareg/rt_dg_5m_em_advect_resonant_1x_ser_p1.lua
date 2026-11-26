@@ -14,7 +14,7 @@
 -- linearly in time: at t = 100, u_y = -25.318282 and u_z = -42.862761. Figures of merit (2 cells,
 -- serendipity p1, 3945 steps, Omega_c dt = 0.025): u_y = -25.430838 and u_z = -42.790168, errors
 -- -1.1e-1 and 7.3e-2 (0.27% of the speed, 49.8). The internal energy stays at its initial value to
--- 2.3e-10 while the bulk kinetic energy grows to 826 times it, and the state stays uniform.
+-- 2.1e-10 while the bulk kinetic energy grows to 826 times it, and the state stays uniform.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

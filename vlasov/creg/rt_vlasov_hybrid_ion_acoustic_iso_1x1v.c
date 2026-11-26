@@ -12,9 +12,9 @@
 // Kinetic electrons give omega = 0.08590 omega_pi and a damping rate of 0.02508 omega_pi; adiabatic
 // fluid electrons (gamma = 5/3, rt_vlasov_hybrid_ion_acoustic_1x1v) 0.09470 and 0.01333. Figures of
 // merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, 1727 steps, omega_pe dt = 1.31):
-// between t = 1 and 3 wave periods the ion density wave decays at 0.02014 omega_pi (-0.5%) with
-// omega = 0.08442 omega_pi (+1.2%). The total energy (field, ions, and (1/2) rho u^2 + v_t^2 rho ln
-// rho of the electrons) changes by -8e-11 (1.4e-3 of twice the initial kinetic energy of the ion
+// between t = 1 and 3 wave periods the ion density wave decays at 0.02009 omega_pi (-0.8%) with
+// omega = 0.08295 omega_pi (-0.5%). The total energy (field, ions, and (1/2) rho u^2 + v_t^2 rho ln
+// rho of the electrons) changes by +3e-11 (6.1e-4 of twice the initial kinetic energy of the ion
 // flow).
 
 #include <complex.h>

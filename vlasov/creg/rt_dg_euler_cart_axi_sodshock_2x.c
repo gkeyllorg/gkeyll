@@ -3,13 +3,13 @@
 // inside r < 0.75 and (1, 0, 1) outside, gamma = 1.4, on [-1.25, 1.25]^2 with copy boundaries,
 // t_end = 0.1; the axisymmetric generalization of Section 2.6.2 of A. Hakim (2006), "High
 // Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations", PhD thesis, University of
-// Washington. Figures of merit (serendipity p1, 128 x 128 cells, 54 steps): against the moments
+// Washington. Figures of merit (serendipity p1, 128 x 128 cells, 55 steps): against the moments
 // solution on 512 x 512 cells (ending at t = 0.1008), block-averaged, the L1 differences of the
-// cell averages are 4.9e-3 of the mean in density and 5.3e-3 in pressure. The densities along the x
-// axis and along the diagonal, as functions of radius, differ by 6.5e-3 on average (reference:
-// 1.7e-3); the shock (rho = 1.2) is at r = 0.9031 on the axis and 0.9011 on the diagonal
+// cell averages are 4.0e-3 of the mean in density and 4.5e-3 in pressure. The densities along the x
+// axis and along the diagonal, as functions of radius, differ by 1.0e-2 on average (reference:
+// 1.7e-3); the shock (rho = 1.2) is at r = 0.9021 on the axis and 0.8993 on the diagonal
 // (reference: 0.8993 and 0.8986). The cell averages keep the mirror symmetries in x, in y and about
-// the diagonal to 1e-14; mass and energy are conserved to 1e-14.
+// the diagonal to 1e-14; mass and energy are conserved to 2e-14.
 
 #include <math.h>
 #include <stdio.h>

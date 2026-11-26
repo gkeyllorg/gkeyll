@@ -5,10 +5,10 @@
 --
 -- Figures of merit (serendipity p1, 128 x 128 cells, 523 steps): the integrated mass and total
 -- energy are conserved to 5e-14 throughout the run. Against the moments solution on 512 x 512 cells
--- (ending at t = 0.5007), block-averaged, the L2 difference of the pressure is 1.1% of the L2
+-- (ending at t = 0.5007), block-averaged, the L2 difference of the pressure is 1.0% of the L2
 -- deviation of the reference pressure from its mean; the pressure spans [0.9935, 1.0477] (reference
 -- [0.9933, 1.0480]). The density cell averages keep the mirror symmetries in x, in y and about the
--- diagonal to 3e-7.
+-- diagonal to 1e-14.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

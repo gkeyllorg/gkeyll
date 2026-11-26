@@ -370,13 +370,19 @@ struct gkyl_vlasov_fluid_species {
   // Poisson bracket fluid. Its Riemann solver is the numerical flux of an Euler or isothermal
   // Euler fluid.
   struct gkyl_wv_eqn *equation;
-  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
-  // Vertex positivity limiter of an Euler fluid (polynomial order 1): after the slope limiter of
-  // every stage and after the implicit fluid-EM source steps of an update, the vertex density and internal
-  // energy are kept above positivity_eps times the cell values, so the sound speed is real
-  // everywhere in the cell. The cell averages are untouched. An isothermal Euler fluid has the
-  // density kept so.
-  double positivity_eps; // Relative floor (0 => default 1e-2).
+  // Limiters of an Euler or isothermal Euler fluid. The vertex positivity limiter (Zhang-Shu,
+  // polynomial order 1) is always applied: after every stage and after the implicit fluid-EM source
+  // steps of an update, the vertex density and internal energy are kept above positivity_eps times
+  // the cell values, so the sound speed is real everywhere in the cell (the density only for an
+  // isothermal fluid). It scales the slopes toward the cell averages, keeps the cell averages, and
+  // acts only in cells with a vertex value below that floor. With limit_fluid the characteristic
+  // (minmod) slope limiter is applied before it in every stage: the slopes of the characteristic
+  // variables are bounded by limiter_fac times the differences of the neighboring cell averages,
+  // which also flattens smooth extrema. At polynomial order 2 and above there is no positivity
+  // limiter and the characteristic limiter is always applied.
+  bool limit_fluid; // Apply the characteristic slope limiter at polynomial order 1 (default false).
+  double limiter_fac; // Factor of the cell-average differences (0 => default 1/sqrt(3)).
+  double positivity_eps; // Relative floor of the positivity limiter (0 => default 1e-2).
 
   // advection coupling (if scalar advection)
   // gkyl_eqn_type eqn_id = GKYL_EQN_ADVECTION
@@ -660,6 +666,17 @@ struct gkyl_vm {
   // of the rate of the hyperbolic terms and the rate of the source of each coupled fluid (see
   // gkyl_dg_calc_fluid_vars_em_source): omega_p + |Omega_c|, or its acceleration over its
   // thermal speed.
+  // With the Poisson field (GKYL_FIELD_PHI) the same split is a kick-drift-kick scheme: the
+  // source step kicks the fluid momenta with -q/m grad(phi + phi_ext) and -grad(phi_g), solved
+  // from the densities of all species at its start (which it does not change), implicit in the
+  // external magnetic field, and the transport step moves the fluids with no force of the
+  // potentials (kinetic species solve for them in each stage). The coupling of the densities to
+  // the potentials is explicit, so the step resolves the plasma frequency (and the Jeans rate) of
+  // every species, cfl_frac / sqrt(sum_s q_s^2 n_s/(epsilon0 m_s) + alpha_g m_s n_s). A PKPM
+  // species needs a static external magnetic field (ext_em), which sets b; the fluid aspects
+  // take the scalar external potential and not its vector part. On a position map (PKPM and
+  // kinetic species) the kick takes the physical gradient, with the per-cell J_d of the map that the
+  // metric of the Poisson solve uses. use_explicit_sources is not supported with the Poisson field.
   bool use_explicit_sources; // Explicit fluid-Maxwell coupling in the SSP-RK3 stages.
 
   struct gkyl_vlasov_nn nn; // Neural-network options of PKPM species (all zeros: no network).

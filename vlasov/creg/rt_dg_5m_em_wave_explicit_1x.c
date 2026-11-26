@@ -10,8 +10,8 @@
 //
 // Figures of merit at t = 20, 4.5 wave periods (32 cells, serendipity p1, 306 steps, omega dt =
 // 0.093): the fitted amplitude of E_y is E_0 (1 - 1.3e-3) and its phase error 1.1e-2 rad. The
-// relative L2 errors are 3.1e-2 (E_y), 2.4e-2 (B_z) and 2.0e-2 (electron u_y). The total energy
-// (field plus fluids, from the frames) changes by -1.9e-3 of the initial field energy (7.7e-7 in
+// relative L2 errors are 2.9e-2 (E_y), 2.9e-2 (B_z) and 3.1e-2 (electron u_y). The total energy
+// (field plus fluids, from the frames) changes by -1.9e-3 of the initial field energy (1.5e-6 in
 // the implicit variant, rt_dg_5m_em_wave_1x).
 
 #include <math.h>

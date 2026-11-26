@@ -11,11 +11,11 @@
 // steps, omega_pe dt = 0.067, the CFL limit of the light wave of the field), measured as in
 // rt_vlasov_hybrid_es_shock_1x1v, with those of the adiabatic electron fluid of that test and of
 // the kinetic test in parentheses. The front is at x = 91.8 lambda_D and moves at 1.54 c_s between
-// t = 300 and t = 600 (29.3 lambda_D and 0.42 c_s; 66.7 lambda_D and 1.11 c_s). The ion density is
-// 1.74 n0 behind and 1.56 n0 ahead of it (2.66 and 1.73; 2.20 and 1.27). The potential jump across
-// it is e dphi / Te = 0.11 (1.16; 3.20), the logarithm of the density ratio, the momentum balance
+// t = 300 and t = 600 (25.2 lambda_D and 0.43 c_s; 66.7 lambda_D and 1.11 c_s). The ion density is
+// 1.74 n0 behind and 1.56 n0 ahead of it (2.62 and 1.77; 2.20 and 1.27). The potential jump across
+// it is e dphi / Te = 0.11 (1.09; 3.20), the logarithm of the density ratio, the momentum balance
 // of a massless isothermal fluid. Ions moving away from the wall ahead of the front: 0.54 n0 at
-// 2.42 c_s (0.64 n0 at 2.20 c_s; 0.24 n0 at 3.46 c_s). Neither electron fluid gives the potential
+// 2.42 c_s (0.67 n0 at 2.15 c_s; 0.24 n0 at 3.46 c_s). Neither electron fluid gives the potential
 // jump of the kinetic test.
 
 #include <math.h>

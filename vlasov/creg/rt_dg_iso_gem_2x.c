@@ -8,8 +8,9 @@
 // Each fluid keeps the temperature of its initial condition (p = v_t^2 rho). The fluid-field
 // coupling is the staggered operator split with the implicit fluid-Maxwell source step, in which
 // the isothermal fluids carry no energy. The fluids use the Lax flux of the isothermal wave
-// equation object (rp_type) with the vertex positivity limiter of the density, and the field its
-// slope limiter (limit_em) and divergence cleaning of the magnetic field (mgnErrorSpeedFactor = 1).
+// equation object (rp_type) with the characteristic slope limiter (limit_fluid) and the vertex
+// positivity limiter of the density, and the field its slope limiter (limit_em) and divergence
+// cleaning of the magnetic field (mgnErrorSpeedFactor = 1).
 //
 // Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
 // reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1561 (the moments finite-
@@ -412,6 +413,7 @@ main(int argc, char **argv)
     .equation = elc_iso_euler,
     .init = evalElcInit,
     .ctx = &ctx,
+    .limit_fluid = true,
 
     .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
   };
@@ -420,6 +422,7 @@ main(int argc, char **argv)
     .equation = ion_iso_euler,
     .init = evalIonInit,
     .ctx = &ctx,
+    .limit_fluid = true,
 
     .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
   };

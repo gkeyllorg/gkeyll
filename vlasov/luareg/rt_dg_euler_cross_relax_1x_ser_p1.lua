@@ -8,7 +8,7 @@
 -- each SSP-RK3 stage (the exchange of the PKPM species, see rt_pkpm_hybrid_cross_relax_1x.lua).
 -- Figures of merit (2 cells, to t = 2): mass is conserved exactly and the total momentum and total
 -- energy to 1e-15. Each step multiplies the drift difference by R((nu_ei + nu_ie) dt) to round-off
--- (1e-14) and the temperature difference by R(2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt) to 5e-4
+-- (1e-13) and the temperature difference by R(2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt) to 5e-4
 -- (the frictional heating), with R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3),
 -- the factor of the three backward-Euler stage steps of a step with z = nu dt. The temperatures end
 -- at 0.91914 (electrons) and 0.58127 (ions).

@@ -6,11 +6,11 @@
 -- Euler equations (star density 2.2012 and velocity 0.8096, shock speed 1.4836). The numerical flux
 -- is the Lax solver of the isothermal wave equation object (rp_type).
 --
--- Figures of merit at t = 0.1 (serendipity p1, 512 cells, 309 steps): L1 errors of the cell
--- averages of 0.0016 in density and 0.0017 in momentum; shock at x = 0.8985 (exact 0.8984); star-
+-- Figures of merit at t = 0.1 (serendipity p1, 512 cells, 314 steps): L1 errors of the cell
+-- averages of 0.0011 in density and 0.00088 in momentum; shock at x = 0.8983 (exact 0.8984); star-
 -- state density 2.2012 and velocity 0.8096, both exact to four digits; the cell averages of the
--- density stay within [1, 3]. With the Roe flux (rt_dg_iso_euler_sodshock_1x) the errors are 0.0014
--- and 0.0016.
+-- density stay within [0.985, 3.007]. With the Roe flux (rt_dg_iso_euler_sodshock_1x) the errors
+-- are 0.00079 and 0.00078.
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler
 

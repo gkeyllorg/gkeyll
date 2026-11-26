@@ -88,7 +88,7 @@ vlasov_stage_rhs(
 
   // Update the field at the start of the step: the Maxwell RHS, or the Poisson
   // solve for the potential at the current time (read by the species RHS below).
-  double dt1_field = vlasov_field_update(app, stage, tcurr, fin_field, emin, emout);
+  double dt1_field = vlasov_field_update(app, stage, tcurr, fin_field, fluidin, emin, emout);
   dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
   // Compute the moments of each species' own stage state needed by its RHS (LBO

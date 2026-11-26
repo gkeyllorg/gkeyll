@@ -17,7 +17,7 @@
 -- 1.1e-4 and 4.0e-5 (2.3e-6 of the speed, 49.8). The time-step falls from 0.087 to 0.002 as the
 -- gyrating fluid speeds up (its acceleration grows with its speed while its thermal speed does
 -- not). The internal energy rises by 1.2e-4 of its initial value (the implicit variant,
--- rt_dg_5m_em_advect_resonant_1x, keeps it to 2.3e-10), and the state stays uniform.
+-- rt_dg_5m_em_advect_resonant_1x, keeps it to 2.1e-10), and the state stays uniform.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

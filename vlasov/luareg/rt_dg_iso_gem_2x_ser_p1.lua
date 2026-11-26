@@ -8,8 +8,9 @@
 -- Each fluid keeps the temperature of its initial condition (p = v_t^2 rho). The fluid-field
 -- coupling is the staggered operator split with the implicit fluid-Maxwell source step, in which
 -- the isothermal fluids carry no energy. The fluids use the Lax flux of the isothermal wave
--- equation object (rp_type) with the vertex positivity limiter of the density, and the field its
--- slope limiter (limit_em) and divergence cleaning of the magnetic field (mgnErrorSpeedFactor = 1).
+-- equation object (rp_type) with the characteristic slope limiter (limit_fluid) and the vertex
+-- positivity limiter of the density, and the field its slope limiter (limit_em) and divergence
+-- cleaning of the magnetic field (mgnErrorSpeedFactor = 1).
 --
 -- Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
 -- reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1566 (the moments finite-
@@ -94,6 +95,7 @@ vlasovApp = Vlasov.App.new {
 
   elc = Vlasov.FluidSpecies.new {
     charge = charge_elc, mass = mass_elc,
+    limitFluid = true, -- Characteristic slope limiter (before the positivity limiter).
     equation = IsoEuler.new {
       vThermal = math.sqrt(T_tot * Te_frac / mass_elc),
       rpType = G0.IsoEulerRP.Lax
@@ -118,6 +120,7 @@ vlasovApp = Vlasov.App.new {
 
   ion = Vlasov.FluidSpecies.new {
     charge = charge_ion, mass = mass_ion,
+    limitFluid = true, -- Characteristic slope limiter (before the positivity limiter).
     equation = IsoEuler.new {
       vThermal = math.sqrt(T_tot * Ti_frac / mass_ion),
       rpType = G0.IsoEulerRP.Lax

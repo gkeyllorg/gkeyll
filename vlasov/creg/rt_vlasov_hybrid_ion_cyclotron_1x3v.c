@@ -23,9 +23,9 @@
 //
 // Figures of merit (tensor p1 with the hybrid phase basis, 16 x 16 x 6 x 6 cells, 2327 steps,
 // omega_pi dt = 0.131, omega_pe dt = |Omega_ce| dt = 1.31, set by the light wave): between t = 1
-// and 2.5 wave periods the k d_i = 1 mode of B_y + i B_z decays at 0.05153 Omega_ci (+1.1%) with
-// omega = 0.51658 Omega_ci (+0.2%); the history of the transverse magnetic energy over the same
-// interval gives 0.05145 Omega_ci (+0.9%). The total energy changes by -5e-13 (7e-5 of the initial
+// and 2.5 wave periods the k d_i = 1 mode of B_y + i B_z decays at 0.05145 Omega_ci (+0.9%) with
+// omega = 0.51662 Omega_ci (+0.2%); the history of the transverse magnetic energy over the same
+// interval gives 0.05148 Omega_ci (+1.0%). The total energy changes by -4e-13 (5e-5 of the initial
 // magnetic energy of the wave).
 
 #include <math.h>

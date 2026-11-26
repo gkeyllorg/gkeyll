@@ -11,7 +11,7 @@
 static double
 null_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   return DBL_MAX; // no field force -> no CFL constraint
@@ -43,6 +43,11 @@ null_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_a
 
 static void
 null_field_write_energy(gkyl_vlasov_app *app)
+{
+}
+
+static void
+null_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field)
 {
 }
 
@@ -99,6 +104,7 @@ null_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->calc_energy_func = null_field_calc_energy;
   f->write_func = null_field_write;
   f->write_energy_func = null_field_write_energy;
+  f->calc_diag_vars_func = null_field_calc_diag_vars;
   f->from_file_func = null_field_from_file;
   f->release_func = null_field_release;
 
@@ -144,10 +150,10 @@ vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 double
 vlasov_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
-  return app->field->update_func(app, stage, tcurr, fin, emin, emout);
+  return app->field->update_func(app, stage, tcurr, fin, fluidin, emin, emout);
 }
 
 void
@@ -226,6 +232,12 @@ void
 vlasov_field_write_energy(gkyl_vlasov_app *app)
 {
   app->field->write_energy_func(app);
+}
+
+void
+vlasov_field_calc_diag_vars(gkyl_vlasov_app *app)
+{
+  app->field->calc_diag_vars_func(app, app->field);
 }
 
 struct gkyl_app_restart_status

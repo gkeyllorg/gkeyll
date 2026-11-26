@@ -4,12 +4,12 @@
 -- wall the gas runs into and a rarefaction the wall it leaves; the reference is the exact solution
 -- by the method of images, one Riemann problem per wall between the gas and its mirror image.
 --
--- Figures of merit (serendipity p1, 64 cells, 106 steps): L1 errors of the cell averages of 1.25%
--- (density, of the mean density), 0.56% (velocity, of the largest |u| + c_s) and 0.63% (pressure,
--- of the mean pressure); shock at x = 0.8194 (exact 0.8216) with density 2.6820 (exact 2.6817) and
--- pressure 1.84464 (exact 1.84463) behind it. Between the wall the gas leaves and the tail of the
--- rarefaction the density is 0.0975 (exact 0.1131), and 0.066 in the cell at the wall. The mass and
--- the energy change by 3e-15 and 4e-15 of their initial values.
+-- Figures of merit (serendipity p1, 64 cells, 106 steps): L1 errors of the cell averages of 0.89%
+-- (density, of the mean density), 0.54% (velocity, of the largest |u| + c_s) and 0.97% (pressure,
+-- of the mean pressure); shock at x = 0.8224 (exact 0.8216) with density 2.6813 (exact 2.6817) and
+-- pressure 1.84339 (exact 1.84463) behind it. Between the wall the gas leaves and the tail of the
+-- rarefaction the density is 0.0965 (exact 0.1131), and 0.090 in the cell at the wall. The mass and
+-- the energy change by 5e-15 and 5e-15 of their initial values.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

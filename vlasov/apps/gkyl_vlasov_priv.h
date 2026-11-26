@@ -144,6 +144,26 @@ struct vm_fluid_em_coupling {
   double *omega_p_sq_max; // maximum of omega_p_sq over the local range
   // Largest step of the leapfrog of the kinetic currents (DBL_MAX without kinetic species).
   double (*src_dt_func)(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
+
+  // The source step and the field part of the staggered state, by field type. Maxwell: the solve
+  // advances the fluids and E, and the staggered state holds the field. Poisson: the kick, in
+  // which the fluids take the forces of the potentials solved from the present densities (which
+  // the kick does not change), so the staggered state holds no field.
+  void (*update_func)(
+    struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double tcurr, double dt
+  );
+  void (*save_field_func)(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
+  void (*restore_field_func)(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
+
+  // Poisson field: the acceleration of each fluid aspect in the kick (the gravitational
+  // acceleration of the field, or accel_zero without self-gravity), and the step bound of the
+  // explicit coupling of all species to the potentials, omega dt <= cfl_frac with omega^2 the
+  // largest sum over the species of rate_sq_weight times the cell-average number density: the
+  // kinetic species and fluid aspects with a nonzero weight, and their weights.
+  const struct gkyl_array *accel_kick[GKYL_MAX_SPECIES];
+  int num_rate_kinetic, num_rate_fluid;
+  struct vlasov_species *rate_kinetic[GKYL_MAX_SPECIES], *rate_fluid[GKYL_MAX_SPECIES];
+  double rate_sq_kinetic[GKYL_MAX_SPECIES], rate_sq_fluid[GKYL_MAX_SPECIES];
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -476,7 +496,11 @@ bool vm_fluid_em_coupling_supported(const struct vlasov_species *sp);
  * and restored after). E advances only here, with
  * c^2 curl B of the field and the current of the kinetic species at the start of the step as
  * known currents (Stormer-Verlet in the curl terms and a leapfrog in the kinetic currents; the
- * transport step drifts B and moves the kinetic species with this E).
+ * transport step drifts B and moves the kinetic species with this E). With the Poisson field it
+ * is the kick of a kick-drift-kick scheme: the potentials are solved from the present densities
+ * (which the step does not change) and the fluids take their forces, -q/m grad(phi + phi_ext) and
+ * -grad(phi_g), with the external field (the solve with a static field); the transport step moves
+ * the densities, from which the next kick solves again.
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater
@@ -491,13 +515,36 @@ void vm_fluid_em_coupling_update(
  * Largest step the leapfrog of the kinetic currents allows: cfl_frac / omega_p, with omega_p^2
  * the largest sum over the kinetic species of the plasma frequency squared of the cell-average
  * density (the leapfrog is stable for omega_p dt < 2 at a fixed step). DBL_MAX when the run has
- * no kinetic species.
+ * no kinetic species. With the Poisson field every species couples explicitly, and omega^2 is the
+ * largest sum over all species of q^2 n/(eps0 m) + alpha_g m n.
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater
  * @return Largest step of the source update
  */
 double vm_fluid_em_coupling_dt(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
+
+/**
+ * Keep the field part of the staggered state of the split (the Maxwell field; nothing for the
+ * Poisson field, whose potentials follow the densities), for a transport step that takes less
+ * than planned and for the output synchronization.
+ *
+ * @param app Vlasov app object
+ * @param fl_em fluid-EM coupling updater
+ */
+void vm_fluid_em_coupling_save_field(
+  struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em
+);
+
+/**
+ * Restore the field part of the staggered state kept by vm_fluid_em_coupling_save_field.
+ *
+ * @param app Vlasov app object
+ * @param fl_em fluid-EM coupling updater
+ */
+void vm_fluid_em_coupling_restore_field(
+  struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em
+);
 
 /**
  * Limiters after a source step of an update: the vertex positivity limiter of the fluids and

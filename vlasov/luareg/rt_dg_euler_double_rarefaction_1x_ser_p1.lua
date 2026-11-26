@@ -5,11 +5,11 @@
 -- leave gas at rest at low density and pressure at the centre; the reference is the exact Riemann
 -- solution.
 --
--- Figures of merit (serendipity p1, 100 cells, 141 steps): L1 errors of the cell averages of 2.0%
--- (density, of the mean density), 0.79% (velocity, of the largest |u| + c_s) and 3.3% (pressure, of
--- the mean pressure). In the two central cells the density is 0.0119 (exact 0.0062) and the
--- pressure 2.8e-3 (exact 8.3e-5); the density is nowhere lower, and the solution is mirror
--- symmetric about x = 0.5 to 3e-14.
+-- Figures of merit (serendipity p1, 100 cells, 141 steps): L1 errors of the cell averages of 2.3%
+-- (density, of the mean density), 0.53% (velocity, of the largest |u| + c_s) and 2.6% (pressure, of
+-- the mean pressure). In the two central cells the density is 0.0187 (exact 0.0062) and the
+-- pressure 1.8e-3 (exact 8.3e-5); the density is lowest, 0.0150, two cells further out (x = 0.475
+-- and 0.525), and the solution is mirror symmetric about x = 0.5 to 6e-15.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

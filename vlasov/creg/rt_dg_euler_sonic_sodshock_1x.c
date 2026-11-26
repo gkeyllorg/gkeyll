@@ -5,10 +5,10 @@
 // rarefaction with its sonic point at x = 0.3, a contact and a right shock; the reference is the
 // exact Riemann solution.
 //
-// Figures of merit (serendipity p1, 100 cells, 195 steps): L1 errors of the cell averages of 0.77%
-// (density, of the mean density), 0.26% (velocity, of the largest |u| + c_s) and 0.55% (pressure,
-// of the mean pressure); shock at x = 0.7619 (exact 0.7602), contact at x = 0.5585 (exact 0.5582),
-// and between them pressure 0.4713 (exact 0.4713) and velocity 1.2911 (exact 1.2910).
+// Figures of merit (serendipity p1, 100 cells, 198 steps): L1 errors of the cell averages of 0.67%
+// (density, of the mean density), 0.12% (velocity, of the largest |u| + c_s) and 0.36% (pressure,
+// of the mean pressure); shock at x = 0.7602 (exact 0.7602), contact at x = 0.5582 (exact 0.5582),
+// and between them pressure 0.4713 (exact 0.4713) and velocity 1.2910 (exact 1.2910).
 
 #include <math.h>
 #include <stdio.h>

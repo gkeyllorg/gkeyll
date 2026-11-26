@@ -70,6 +70,7 @@ vlasovApp = Vlasov.App.new {
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
     equation = Euler.new { gasGamma = gas_gamma },
+    limitFluid = true, -- Characteristic slope limiter (before the positivity limiter).
 
     -- Initial conditions function.
     init = function (t, xn)

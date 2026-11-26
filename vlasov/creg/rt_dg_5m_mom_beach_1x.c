@@ -18,9 +18,9 @@
 //
 // Figures of merit at t = 5e-9 (200 cells, serendipity p1, 1000 steps), from the cell averages: on
 // 0.3 < x < 0.95, E_y is the moments finite-volume solution (400 cells, without the uniform
-// background) times a constant to 0.019 in L2. The maximum of |E_y| is 8.92e-13, 1.89 times the
+// background) times a constant to 0.028 in L2. The maximum of |E_y| is 8.93e-13, 1.90 times the
 // amplitude mu_0 c J_0 / 800 the antenna radiates to each side in free space, and |E_y| stays below
-// 0.9% of the maximum for x < 0.483, beyond the cutoff. |E_x| stays below 1e-10 V/m and the density
+// 0.3% of the maximum for x < 0.483, beyond the cutoff. |E_x| stays below 1e-10 V/m and the density
 // at its initial value to round-off.
 
 #include <math.h>

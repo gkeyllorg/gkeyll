@@ -4,8 +4,9 @@
 -- of it, at rest at uniform pressure 1, to t = 2. Nothing moves in the exact solution.
 --
 -- Figures of merit (serendipity p1, 100 cells, 861 steps): every DG coefficient at t = 2 equals its
--- initial value (largest difference 0), so the density jump stays at the cell face at x = 0.5, the
--- velocity stays 0 and the pressure stays 1, and the L1 errors of the cell averages are 0.
+-- initial value to 1.3e-13, so the density jump stays at the cell face at x = 0.5, the
+-- velocity stays 0 and the pressure stays 1 to 3e-14, and the L1 errors of the cell averages are
+-- below 3e-14.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

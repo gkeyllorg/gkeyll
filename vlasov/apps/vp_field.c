@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_dg_differentiate.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
@@ -26,6 +27,13 @@ vp_field_es_force_weight(const struct vp_potential *pot, double charge, double m
   return charge / mass;
 }
 
+// Square of the plasma frequency per unit number density, q^2/(epsilon0 m).
+static double
+vp_field_es_rate_sq_weight(const struct vp_potential *pot, double charge, double mass)
+{
+  return charge * charge / (pot->coupling * mass);
+}
+
 // Gravitational potential: source alpha_g*m*n, acceleration -grad(phi_g) for
 // every species.
 static double
@@ -38,6 +46,13 @@ static double
 vp_field_grav_force_weight(const struct vp_potential *pot, double charge, double mass)
 {
   return 1.0;
+}
+
+// Square of the Jeans rate per unit number density, alpha_g m.
+static double
+vp_field_grav_rate_sq_weight(const struct vp_potential *pot, double charge, double mass)
+{
+  return pot->coupling * mass;
 }
 
 // --- Metric tensors on a mapped configuration mesh ---------------------------
@@ -160,6 +175,34 @@ vp_field_new_jacobian_scalar(struct gkyl_vlasov_app *app, double scale, bool is_
 
 // --- One potential: allocation, solve, diagnostics, release -------------------
 
+// Neutralizing background of the source (see neutralize_func): none, or on a position map J times
+// the physical mean of the source.
+static void
+vp_potential_neutralize_none(gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot)
+{
+}
+
+static void
+vp_potential_neutralize_mapped(
+  gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot
+)
+{
+  gkyl_dg_calc_average_range(&app->basis, 0, pot->rho_avg, 0, pot->rho, app->local);
+  gkyl_array_reduce_range(pot->rho_red, pot->rho_avg, GKYL_SUM, &app->local);
+  double red_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(red_ho, pot->rho_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    red_ho[0] = pot->rho_red[0];
+  }
+  double red_global[1];
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_ho, red_global);
+  // The cells have equal computational volumes: the physical mean is the sum of the cell
+  // averages of J rho over the sum of J.
+  double rho_mean = red_global[0] / pot->jac_sum;
+  gkyl_array_accumulate_range(pot->rho, -rho_mean, pot->jac_dg, &app->local);
+}
+
 // Allocate the source, potential, permittivity (scalar eps_scale), screening
 // (mu_sq > 0 adds the Helmholtz term eps_scale * mu_sq * phi), Poisson solver
 // and energy diagnostic of a potential; its names and coupling laws are set by
@@ -192,6 +235,32 @@ vp_potential_init(
     pot->calc_sq = gkyl_array_integrate_new(
       &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu
     );
+  }
+
+  // The neutralizing background of an unscreened fully periodic solve on a position map.
+  bool is_periodic = true;
+  for (int d = 0; d < app->cdim; ++d) {
+    is_periodic = is_periodic && field->info.poisson_bcs.lo_type[d] == GKYL_POISSON_PERIODIC;
+  }
+  pot->neutralize_func = vp_potential_neutralize_none;
+  pot->jac_dg = 0;
+  pot->rho_avg = 0;
+  pot->rho_red = 0;
+  pot->jac_sum = 0.0;
+  if (is_periodic && !(mu_sq > 0.0) && !app->pos_map->is_identity) {
+    pot->jac_dg = vp_field_new_jacobian_scalar(app, 1.0, false);
+    pot->rho_avg = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    pot->rho_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+    double jac_sum_local = 0.0;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long cidx = gkyl_range_idx(&app->local, iter.idx);
+      const double *jacob_pos_gauss = gkyl_array_cfetch(app->pos_map->jacob_pos_gauss_host, cidx);
+      jac_sum_local += jacob_pos_gauss[0];
+    }
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &jac_sum_local, &pot->jac_sum);
+    pot->neutralize_func = vp_potential_neutralize_mapped;
   }
 
   pot->epsilon = vp_field_new_epsilon(app, eps_scale);
@@ -230,6 +299,15 @@ vp_potential_release(const struct gkyl_vlasov_app *app, struct vp_potential *pot
 
   gkyl_fem_poisson_release(pot->fem_poisson);
   gkyl_array_release(pot->epsilon);
+  if (pot->jac_dg) {
+    gkyl_array_release(pot->jac_dg);
+    gkyl_array_release(pot->rho_avg);
+    if (app->use_gpu) {
+      gkyl_cu_free(pot->rho_red);
+    } else {
+      gkyl_free(pot->rho_red);
+    }
+  }
   if (pot->calc_sq) {
     gkyl_array_integrate_release(pot->calc_sq);
     gkyl_array_release(pot->sq_wgt);
@@ -250,6 +328,7 @@ vp_potential_release(const struct gkyl_vlasov_app *app, struct vp_potential *pot
 static void
 vp_potential_solve(gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot)
 {
+  pot->neutralize_func(app, field, pot);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, pot->rho, pot->rho_global);
 
   gkyl_fem_poisson_set_rhs(pot->fem_poisson, pot->rho_global, NULL);
@@ -372,6 +451,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     pot->energy_fac = 1.0; // Diagnostic is int |grad phi|^2 + mu_sq phi^2 (no epsilon0/2).
     pot->src_weight = vp_field_es_src_weight;
     pot->force_weight = vp_field_es_force_weight;
+    pot->rate_sq_weight = vp_field_es_rate_sq_weight;
+    pot->is_electric = true;
     vp_potential_init(app, vpf, pot, vpf->info.epsilon0, vpf->info.mu_sq);
   }
   if (vpf->info.alpha_g > 0.0 && has_mass) {
@@ -386,6 +467,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     pot->energy_fac = 1.0 / vpf->info.alpha_g;
     pot->src_weight = vp_field_grav_src_weight;
     pot->force_weight = vp_field_grav_force_weight;
+    pot->rate_sq_weight = vp_field_grav_rate_sq_weight;
+    pot->is_electric = false;
     vp_potential_init(app, vpf, pot, -1.0, 0.0);
   }
 
@@ -478,6 +561,48 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   );
   vpf->is_first_energy_write_call = true;
 
+  // The forces of the kick of the staggered operator split are allocated by
+  // vp_field_set_source_split.
+  vpf->em_pot = 0;
+  vpf->accel_grav = 0;
+  vpf->phi_sum = 0;
+
+  // A PKPM species takes b = B/|B|, its gradient, d_t B/|B| and the total field from the field. The
+  // magnetic field of a Poisson field is the external one, static (d_t B/|B| = 0, and b and its
+  // gradient are formed once); E in the total field is that of the kick.
+  vpf->has_bvar = false;
+  for (int i = 0; i < vm->num_species; ++i) {
+    vpf->has_bvar = vpf->has_bvar || vm->species[i].type == GKYL_SPECIES_PKPM;
+  }
+  if (vpf->has_bvar) {
+    if (!vpf->info.ext_em) {
+      gkyl_exit(
+        "vp_field: a PKPM species with the Poisson field needs an external magnetic field (ext_em), which sets b."
+      );
+    }
+    if (vpf->info.ext_em_evolve) {
+      gkyl_exit(
+        "vp_field: a PKPM species with the Poisson field needs a static external field (ext_em_evolve = false)."
+      );
+    }
+    long num_cells = app->local_ext.volume;
+    vpf->tot_em = mkarr(app->use_gpu, 8 * nb, num_cells);
+    gkyl_array_clear(vpf->tot_em, 0.0);
+    vpf->bvar = mkarr(app->use_gpu, 3 * nb, num_cells);
+    vpf->grad_b = mkarr(app->use_gpu, cdim * 3 * nb, num_cells);
+    gkyl_array_clear(vpf->grad_b, 0.0);
+    vpf->dt_em_no_J = mkarr(app->use_gpu, 8 * nb, num_cells);
+    gkyl_array_clear(vpf->dt_em_no_J, 0.0);
+    vpf->dtB_over_magB = mkarr(app->use_gpu, 3 * nb, num_cells);
+    gkyl_array_clear(vpf->dtB_over_magB, 0.0);
+    vpf->calc_bvar = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+      .conf_grid = &app->grid,
+      .conf_basis = &app->basis,
+      .pos_map = app->pos_map,
+      .use_gpu = app->use_gpu,
+    });
+  }
+
   // Set the type-specific dispatch methods (Vlasov-Poisson). The potentials are
   // solved each stage (update_func), so the combine/copy/BC/current/limiter
   // stage operations are no-ops.
@@ -494,6 +619,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   vpf->calc_energy_func = vp_field_calc_energy;
   vpf->write_func = vp_field_write;
   vpf->write_energy_func = vp_field_write_energy;
+  vpf->calc_diag_vars_func = vp_field_calc_diag_vars;
   vpf->from_file_func = vp_field_from_file;
   vpf->release_func = vp_field_release;
 
@@ -506,11 +632,199 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 double
 vp_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
-  vp_field_solve(app, app->field, fin);
+  vp_field_solve(app, app->field, fin, fluidin);
   return DBL_MAX;
+}
+
+// Field update of a stage of the transport step of the staggered operator split without kinetic
+// species: no species reads the potentials there (the fluid aspects take their forces in the kick).
+static double
+vp_field_update_split_none(
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
+)
+{
+  return DBL_MAX;
+}
+
+// b and its gradient of the static external magnetic field (PKPM species), over the extended
+// range: the boundary conditions of the species read b in the ghost cells. tot_em holds the
+// external field and the E of the last kick.
+static void
+vp_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  gkyl_dg_calc_pkpm_bvar_advance(field->calc_bvar, &app->local_ext, field->tot_em, field->bvar);
+  gkyl_dg_calc_pkpm_bvar_grad(field->calc_bvar, &app->local, field->bvar, field->grad_b);
+}
+
+// The total field of PKPM species, [E + E_ext, B_ext], with the E of the kick (zero before the
+// split has formed one).
+static void
+vp_field_calc_tot_em(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  gkyl_array_clear(field->tot_em, 0.0);
+  if (field->em_pot) {
+    gkyl_array_accumulate_range(field->tot_em, 1.0, field->em_pot, &app->local_ext);
+  }
+  gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
+}
+
+// The physical gradient out = -grad(phi) of a continuous p=1 potential, exact in the p=1 basis: on a
+// uniform mesh the gradient of the expansion, on a position map that gradient divided in each
+// direction by the per-cell constant J_d of the C^0 linear map (the J_d of the metric of the
+// Poisson solve, so the work of the kick and the change of the field energy stay consistent).
+static void
+vp_field_grad_identity(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *phi, struct gkyl_array *out
+)
+{
+  for (int d = 0; d < app->cdim; ++d) {
+    gkyl_dg_differentiate_op_local_range(
+      &field->basis_grad, d, 1, app->grid.dx[d], d, out, 0, phi, &app->local
+    );
+  }
+  gkyl_array_scale_range(out, -1.0, &app->local);
+}
+
+static void
+vp_field_grad_mapped(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *phi, struct gkyl_array *out
+)
+{
+  for (int d = 0; d < app->cdim; ++d) {
+    gkyl_dg_differentiate_op_local_range(
+      &field->basis_grad, d, 1, app->grid.dx[d], d, field->grad_buf, 0, phi, &app->local
+    );
+    gkyl_dg_mul_op_range(&app->basis, d, out, d, field->rjacob_dir, d, field->grad_buf, &app->local);
+  }
+  gkyl_array_scale_range(out, -1.0, &app->local);
+}
+
+// The parts of the potentials in the forces of the kick: phi of the electrostatic potential adds to
+// the potential of the electric field, the gravitational potential gives the acceleration of every
+// species.
+static void
+vp_potential_kick_electric(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct vp_potential *pot
+)
+{
+  gkyl_array_accumulate_range(field->phi_sum, 1.0, pot->phi, &app->local);
+}
+
+static void
+vp_potential_kick_grav(gkyl_vlasov_app *app, struct vm_field *field, const struct vp_potential *pot)
+{
+  field->grad_func(app, field, pot->phi, field->accel_grav);
+}
+
+static void
+vp_field_kick_tot_em_none(gkyl_vlasov_app *app, struct vm_field *field)
+{
+}
+
+void
+vp_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  if (app->poly_order != 1) {
+    gkyl_exit(
+      "vp_field: the coupling of fluid aspects to the Poisson field requires polynomial order 1."
+    );
+  }
+  int nb = app->basis.num_basis;
+  long num_cells = app->local_ext.volume;
+  field->em_pot = mkarr(app->use_gpu, 8 * nb, num_cells);
+  gkyl_array_clear(field->em_pot, 0.0);
+  field->accel_grav = mkarr(app->use_gpu, 3 * nb, num_cells);
+  gkyl_array_clear(field->accel_grav, 0.0);
+  field->phi_sum = mkarr(app->use_gpu, nb, num_cells);
+  gkyl_array_clear(field->phi_sum, 0.0);
+  gkyl_cart_modal_serendip(&field->basis_grad, app->cdim, 1);
+  field->grad_func = vp_field_grad_identity;
+  field->rjacob_dir = 0;
+  field->grad_buf = 0;
+  if (!app->pos_map->is_identity) {
+    // 1/J_d of each cell as a constant DG field per direction (built on the host from the map).
+    int cdim = app->cdim;
+    double dg0 = pow(sqrt(2.0), cdim); // 0th DG coefficient of a constant.
+    int stride = app->basis.poly_order + 1; // per-direction block stride in jacob_pos
+    field->rjacob_dir = mkarr(app->use_gpu, cdim * nb, num_cells);
+    struct gkyl_array *rjacob_ho = app->use_gpu ? mkarr(false, cdim * nb, num_cells) :
+                                                  gkyl_array_acquire(field->rjacob_dir);
+    gkyl_array_clear(rjacob_ho, 0.0);
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long cidx = gkyl_range_idx(&app->local, iter.idx);
+      const double *jacob_pos = gkyl_array_cfetch(app->pos_map->jacob_pos_host, cidx);
+      double *r_d = gkyl_array_fetch(rjacob_ho, cidx);
+      for (int d = 0; d < cdim; ++d) {
+        r_d[d * nb] = dg0 / jacob_pos[d * stride];
+      }
+    }
+    if (app->use_gpu) {
+      gkyl_array_copy(field->rjacob_dir, rjacob_ho);
+    }
+    gkyl_array_release(rjacob_ho);
+    field->grad_buf = mkarr(app->use_gpu, cdim * nb, num_cells);
+    gkyl_array_clear(field->grad_buf, 0.0);
+    field->grad_func = vp_field_grad_mapped;
+  }
+  for (int p = 0; p < field->num_pots; ++p) {
+    struct vp_potential *pot = &field->pots[p];
+    pot->kick_func = pot->is_electric ? vp_potential_kick_electric : vp_potential_kick_grav;
+  }
+  field->kick_tot_em_func = field->has_bvar ? vp_field_calc_tot_em : vp_field_kick_tot_em_none;
+
+  // The kinetic species of a hybrid run take the potentials in each stage of the transport step,
+  // solved from the stage densities of all species; without them the stages solve nothing.
+  bool has_kinetic = false;
+  for (int i = 0; i < app->num_species; ++i) {
+    has_kinetic = has_kinetic || app->species[i].type == GKYL_SPECIES_VLASOV;
+  }
+  field->update_func = has_kinetic ? vp_field_update : vp_field_update_split_none;
+}
+
+void
+vp_field_calc_kick(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  int num_species = app->num_species;
+  struct gkyl_array *distf[num_species];
+  struct gkyl_array *fluid[num_species];
+  vlasov_species_gather_state(app, distf, fluid);
+  const struct gkyl_array *fin[num_species];
+  const struct gkyl_array *fluidin[num_species];
+  for (int i = 0; i < num_species; ++i) {
+    fin[i] = distf[i];
+    fluidin[i] = fluid[i];
+  }
+  vp_field_solve(app, field, fin, fluidin);
+
+  struct timespec wst = gkyl_wall_clock();
+
+  // E = -grad(phi + phi_ext) (the external potential is zero when there is none) and the
+  // gravitational acceleration -grad(phi_g).
+  gkyl_array_clear(field->phi_sum, 0.0);
+  gkyl_array_accumulate_offset(field->phi_sum, 1.0, field->ext_pot, 0);
+  for (int p = 0; p < field->num_pots; ++p) {
+    field->pots[p].kick_func(app, field, &field->pots[p]);
+  }
+  field->grad_func(app, field, field->phi_sum, field->em_pot);
+  field->kick_tot_em_func(app, field);
+
+  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+}
+
+// The field quantities of PKPM species for the output: the E of the present state in the total
+// field (b and its gradient are static).
+void
+vp_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  if (field->em_pot) {
+    vp_field_calc_kick(app, field);
+  }
 }
 
 // Evaluate the external potentials and fields at time tm for the initial conditions.
@@ -530,6 +844,12 @@ vp_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fna
   // as being time-dependent.
   vp_field_calc_ext_pot(app, field, field->ext_pot_evolve ? app->tcurr : 0.0);
   vp_field_calc_ext_em(app, field, field->ext_em_evolve ? app->tcurr : 0.0);
+  if (field->has_bvar) {
+    // b of the external field (the species boundary conditions read it); the E of the total
+    // field is formed from the species once they are read (vlasov_op_split_restart).
+    vp_field_calc_tot_em(app, field);
+    vp_field_calc_bvar(app, field);
+  }
   return (struct gkyl_app_restart_status){
     .io_status = GKYL_ARRAY_RIO_SUCCESS,
     .frame = 0,
@@ -604,18 +924,21 @@ vp_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 }
 
 void
-vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[])
+vp_field_solve(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[]
+)
 {
   struct timespec wst = gkyl_wall_clock();
 
   // Accumulate the source of each potential: the number density of each species
-  // times its coupling weight (fin[] is indexed by species).
+  // times its coupling weight (fin[] and fluidin[] are indexed by species).
   for (int p = 0; p < field->num_pots; ++p) {
     gkyl_array_clear(field->pots[p].rho, 0.0);
   }
   int num_species = app->num_species;
   for (int i = 0; i < num_species; ++i) {
-    vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], 0, 0);
+    vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], 0);
   }
 
   for (int p = 0; p < field->num_pots; ++p) {
@@ -631,13 +954,38 @@ vp_field_apply_ic(
 )
 {
   vp_field_calc_ext(app, field, t0);
+  // The forces of the kick of the initial state (the species are initialized first): with PKPM
+  // species the first transport step of a run reads the E of the total field.
+  if (field->em_pot) {
+    vp_field_calc_kick(app, field);
+  } else if (field->has_bvar) {
+    vp_field_calc_tot_em(app, field);
+  }
+  if (field->has_bvar) {
+    vp_field_calc_bvar(app, field);
+  }
+}
+
+// Solve for the potentials from the present state: the distributions fin[] and the fluid states
+// of the species.
+static void
+vp_field_solve_state(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[])
+{
+  int num_species = app->num_species;
+  struct gkyl_array *fluid[num_species];
+  vlasov_species_gather_state(app, 0, fluid);
+  const struct gkyl_array *fluidin[num_species];
+  for (int i = 0; i < num_species; ++i) {
+    fluidin[i] = fluid[i];
+  }
+  vp_field_solve(app, field, fin, fluidin);
 }
 
 void
 vp_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[])
 {
   // The potentials are solved on demand so the written potentials are at time tm.
-  vp_field_solve(app, app->field, fin);
+  vp_field_solve_state(app, app->field, fin);
 
   struct timespec wst = gkyl_wall_clock();
 
@@ -695,7 +1043,7 @@ vp_field_calc_energy(
 )
 {
   // The potentials are solved on demand so the energies are at time tm.
-  vp_field_solve(app, field, fin);
+  vp_field_solve_state(app, field, fin);
 
   struct timespec wst = gkyl_wall_clock();
 
@@ -733,6 +1081,24 @@ vp_field_release(const gkyl_vlasov_app *app, struct vm_field *vpf)
 
   gkyl_array_integrate_release(vpf->calc_grad_sq);
   gkyl_array_release(vpf->grad_sq_wgt);
+
+  if (vpf->em_pot) {
+    gkyl_array_release(vpf->em_pot);
+    gkyl_array_release(vpf->accel_grav);
+    gkyl_array_release(vpf->phi_sum);
+    if (vpf->rjacob_dir) {
+      gkyl_array_release(vpf->rjacob_dir);
+      gkyl_array_release(vpf->grad_buf);
+    }
+  }
+  if (vpf->has_bvar) {
+    gkyl_array_release(vpf->tot_em);
+    gkyl_array_release(vpf->bvar);
+    gkyl_array_release(vpf->grad_b);
+    gkyl_array_release(vpf->dt_em_no_J);
+    gkyl_array_release(vpf->dtB_over_magB);
+    gkyl_dg_calc_pkpm_bvar_release(vpf->calc_bvar);
+  }
 
   gkyl_array_release(vpf->ext_pot);
   if (vpf->has_ext_pot) {

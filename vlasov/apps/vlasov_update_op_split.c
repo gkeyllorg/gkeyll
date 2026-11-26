@@ -17,6 +17,16 @@
 // frequency of the kinetic species, so the step is bounded by cfl_frac / omega_p
 // (vm_fluid_em_coupling_dt).
 //
+// Poisson field: S is the kick of a kick-drift-kick scheme. The potentials are solved from the
+// densities of all species at the start of S (S does not change them, so they are those at the
+// end of the transport step before it, at tcurr), and the fluids take their forces in the solve of
+// S with a static field: -q/m grad(phi + phi_ext) and -grad(phi_g), implicit in the external
+// magnetic field. T moves the fluids with no force of the potentials (a kinetic species solves for
+// them in each stage, from the stage densities of all species). The fluid momenta lag tcurr by half
+// the last step, the densities and the potentials do not, and the staggered state holds no field.
+// The coupling of the densities to the potentials is explicit: the step resolves omega_p (and the
+// Jeans rate) of every species (vm_fluid_em_coupling_dt).
+//
 // The positivity limiter of the fluids and the field limiter (limit_em) are applied after the
 // source step of an update, and after that of the synchronization for output, so that the fluids
 // and the field that are written are limited as those that are evolved. The species record the
@@ -71,7 +81,7 @@ vlasov_update_op_split(gkyl_vlasov_app *app, double dt0)
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     gkyl_array_copy(fl_em->fluid_stag[i], fl_em->species[i]->fluid->fluid);
   }
-  gkyl_array_copy(fl_em->em_stag, app->field->em);
+  vm_fluid_em_coupling_save_field(app, fl_em);
 
   struct gkyl_update_status st;
   while (true) {
@@ -91,7 +101,7 @@ vlasov_update_op_split(gkyl_vlasov_app *app, double dt0)
     for (int i = 0; i < fl_em->num_fluid; ++i) {
       gkyl_array_copy(fl_em->species[i]->fluid->fluid, fl_em->fluid_stag[i]);
     }
-    gkyl_array_copy(app->field->em, fl_em->em_stag);
+    vm_fluid_em_coupling_restore_field(app, fl_em);
     // what the species recorded in the source step and in the stages goes with them
     for (int i = 0; i < app->num_species; ++i) {
       vlasov_species_discard_step(app, &app->species[i]);
@@ -117,7 +127,7 @@ vlasov_op_split_sync(gkyl_vlasov_app *app)
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     gkyl_array_copy(fl_em->fluid_stag[i], fl_em->species[i]->fluid->fluid);
   }
-  gkyl_array_copy(fl_em->em_stag, app->field->em);
+  vm_fluid_em_coupling_save_field(app, fl_em);
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
   // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
@@ -143,7 +153,7 @@ vlasov_op_split_unsync(gkyl_vlasov_app *app)
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     gkyl_array_copy(fl_em->species[i]->fluid->fluid, fl_em->fluid_stag[i]);
   }
-  gkyl_array_copy(app->field->em, fl_em->em_stag);
+  vm_fluid_em_coupling_restore_field(app, fl_em);
   app->op_split_synced = false;
 }
 
@@ -184,7 +194,8 @@ op_split_write_array(
 void
 vlasov_op_split_write_field(gkyl_vlasov_app *app, double tm, int frame)
 {
-  if (!app->has_fluid_em_coupling) {
+  // The Poisson field has no staggered state (its potentials follow the densities).
+  if (!app->has_fluid_em_coupling || app->field->field_id == GKYL_FIELD_PHI) {
     return;
   }
   // Before the first update nothing lags, and the field is the staggered one.
@@ -238,20 +249,28 @@ vlasov_op_split_restart(gkyl_vlasov_app *app, int frame)
     return rstat;
   }
   // The frames hold the synchronized state; the staggered fluids and field replace it, with the
-  // steps of the split, so that the next update continues the run.
+  // steps of the split, so that the next update continues the run. The Poisson field has no
+  // staggered state: the steps of the split come with the first fluid file.
   struct vm_fluid_em_coupling *fl_em = app->fl_em;
-  cstr fileNm = cstr_from_fmt("%s-field_restart_%d.gkyl", app->name, frame);
-  struct vlasov_output_meta meta = vlasov_meta_from_file(fileNm.str);
-  rstat = op_split_read_array(app, app->field->em, app->field->em_host, fileNm.str);
-  cstr_drop(&fileNm);
-  if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-    return rstat;
+  bool has_field_state = app->field->field_id != GKYL_FIELD_PHI;
+  struct vlasov_output_meta meta = {0};
+  if (has_field_state) {
+    cstr fileNm = cstr_from_fmt("%s-field_restart_%d.gkyl", app->name, frame);
+    meta = vlasov_meta_from_file(fileNm.str);
+    rstat = op_split_read_array(app, app->field->em, app->field->em_host, fileNm.str);
+    cstr_drop(&fileNm);
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      return rstat;
+    }
+    vlasov_field_apply_bc(app, app->field->em);
   }
-  vlasov_field_apply_bc(app, app->field->em);
 
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     cstr fileNm_fluid = op_split_fluid_file(app, fl_em->species[i], frame);
+    if (!has_field_state && i == 0) {
+      meta = vlasov_meta_from_file(fileNm_fluid.str);
+    }
     struct gkyl_app_restart_status rstat_fluid =
       op_split_read_array(app, fs->fluid, fs->fluid_host, fileNm_fluid.str);
     cstr_drop(&fileNm_fluid);
@@ -259,6 +278,11 @@ vlasov_op_split_restart(gkyl_vlasov_app *app, int frame)
       return rstat_fluid;
     }
     vm_fluid_species_apply_bc(app, fs, fs->fluid);
+  }
+  if (!has_field_state) {
+    // The forces of the kick and, with PKPM species, the E of the total field of the restarted
+    // state (the potentials follow the densities, read with the species).
+    vp_field_calc_kick(app, app->field);
   }
 
   app->op_split_synced = false;

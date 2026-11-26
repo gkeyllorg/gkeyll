@@ -2077,6 +2077,22 @@ void vm_species_accumulate_omega_p_sq(
 );
 
 /**
+ * Accumulate weight times the cell average of the physical number density of a kinetic species
+ * in each cell of the local range (s->m0 is recomputed).
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param fin Input distribution function array
+ * @param weight Factor of the density
+ * @param m0_avg Buffer (one component per cell)
+ * @param out Output (one component per cell), incremented
+ */
+void vm_species_accumulate_m0_avg(
+  struct gkyl_vlasov_app *app, struct vm_species *s, const struct gkyl_array *fin, double weight,
+  struct gkyl_array *m0_avg, struct gkyl_array *out
+);
+
+/**
  * Release species moment object.
  *
  * @param app Vlasov app object
@@ -3514,6 +3530,19 @@ void vm_fluid_species_apply_positivity(
 void vm_fluid_species_accumulate_current(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
   struct gkyl_array *emout
+);
+
+/**
+ * Accumulate the density of a fluid aspect onto the source of each potential of the Poisson
+ * field: its mass density over its mass (the number density) times the coupling weight of the
+ * potential (q for the electrostatic potential, alpha_g m for the gravitational one).
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid aspect (fluid species or the fluid aspect of a PKPM species)
+ * @param fluid Input fluid state, its first component the mass density
+ */
+void vm_fluid_species_accumulate_poisson_sources(
+  gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid
 );
 
 /**

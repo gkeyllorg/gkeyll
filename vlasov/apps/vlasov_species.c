@@ -81,6 +81,18 @@ fluid_accumulate_current(
   vm_field_accumulate_ghost_current(app, app->field, qbymeps, sp->fluid->mom, target);
 }
 
+// Coupling of a momentum-carrying fluid to the Poisson field: its density is a source of the
+// potentials ('target' is unused); the forces of the potentials act in the kick of the staggered
+// operator split.
+static void
+fluid_accumulate_poisson_sources(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, struct gkyl_array *target
+)
+{
+  vm_fluid_species_accumulate_poisson_sources(app, sp->fluid, fluidin);
+}
+
 static void
 kinetic_calc_self_moms(
   gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, struct gkyl_array *fin,
@@ -370,10 +382,14 @@ vlasov_fluid_species_init(
   sp->wall_loss_rate_func = fluid_wall_loss_rate;
   sp->release_func = species_release_aspects;
   // Field coupling of the stage: the current of a momentum-carrying (Euler or
-  // isothermal Euler) fluid when the Maxwell field is coupled explicitly; nothing otherwise.
+  // isothermal Euler) fluid when the Maxwell field is coupled explicitly, its density as a source
+  // of the Poisson field; nothing otherwise.
   bool has_explicit_current = app->use_explicit_sources && app->field->field_id == GKYL_FIELD_E_B &&
                               vm_fluid_em_coupling_supported(sp);
+  bool has_poisson_source = app->field->field_id == GKYL_FIELD_PHI &&
+                            vm_fluid_em_coupling_supported(sp);
   sp->accumulate_field_coupling_func = has_explicit_current ? fluid_accumulate_current :
+                                       has_poisson_source   ? fluid_accumulate_poisson_sources :
                                                               species_no_field_coupling;
 }
 

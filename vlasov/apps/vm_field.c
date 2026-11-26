@@ -512,6 +512,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->calc_energy_func = vm_field_calc_energy;
   f->write_func = vm_field_write;
   f->write_energy_func = vm_field_write_energy;
+  f->calc_diag_vars_func = vm_field_calc_diag_vars;
   f->from_file_func = vm_field_from_file;
   f->release_func = vm_field_release;
 
@@ -707,7 +708,7 @@ vm_field_copy_range(
 double
 vm_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   return vm_field_rhs(app, app->field, emin, emout);
@@ -720,7 +721,7 @@ vm_field_update(
 static double
 vm_field_update_split(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   double dt_out = vm_field_rhs(app, app->field, emin, emout);
@@ -787,7 +788,7 @@ vm_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field)
 double
 vm_field_update_bvar(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   vm_field_calc_bvar(app, app->field, emin);
@@ -800,11 +801,11 @@ vm_field_update_bvar(
 static double
 vm_field_update_split_bvar(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   vm_field_calc_bvar(app, app->field, emin);
-  double dt_out = vm_field_update_split(app, stage, tcurr, fin, emin, emout);
+  double dt_out = vm_field_update_split(app, stage, tcurr, fin, fluidin, emin, emout);
   vm_field_calc_dtB(app, app->field, emout);
   return dt_out;
 }

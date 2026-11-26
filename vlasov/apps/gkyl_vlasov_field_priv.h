@@ -23,6 +23,7 @@
 
 struct vm_geom; // geometry data, defined in gkyl_vlasov_priv.h, owned by the app.
 struct gkyl_vlasov_position_map; // configuration-space position map, defined in zero/, owned by the app.
+struct vm_field; // the field object, defined below.
 
 // Maximum number of self-consistent potentials solved for by the Vlasov-Poisson
 // field: the electrostatic and the gravitational potential.
@@ -47,6 +48,20 @@ struct vp_potential {
   // that species' total potential, given the species' charge and mass.
   double (*src_weight)(const struct vp_potential *pot, double charge, double mass);
   double (*force_weight)(const struct vp_potential *pot, double charge, double mass);
+  // Square of the rate of the potential's response per unit number density of a species: the
+  // plasma frequency q^2/(epsilon0 m) of the electrostatic potential and the Jeans rate alpha_g m
+  // of the gravitational one (the step bound of the staggered split, where the coupling of the
+  // fluids is explicit).
+  double (*rate_sq_weight)(const struct vp_potential *pot, double charge, double mass);
+  // Whether the force of the potential on a species is q/m times its electric field -grad(phi)
+  // (the electrostatic potential), rather than the same acceleration for every species (gravity).
+  bool is_electric;
+  // Its part of the forces of the kick of the staggered operator split (set by
+  // vp_field_set_source_split): the electrostatic potential adds phi to phi_sum, the potential of
+  // the electric field; the gravitational one sets accel_grav = -grad(phi_g).
+  void (*kick_func)(
+    struct gkyl_vlasov_app *app, struct vm_field *field, const struct vp_potential *pot
+  );
 
   struct gkyl_array
     *epsilon; // Permittivity in the Poisson equation (constant, or metric tensor on a mapped mesh).
@@ -58,6 +73,18 @@ struct vp_potential {
   struct gkyl_fem_poisson *fem_poisson; // Poisson solver.
   struct gkyl_array
     *sq_wgt; // Weight (the conf Jacobian) of the int phi^2 energy term; NULL if unscreened.
+  // Neutralizing background of an unscreened fully periodic solve. The FEM solve removes the
+  // computational-space mean of its source, which carries the position-map Jacobian J: on a
+  // position map that is a background proportional to 1/J in physical space. There the source
+  // first loses J times its physical mean, int J rho dxi / int J dxi, so the background is uniform
+  // (a no-op on a uniform mesh and for other boundary conditions).
+  void (*neutralize_func)(
+    struct gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot
+  );
+  struct gkyl_array *jac_dg; // J of each cell as a DG field (NULL without the neutralization)
+  struct gkyl_array *rho_avg; // cell averages of the source (buffer)
+  double *rho_red; // reduction of the source over the local range
+  double jac_sum; // sum of J over the global range
   struct gkyl_array_integrate *calc_sq; // int phi^2 integrator; NULL if unscreened.
   // Memory for use in reduction of the energy: [int |grad phi|^2, int phi^2].
   double *energy_red, *energy_red_global;
@@ -72,7 +99,7 @@ struct vm_field {
   // Pointers to various functions selected at runtime (by field type).
   double (*update_func)(
     gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-    const struct gkyl_array *emin, struct gkyl_array *emout
+    const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
   );
   void (*combine_func)(
     gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out, double c1,
@@ -99,6 +126,9 @@ struct vm_field {
   );
   void (*write_func)(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
   void (*write_energy_func)(gkyl_vlasov_app *app);
+  // The field quantities of PKPM species (b, its gradient, d_t B/|B|, the total field) of the
+  // present state, for the output.
+  void (*calc_diag_vars_func)(gkyl_vlasov_app *app, struct vm_field *field);
   // Restart the field from the named file. Vlasov-Maxwell reads the EM field;
   // Vlasov-Poisson evaluates its external potentials/fields (the
   // potential is solved from the distribution whenever it is needed); the null
@@ -169,6 +199,27 @@ struct vm_field {
       // integrate updater.
       struct gkyl_array *grad_sq_wgt;
       struct gkyl_array_integrate *calc_grad_sq;
+
+      // Forces of the potentials on the fluid aspects, the kick of the staggered operator split
+      // (vp_field_set_source_split; NULL otherwise): the electric field of the electrostatic and
+      // the external potential, E = -grad(phi + phi_ext), in the layout of an EM field
+      // [E, B, phi, psi] with zero B (the source solve reads it as its static field), and the
+      // gravitational acceleration -grad(phi_g) (zero without self-gravity).
+      struct gkyl_array *em_pot;
+      struct gkyl_array *accel_grav;
+      struct gkyl_array *phi_sum; // phi + phi_ext, the potential of em_pot (buffer)
+      struct gkyl_basis basis_grad; // p=1 serendipity basis of the gradients (p=1 tensor alike)
+      // The physical gradient of a potential, out = -grad(phi) in its first cdim components: the
+      // computational gradient, on a position map divided in each direction by the per-cell
+      // constant J_d of the map (rjacob_dir holds 1/J_d, grad_buf the computational gradient).
+      void (*grad_func)(
+        struct gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *phi,
+        struct gkyl_array *out
+      );
+      struct gkyl_array *rjacob_dir;
+      struct gkyl_array *grad_buf;
+      // The total field of PKPM species with the E of the kick (a no-op without PKPM species).
+      void (*kick_tot_em_func)(struct gkyl_vlasov_app *app, struct vm_field *field);
     };
   };
 
@@ -244,13 +295,14 @@ struct vm_field *vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *ap
  * @param stage SSP-RK3 stage (1, 2 or 3) of the update
  * @param tcurr Current time
  * @param fin[] Input distribution functions (indexed by species)
+ * @param fluidin[] Input fluid states (indexed by species)
  * @param emin Input EM field
  * @param emout On output, the field RHS
  * @return Maximum stable time-step (DBL_MAX for the Poisson solve)
  */
 double vlasov_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**
@@ -372,6 +424,14 @@ void vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct
  * @param app Vlasov app object
  */
 void vlasov_field_write_energy(gkyl_vlasov_app *app);
+
+/**
+ * Compute the field quantities of PKPM species (b, its gradient, d_t B/|B| and the total field)
+ * of the present state, for the output (no-op for the null field).
+ *
+ * @param app Vlasov app object
+ */
+void vlasov_field_calc_diag_vars(gkyl_vlasov_app *app);
 
 /**
  * Restart the field from the named file (dispatches by field type).
@@ -564,13 +624,14 @@ void vm_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field);
  * @param stage SSP-RK3 stage (1, 2 or 3)
  * @param tcurr Time of the stage
  * @param fin Stage distributions (unused)
+ * @param fluidin Stage fluid states (unused)
  * @param emin Input electromagnetic fields
  * @param emout On output, the right-hand side of Maxwell's equations
  * @return Maximum stable time-step
  */
 double vm_field_update_bvar(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**
@@ -596,13 +657,14 @@ double vm_field_ghost_current_mean(
  * @param stage SSP-RK3 stage (1, 2 or 3) of the update; unused for Maxwell
  * @param tcurr Current time
  * @param fin[] Input distribution function (num_species size); unused for Maxwell
+ * @param fluidin[] Input fluid states (num_species size); unused for Maxwell
  * @param emin Input field
  * @param emout On output, the RHS from the field solver
  * @return Maximum stable time-step
  */
 double vm_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**
@@ -750,9 +812,10 @@ void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
 
 /**
  * Vlasov-Poisson initial conditions: evaluate the external potentials and
- * fields at t0. The potential itself is not solved here; it is solved from the
- * distribution wherever it is needed (each forward Euler step and the field
- * diagnostics).
+ * fields at t0. The potential is solved from the species wherever it is needed
+ * (each forward Euler step, the kick of the staggered operator split and the
+ * field diagnostics); under the split the forces of the kick of the initial
+ * state are formed here, and with PKPM species b of the external field.
  *
  * @param app Vlasov app object.
  * @param field Field object.
@@ -765,7 +828,9 @@ void vp_field_apply_ic(
 
 /**
  * Restart for Vlasov-Poisson: no field file is read; evaluates the external
- * potentials and fields exactly as the initial conditions do.
+ * potentials and fields exactly as the initial conditions do, and with PKPM
+ * species b of the external field (read before the species, whose boundary
+ * conditions need it).
  *
  * @param app Vlasov app object.
  * @param field Field object.
@@ -778,15 +843,54 @@ struct gkyl_app_restart_status vp_field_from_file(
 
 /**
  * Solve for the potentials (electrostatic and/or gravitational) from the
- * distribution functions: accumulate each potential's source over all species,
- * then solve its Poisson equation. Called by the field update (each forward
- * Euler stage) and by the field diagnostics.
+ * species densities: accumulate each potential's source over all species (the
+ * number density of the distribution of a kinetic species, the mass density over
+ * the mass of a fluid aspect), then solve its Poisson equation. Called by the
+ * field update (each forward Euler stage), by the kick of the staggered operator
+ * split and by the field diagnostics.
  *
  * @param app Vlasov app object.
  * @param field Pointer to field.
  * @param fin[] Input distribution functions, indexed by species.
+ * @param fluidin[] Input fluid states, indexed by species (NULL entries where a species has none).
  */
-void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[]);
+void vp_field_solve(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[]
+);
+
+/**
+ * Switch the field to the staggered operator split (see vlasov_update_op_split), in which the
+ * fluid aspects take the forces of the potentials in the kick (the source step) and none in the
+ * transport step: allocate the forces of the kick, and solve for the potentials in the stages of
+ * the transport step only when a kinetic species needs them there. Called at construction, once
+ * the app knows a fluid aspect couples to the potentials.
+ *
+ * @param app Vlasov app object.
+ * @param field Pointer to field.
+ */
+void vp_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field);
+
+/**
+ * The forces of the kick of the staggered operator split, from the present state of all
+ * species: solve for the potentials, then form em_pot (E = -grad(phi + phi_ext)), accel_grav
+ * (-grad(phi_g)) and, with PKPM species, the total field tot_em = [E + E_ext, B_ext] that the
+ * transport step reads.
+ *
+ * @param app Vlasov app object.
+ * @param field Pointer to field (after vp_field_set_source_split).
+ */
+void vp_field_calc_kick(gkyl_vlasov_app *app, struct vm_field *field);
+
+/**
+ * The field quantities of PKPM species for the output: the total field with the E of the present
+ * state (b and its gradient are those of the static external field). Assigned to the field's
+ * calc_diag_vars_func.
+ *
+ * @param app Vlasov app object.
+ * @param field Pointer to field.
+ */
+void vp_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field);
 
 /**
  * Update the field at the current time: solve for the potentials from the
@@ -797,13 +901,14 @@ void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct g
  * @param stage SSP-RK3 stage (1, 2 or 3) of the update; unused for Poisson.
  * @param tcurr Current time.
  * @param fin[] Input distribution function (num_species size).
+ * @param fluidin[] Input fluid states (num_species size).
  * @param emin Unused (no EM RK state for Vlasov-Poisson).
  * @param emout Unused (no EM RK state for Vlasov-Poisson).
  * @return DBL_MAX (no stability constraint from the elliptic solve).
  */
 double vp_field_update(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**

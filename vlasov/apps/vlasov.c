@@ -506,12 +506,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // Fluid-EM coupling: supported for the fluid aspects that carry a momentum (PKPM species;
   // fluid species with the Euler or isothermal Euler equations)
-  // under the standard Maxwell field. Scalar advection and canonical-PB fluids
-  // carry no current and are never coupled; a momentum-carrying fluid under any
-  // other field type has no coupling formulation and is rejected. The coupling
+  // under the standard Maxwell field and the Poisson field. Scalar advection and canonical-PB
+  // fluids carry no current and are never coupled; a momentum-carrying fluid under any
+  // other field type has no coupling formulation and is rejected. The Maxwell coupling
   // is implicit (the staggered operator split, see vlasov_update_op_split)
   // unless use_explicit_sources puts the Lorentz force in the fluid RHS and the
-  // fluid current on the Ampere RHS of every SSP-RK3 stage.
+  // fluid current on the Ampere RHS of every SSP-RK3 stage. The Poisson coupling is the
+  // kick-drift-kick form of the split: the fluids take the forces of the potentials in its source
+  // step, solved from the densities at its start.
   int num_coupled_fluids = 0;
   for (int i = 0; i < ntot; ++i) {
     if (vm_fluid_em_coupling_supported(&app->species[i])) {
@@ -524,10 +526,19 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->op_split_dt_prev = 0.0;
   app->op_split_dt_suggested = 0.0;
   app->op_split_synced = false;
-  if (num_coupled_fluids > 0 && app->has_field) {
+  if (num_coupled_fluids > 0 && app->has_field && app->field->field_id == GKYL_FIELD_PHI) {
+    if (app->use_explicit_sources) {
+      gkyl_exit(
+        "gkyl_vlasov_app_new: the coupling of fluid aspects to the Poisson field is the kick-drift-kick split; use_explicit_sources is not supported with it."
+      );
+    }
+    app->has_fluid_em_coupling = true;
+    vp_field_set_source_split(app, app->field);
+    app->fl_em = vm_fluid_em_coupling_new(app);
+  } else if (num_coupled_fluids > 0 && app->has_field) {
     if (app->field->field_id != GKYL_FIELD_E_B) {
       gkyl_exit(
-        "gkyl_vlasov_app_new: fluid-EM coupling is only supported with the standard Maxwell field (E_B)."
+        "gkyl_vlasov_app_new: fluid-EM coupling is only supported with the standard Maxwell field (E_B) and the Poisson field (PHI)."
       );
     }
     if (!app->use_explicit_sources) {
@@ -538,14 +549,21 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       vm_field_set_source_split(app, app->field);
     }
   }
+  // The plasma frequency the force kernels of the stages read: zero unless the Maxwell field is
+  // explicit (below). Under the Poisson field the forces of the potentials on the fluids act in
+  // the kick.
+  bool is_em_or_phi = app->has_field && (app->field->field_id == GKYL_FIELD_E_B ||
+                                         app->field->field_id == GKYL_FIELD_PHI);
+  if (is_em_or_phi) {
+    app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    gkyl_array_clear(app->src_omega_p_sq, 0.0);
+  }
   // Without the split, the currents of all species and the resistive layer are explicit in the
   // stages of a Maxwell field: the time-step resolves the plasma frequency (with the cyclotron
   // frequency in the rate of each coupled fluid) and the rate of the layer. A static field does
   // not respond to them, and with the split the source step resolves them: the plasma frequency
   // the force kernels of the stages read stays zero.
   if (app->has_field && app->field->field_id == GKYL_FIELD_E_B) {
-    app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
-    gkyl_array_clear(app->src_omega_p_sq, 0.0);
     if (!app->field->info.is_static && !app->has_fluid_em_coupling) {
       app->src_dt_func = vlasov_src_dt_explicit;
       app->src_omega_p_sq_kin = mkarr(app->use_gpu, 1, app->local_ext.volume);

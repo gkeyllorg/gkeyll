@@ -7,8 +7,8 @@
 -- is the Roe solver of the isothermal wave equation object (rp_type).
 --
 -- Figures of merit at t = 0.1 (serendipity p2, 512 cells, 515 steps): L1 errors of the cell
--- averages of 0.0014 in density and 0.0016 in momentum (0.00135 and 0.00157, against 0.00141 and
--- 0.00163 at p1); shock at x = 0.8985 (exact 0.8984); star-state density 2.2012 and velocity
+-- averages of 0.0014 in density and 0.0016 in momentum (0.00135 and 0.00157, against 0.00079 and
+-- 0.00078 at p1); shock at x = 0.8985 (exact 0.8984); star-state density 2.2012 and velocity
 -- 0.8096, both exact to four digits; the cell averages of the density stay within [1, 3].
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler

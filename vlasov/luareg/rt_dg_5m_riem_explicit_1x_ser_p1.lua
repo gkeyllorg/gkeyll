@@ -12,9 +12,9 @@
 -- solver (rp_type) with the vertex positivity limiter, and the field its slope limiter (limit_em).
 --
 -- Figures of merit at t = 10 (256 cells, serendipity p1, 8534 steps): relative L1 differences of
--- the cell averages from the moments finite-volume solution on 1024 cells, 1.2% (ion density), 1.1%
--- of the maximum (ion u_x), 1.7% (ion pressure), 1.8% (electron pressure), 1.4% and 1.9% of the
--- maximum (B_y, B_z). The electron pressure lies between 4.1e-6 and 5.6e-5 and the ion density
+-- the cell averages from the moments finite-volume solution on 1024 cells, 0.64% (ion density),
+-- 0.69% of the maximum (ion u_x), 0.94% (ion pressure), 1.0% (electron pressure), 1.8% and 2.5% of
+-- the maximum (B_y, B_z). The electron pressure lies between 4.0e-6 and 5.6e-5 and the ion density
 -- between 0.118 and 1.06.
 
 local Vlasov = G0.Vlasov

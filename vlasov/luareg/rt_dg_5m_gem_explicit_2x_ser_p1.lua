@@ -7,19 +7,21 @@
 -- walls for the fluids and perfectly conducting walls for the field in y. The fluid-field coupling
 -- is explicit (use_explicit_sources); the light-wave CFL condition keeps omega_pe dt at 0.33, so
 -- the rate of the source does not set the time-step. The fluids use the HLLC flux of the Riemann
--- solver (rp_type) with the vertex positivity limiter, and the field its slope limiter (limit_em)
--- and divergence cleaning of the magnetic field (mgnErrorSpeedFactor = 1).
+-- solver (rp_type) with the characteristic slope limiter (limit_fluid) and the vertex positivity
+-- limiter, and the field its slope limiter (limit_em) and divergence cleaning of the magnetic field
+-- (mgnErrorSpeedFactor = 1).
 --
 -- Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
--- reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1229 (the moments
+-- reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1204 (the moments
 -- finite-volume solution on 128 x 64 cells: 0.0200 to 0.1167; the implicit variant,
--- rt_dg_5m_gem_2x: 0.1304). The out-of-plane field reaches |B_z| = 0.014 and the electron speed
--- 0.24 (cell averages); the cell averages of the correction potential stay below 8.4e-4, the field
--- energy falls from 1.511 to 1.259, and the total energy of the diagnostics by 3.5%. The run
--- amplifies round-off, so the late-time figures agree between runs only to a few percent. For the
--- same reason the mirror symmetry of the problem about the midplane y = 0, kept to round-off at
--- first, is lost: at the end the electron z-momentum departs from it by 29% of its maximum (1.4% of
--- the current in the moments solution).
+-- rt_dg_5m_gem_2x: 0.1311). The out-of-plane field reaches |B_z| = 0.012 and the electron speed
+-- 0.23 (cell averages); the cell averages of the correction potential stay below 9.8e-4, the field
+-- energy falls from 1.511 to 1.261, and the total energy (field plus fluid kinetic and internal
+-- energy) falls by 0.17%. The run amplifies round-off, so the late-time figures agree between runs
+-- only to several percent (the final field of the C and Lua inputs to 7% of its maximum, the
+-- reconnected flux to 1.2%). For the same reason the mirror symmetry of the problem about the
+-- midplane y = 0, kept to round-off at first, is lost: at the end the electron z-momentum departs
+-- from it by 33% of its maximum (1.4% of the current in the moments solution).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
@@ -99,6 +101,7 @@ vlasovApp = Vlasov.App.new {
 
   elc = Vlasov.FluidSpecies.new {
     charge = charge_elc, mass = mass_elc,
+    limitFluid = true, -- Characteristic slope limiter (before the positivity limiter).
     equation = Euler.new { gasGamma = gas_gamma },
 
     init = function (t, xn)
@@ -120,6 +123,7 @@ vlasovApp = Vlasov.App.new {
 
   ion = Vlasov.FluidSpecies.new {
     charge = charge_ion, mass = mass_ion,
+    limitFluid = true, -- Characteristic slope limiter (before the positivity limiter).
     equation = Euler.new { gasGamma = gas_gamma },
 
     init = function (t, xn)

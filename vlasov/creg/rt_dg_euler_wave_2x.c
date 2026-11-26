@@ -4,9 +4,9 @@
 // Comput. 25 (3): 995-1017, as set up in entry JE22 of A. Hakim's simulation journal): rho = 1 +
 // 0.2 sin(pi (x + y)) is carried at the velocity (1, -0.5) and pressure 1 (gamma = 1.4) through the
 // periodic box [0, 2]^2 and returns at t = 4, so the exact solution is the initial condition.
-// Figures of merit (serendipity p1, 50 x 50 cells, 1380 steps): the L2 error of the density is
-// 1.62e-2 of the L2 amplitude of the wave; the amplitude of the cell averages falls from 0.1993 to
-// 0.1938; mass and energy are conserved to 1e-13.
+// Figures of merit (serendipity p1, 50 x 50 cells, 1382 steps): the L2 error of the density is
+// 1.19e-3 of the L2 amplitude of the wave; the amplitude of the cell averages falls from 0.1993 to
+// 0.1992; mass and energy are conserved to 1e-13.
 
 #include <math.h>
 #include <stdio.h>

@@ -281,6 +281,7 @@ main(int argc, char **argv)
     .equation = euler,
     .init = evalEulerInit,
     .ctx = &ctx,
+    .limit_fluid = true,
 
     .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };

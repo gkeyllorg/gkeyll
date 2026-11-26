@@ -6,11 +6,11 @@
 -- t = 0.15; rt_dg_euler_double_rarefaction_1x has the same states with gamma = 5/3. The reference
 -- is the exact Riemann solution.
 --
--- Figures of merit (serendipity p1, 100 cells, 138 steps): L1 errors of the cell averages of 1.4%
--- (density, of the mean density), 0.96% (velocity, of the largest |u| + c_s) and 2.6% (pressure, of
--- the mean pressure). In the two central cells the density is 0.0189 (exact 0.0219) and the
--- pressure 5.0e-3 (exact 1.9e-3); the density is nowhere lower, and the solution is mirror
--- symmetric about x = 0.5 to 6e-15.
+-- Figures of merit (serendipity p1, 100 cells, 138 steps): L1 errors of the cell averages of 1.9%
+-- (density, of the mean density), 0.71% (velocity, of the largest |u| + c_s) and 2.4% (pressure, of
+-- the mean pressure). In the two central cells the density is 0.0241 (exact 0.0219) and the
+-- pressure 4.5e-3 (exact 1.9e-3); the density is lowest, 0.0190, one cell further out (x = 0.485
+-- and 0.515), and the solution is mirror symmetric about x = 0.5 to 9e-15.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

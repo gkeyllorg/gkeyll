@@ -9,9 +9,9 @@
 -- transport step advances B and the fluids.
 --
 -- Figures of merit at t = 20, 4.5 wave periods (32 cells, serendipity p1, 306 steps, omega dt =
--- 0.093): the fitted amplitude of E_y is E_0 (1 - 4.7e-4) and its phase error 5.4e-3 rad. The
--- relative L2 errors are 2.8e-2 (E_y), 2.1e-2 (B_z) and 1.8e-2 (electron u_y). The total energy
--- (field plus fluids, from the frames) changes by 7.7e-7 of the initial field energy.
+-- 0.093): the fitted amplitude of E_y is E_0 (1 - 4.1e-4) and its phase error 5.7e-3 rad. The
+-- relative L2 errors are 2.7e-2 (E_y), 2.8e-2 (B_z) and 2.9e-2 (electron u_y). The total energy
+-- (field plus fluids, from the frames) changes by 1.5e-6 of the initial field energy.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

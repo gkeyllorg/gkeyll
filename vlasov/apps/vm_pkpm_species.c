@@ -194,6 +194,17 @@ vm_pkpm_species_no_field_coupling(
 {
 }
 
+// Coupling to the Poisson field: the density of the fluid aspect is a source of the potentials
+// ('target' is unused); their forces act in the kick of the staggered operator split.
+static void
+vm_pkpm_species_accumulate_poisson_sources(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, struct gkyl_array *target
+)
+{
+  vm_fluid_species_accumulate_poisson_sources(app, sp->fluid, fluidin);
+}
+
 // Current of the fluid aspect coupled explicitly to the Maxwell field ('target' is emout): the
 // fluid array is [rho, rho ux, rho uy, rho uz, E], and its momentum block over the mass is the
 // number flux.
@@ -299,10 +310,12 @@ vlasov_pkpm_species_init(
   sp->write_integrated_mom_func = vm_pkpm_species_write_integrated_mom;
   sp->read_from_frame_func = vm_pkpm_species_read_from_frame;
   // Field coupling of the stage: the current of the fluid momentum when the Maxwell field is
-  // coupled explicitly; the implicit coupling takes it in the source step.
-  sp->accumulate_field_coupling_func = app->use_explicit_sources ?
-                                         vm_pkpm_species_accumulate_current :
-                                         vm_pkpm_species_no_field_coupling;
+  // coupled explicitly (the implicit coupling takes it in the source step), the density of the
+  // fluid as a source of the Poisson field.
+  sp->accumulate_field_coupling_func =
+    app->field->field_id == GKYL_FIELD_PHI ? vm_pkpm_species_accumulate_poisson_sources :
+    app->use_explicit_sources              ? vm_pkpm_species_accumulate_current :
+                                             vm_pkpm_species_no_field_coupling;
   sp->wall_loss_rate_func = vm_pkpm_species_wall_loss_rate;
   sp->release_func = vm_pkpm_species_release;
 }
@@ -336,6 +349,13 @@ vm_pkpm_species_init(struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct v
   assert(s->kinetic->pkpm.num_face_nodes >= 3);
   s->fluid->positivity_eps = s->fluid->info.positivity_eps > 0.0 ? s->fluid->info.positivity_eps :
                                                                    1.0e-2;
+  // The fluid of a PKPM species has the positivity limiter only: its flux is the moment of the
+  // kinetic flux, with no equation object for a characteristic decomposition.
+  if (s->fluid->info.limit_fluid) {
+    gkyl_exit(
+      "vm_pkpm_species: the characteristic slope limiter (limit_fluid) is not supported for PKPM species."
+    );
+  }
 
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -2008,7 +2028,7 @@ vm_pkpm_species_write_mom(gkyl_vlasov_app *app, struct vlasov_species *s, double
   // Compute the PKPM variables including moments and primitive variables and construct the
   // arrays for writing out the pressure tensor, the heat flux and the other pkpm variables,
   // with b, its gradient and d_t B/|B| of the field being written.
-  vm_field_calc_diag_vars(app, app->field);
+  vlasov_field_calc_diag_vars(app);
   vm_pkpm_species_calc_diag_vars(app, s, s->kinetic->f, s->fluid->fluid);
   vm_pkpm_species_moment_diag_calc(
     app, s, s->kinetic->local, app->local, s->kinetic->f, s->fluid->fluid

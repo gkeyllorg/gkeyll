@@ -123,7 +123,25 @@ vm_fluid_species_no_positivity(
 {
 }
 
-// Limit the slopes, apply the vertex positivity limiter, then reapply the boundary conditions.
+// The vertex positivity limiter alone (the default), then the boundary conditions.
+static void
+vm_fluid_species_euler_positivity_limiter(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  // Keep the vertex density and (Euler) internal energy positive
+  f->positivity_func(app, f, fluid);
+
+  app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
+
+  // Apply boundary conditions after limiting solution
+  vm_fluid_species_apply_bc(app, f, fluid);
+}
+
+// With limit_fluid: limit the slopes with the characteristic limiter, then apply the vertex
+// positivity limiter (last, so that its guarantee holds), then reapply the boundary conditions.
 static void
 vm_fluid_species_euler_limiter(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
@@ -214,7 +232,12 @@ vm_fluid_species_euler_init(
   f->positivity_func = app->poly_order == 1 ? vm_fluid_species_euler_positivity :
                                               vm_fluid_species_no_positivity;
 
-  f->limiter_func = vm_fluid_species_euler_limiter;
+  // The positivity limiter is the default at polynomial order 1, with the characteristic limiter
+  // before it on request; at higher orders there is no positivity limiter and the characteristic
+  // limiter is always applied.
+  bool use_char_limiter = f->info.limit_fluid || app->poly_order > 1;
+  f->limiter_func = use_char_limiter ? vm_fluid_species_euler_limiter :
+                                       vm_fluid_species_euler_positivity_limiter;
   f->prim_vars_func = vm_fluid_species_euler_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_euler_calc_integrated;
   f->write_func = vm_fluid_species_euler_write;
@@ -1314,6 +1337,19 @@ vm_fluid_species_accumulate_current(
   double qbymeps = fluid_species->charge / (fluid_species->mass * app->field->info.epsilon0);
   gkyl_array_set_offset(fluid_species->mom, 1.0, fluid, app->basis.num_basis);
   gkyl_array_accumulate_range(emout, -qbymeps, fluid_species->mom, &app->local);
+}
+
+void
+vm_fluid_species_accumulate_poisson_sources(
+  gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid
+)
+{
+  // The first component of the state is the mass density; the source takes the number density.
+  for (int p = 0; p < app->field->num_pots; ++p) {
+    struct vp_potential *pot = &app->field->pots[p];
+    double weight = pot->src_weight(pot, fluid_species->charge, fluid_species->mass);
+    gkyl_array_accumulate_range(pot->rho, weight / fluid_species->mass, fluid, &app->local);
+  }
 }
 
 void

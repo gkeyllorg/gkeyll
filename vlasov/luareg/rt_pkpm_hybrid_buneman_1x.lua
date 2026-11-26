@@ -16,12 +16,12 @@
 -- Linear theory with kinetic electrons and the adiabatic ion fluid at k = 2 pi: gamma = 0.19764
 -- omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
 -- Figures of merit (16 cells, 64 in w): the field-energy history int E_x^2 dx grows at gamma =
--- 0.1896 over t = 20-65 (both species PKPM: 0.1895; kinetic electrons with the same ion fluid:
+-- 0.1895 over t = 20-65 (both species PKPM: 0.1895; kinetic electrons with the same ion fluid:
 -- 0.1946). It peaks at 3.4e-3 at t = 72.3 (both PKPM: 3.2e-3 at t = 72.2) and is 1.8e-3 at t = 80.
 -- Electron and ion number are conserved to 1e-12. The total energy (field and the fluid energies of
 -- both species from the histories) changes by 5e-13 of itself up to t = 40 and by 6e-12 up to t =
 -- 80. The mean of E_x is at round-off (1e-15) at t = 80, where the largest cell average of E_x is
--- 0.083.
+-- 0.086.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

@@ -1675,6 +1675,7 @@ vlasov_fluid_species_lw_new(lua_State *L)
   vm_fluid_species.eval_on_nodes = glua_tbl_get_bool(L, "evalOnNodes", false);
 
   // Slope limiter factor and relative floor of the vertex positivity limiter (0: defaults).
+  vm_fluid_species.limit_fluid = glua_tbl_get_bool(L, "limitFluid", false);
   vm_fluid_species.limiter_fac = glua_tbl_get_number(L, "limiterFac", 0.0);
   vm_fluid_species.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
 
@@ -2164,6 +2165,7 @@ vlasov_pkpm_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "fluid")
   {
     pkpm_species.fluid.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
+    pkpm_species.fluid.limit_fluid = glua_tbl_get_bool(L, "limitFluid", false);
     pkpm_species.fluid.eval_on_nodes = glua_tbl_get_bool(L, "evalOnNodes", false);
 
     if (glua_tbl_get_func(L, "background")) {

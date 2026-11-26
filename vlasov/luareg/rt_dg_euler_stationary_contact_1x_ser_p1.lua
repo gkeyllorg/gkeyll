@@ -5,11 +5,11 @@
 -- the left, a Mach 189 shock to the right and the contact stays at x = 0.8; the reference is the
 -- exact Riemann solution.
 --
--- Figures of merit (serendipity p1, 100 cells, 237 steps): L1 errors of the cell averages of 1.3%
--- (density, of the mean density), 0.20% (velocity, of the largest |u| + c_s) and 0.64% (pressure,
--- of the mean pressure); contact at x = 0.8009 (exact 0.8) with its density jump inside two cells,
--- shock at x = 0.8747 (exact 0.8731); density 0.6156 left of the contact (exact 0.6157) and 3.9999
--- right of it (exact 3.9997), pressure 445.7 between the contact and the shock (exact 445.6).
+-- Figures of merit (serendipity p1, 100 cells, 238 steps): L1 errors of the cell averages of 1.5%
+-- (density, of the mean density), 0.28% (velocity, of the largest |u| + c_s) and 0.86% (pressure,
+-- of the mean pressure); contact at x = 0.8006 (exact 0.8) with its density jump inside two cells,
+-- shock at x = 0.8730 (exact 0.8731); density 0.6161 left of the contact (exact 0.6157) and 4.0026
+-- right of it (exact 3.9997), pressure 444.2 between the contact and the shock (exact 445.6).
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

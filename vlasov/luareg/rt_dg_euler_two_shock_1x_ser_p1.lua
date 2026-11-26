@@ -4,11 +4,11 @@
 -- 460.894) left of x = 0.4 and (5.99242, -6.19633, 46.0895) right of it, to t = 0.035. Two shocks
 -- move apart with a contact between them; the reference is the exact Riemann solution.
 --
--- Figures of merit (serendipity p1, 100 cells, 361 steps): L1 errors of the cell averages of 1.3%
--- (density, of the mean density), 0.086% (velocity, of the largest |u| + c_s) and 0.37% (pressure,
--- of the mean pressure); shocks at x = 0.3571 and 0.8972 (exact 0.3560 and 0.8939), contact at x =
--- 0.7042 (exact 0.6996); between the shocks pressure 1841.9 (exact 1841.8) and velocity 8.561
--- (exact 8.560), with density 12.744 left of the contact (exact 12.743) and 21.919 right of it
+-- Figures of merit (serendipity p1, 100 cells, 361 steps): L1 errors of the cell averages of 1.2%
+-- (density, of the mean density), 0.056% (velocity, of the largest |u| + c_s) and 0.25% (pressure,
+-- of the mean pressure); shocks at x = 0.3570 and 0.8951 (exact 0.3560 and 0.8939), contact at x =
+-- 0.7029 (exact 0.6996); between the shocks pressure 1841.5 (exact 1841.8) and velocity 8.559
+-- (exact 8.560), with density 12.725 left of the contact (exact 12.743) and 21.908 right of it
 -- (exact 21.925).
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
