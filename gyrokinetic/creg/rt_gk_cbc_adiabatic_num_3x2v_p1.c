@@ -309,33 +309,6 @@ eval_temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
                          app->const_grad); // LTe = LTi.
 }
 
-// Equilibrium Maxwellian (density, flow and temperature of the IC) for the
-// Krook buffers.
-/**
- * Evaluate the ion Krook Maxwellian using converted configuration coordinates.
- *
- * @param t Time [s].
- * @param xn Numerical (psi,alpha,theta) coordinates; velocity coordinates
- * follow for phase-space callbacks.
- * @param fout Output profile value.
- * @param ctx CBC simulation context.
- */
-void
-eval_feq_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  double rMr0 = rMr0_at_comp_coord(app, xn);
-  double vpar = xn[3], mu = xn[4];
-  double n = init_profile(rMr0, app->n0, app->Ln, app->prof_width, app->const_grad);
-  double T = init_profile(rMr0, app->Ti0, app->LTi, app->prof_width, app->const_grad);
-  double u;
-  eval_upar_ion(t, xn, &u, ctx);
-  double B;
-  gkyl_gk_geometry_geo_int_bmag_at_comp_coord(app->geo, xn, &B);
-  fout[0] =
-    n / pow(2.0 * M_PI * T / app->mi, 1.5) * exp(-(0.5 * app->mi * pow(vpar - u, 2) + mu * B) / T);
-}
-
 // Krook rate: nu_krook in num_cell_krook_buff cells at each rMr0 wall, tanh
 // transition (Grandgirard et al. 2016 Eq. 49).
 /**
@@ -787,8 +760,7 @@ main(int argc, char **argv)
         .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
         .rate_profile = eval_krook_rate,
         .rate_profile_ctx = &ctx,
-        .feq_shape = eval_feq_ion,
-        .feq_shape_ctx = &ctx,
+        .projection = ion_bc,
       },
 
     .num_diag_moments = 4,
