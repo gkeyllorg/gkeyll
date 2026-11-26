@@ -24,10 +24,33 @@ typedef void (*pkpm_remap_flux_store_t)(
   const double *wpsi, const double *proj, double *GKYL_RESTRICT flux
 );
 
+typedef void (*pkpm_remap_flux_interval_t)(
+  const double *fc, double w_lo, double w_up, const double *side_l, const double *side_r,
+  const double *cell_l, const double *cell_r, const double *Y_l, const double *Y_r,
+  double *GKYL_RESTRICT P_l, double *GKYL_RESTRICT P_r, double *GKYL_RESTRICT mom,
+  double *GKYL_RESTRICT share
+);
+
+typedef void (*pkpm_remap_flux_to_face_t)(
+  const double *psi, const double *fwd, const double *G, double *GKYL_RESTRICT X,
+  double *GKYL_RESTRICT Y
+);
+typedef void (*pkpm_remap_flux_from_face_t)(
+  const double *wpsi, const double *bck, const double *P, double *GKYL_RESTRICT flux
+);
+typedef void (*pkpm_remap_flux_label_t)(
+  const double *fc, double w_center, double dw, const double *X_l, const double *X_r,
+  double *GKYL_RESTRICT proj, double *GKYL_RESTRICT mom_l, double *GKYL_RESTRICT mom_r,
+  double *GKYL_RESTRICT speed
+);
+
 // for use in kernel tables
 typedef struct {
   pkpm_remap_flux_trace_t kernels[3];
 } gkyl_dg_pkpm_remap_flux_trace_kern_list;
+typedef struct {
+  pkpm_remap_flux_from_face_t kernels[3];
+} gkyl_dg_pkpm_remap_flux_from_face_kern_list;
 typedef struct {
   pkpm_remap_flux_store_t kernels[3];
 } gkyl_dg_pkpm_remap_flux_store_kern_list;
@@ -50,18 +73,50 @@ GKYL_CU_D static const gkyl_dg_pkpm_remap_flux_store_kern_list ser_pkpm_remap_fl
      pkpm_remap_flux_store_z_3x1v_ser_p1} // 2
 };
 
-// Gauss-Legendre points per supermesh interval: exact, the flux being at most cubic there.
-#define PKPM_REMAP_FLUX_VEL_QUAD 3
-// Face-frame moments of the flux: M0, M1, M2 of F, M0 of G and M0 of M0_perp (3), the input of
-// pkpm_harm_fluid_moment_map.
-#define PKPM_REMAP_FLUX_NUM_MOMS 7
+// Blocks of one velocity cell of a side at a transverse node, in the frame of the side and in
+// the face frame (p=1 serendipity only; indexed [cdim-1])
+GKYL_CU_D static const pkpm_remap_flux_to_face_t ser_pkpm_remap_flux_to_face_kernels[] = {
+  pkpm_remap_flux_to_face_1x1v_ser_p1, pkpm_remap_flux_to_face_2x1v_ser_p1,
+  pkpm_remap_flux_to_face_3x1v_ser_p1
+};
+
+// Face-frame projection of one velocity cell of a side at a transverse node back in the frame of
+// the side, into the surface modes (p=1 serendipity only; indexed [cdim-1].kernels[dir])
+GKYL_CU_D static const gkyl_dg_pkpm_remap_flux_from_face_kern_list
+  ser_pkpm_remap_flux_from_face_kernels[] = {
+    {pkpm_remap_flux_from_face_x_1x1v_ser_p1, NULL, NULL}, // 0
+    {pkpm_remap_flux_from_face_x_2x1v_ser_p1, pkpm_remap_flux_from_face_y_2x1v_ser_p1, NULL}, // 1
+    {pkpm_remap_flux_from_face_x_3x1v_ser_p1, pkpm_remap_flux_from_face_y_3x1v_ser_p1,
+     pkpm_remap_flux_from_face_z_3x1v_ser_p1} // 2
+};
+
+// One interval of the velocity supermesh of a transverse node (any cdim; indexed [dir]): the flux
+// at its 3 Gauss-Legendre points (exact, the flux being at most cubic there), projected onto the
+// cell of each side, with its face-frame moments and its shares for the blend.
+GKYL_CU_D static const pkpm_remap_flux_interval_t pkpm_remap_flux_interval_kernels[] = {
+  pkpm_remap_flux_interval_x_1v_p2, pkpm_remap_flux_interval_y_1v_p2,
+  pkpm_remap_flux_interval_z_1v_p2
+};
+
+// Label-paired flux of one velocity cell at a transverse node (any cdim; indexed [dir]): the flux
+// of the two sides paired at equal w at the 3 Gauss-Legendre points of the cell, and its speed
+// bounds there, for the rates.
+GKYL_CU_D static const pkpm_remap_flux_label_t pkpm_remap_flux_label_kernels[] = {
+  pkpm_remap_flux_label_x_1v_p2, pkpm_remap_flux_label_y_1v_p2, pkpm_remap_flux_label_z_1v_p2
+};
+
+// Legendre coefficients in w of the eight blocks of one velocity cell at a node, [mode][block].
+#define PKPM_REMAP_FLUX_NUM_COEFF (PKPM_NUM_VEL_MODES * PKPM_DIST_NUM_BLOCKS)
+// Largest number of transverse modes of a face (3x).
+#define PKPM_REMAP_FLUX_MAX_TRANS_MODES (PKPM_MAX_CONF_BASIS / 2)
 
 // Traces of the frame at one transverse node of a face, and the map of one side to the face frame.
 struct pkpm_remap_flux_side {
   double rho, u[3], xi, b[3], theta; // traces at the node
   struct pkpm_harm_face_map map; // the map to the face frame
-  double energy_g; // K_inv/r_inv^2, the factor of G in the block G frame-changed back to this side
-  double cc_inv; // |c_perp_inv|^2
+  double kin[PKPM_RF_SIDE_NUM]; // the part of the map the interval kernels read (PKPM_RF_SIDE_*)
+  double fwd[PKPM_FRAME_NUM]; // factors of the change of frame to the face frame (PKPM_FRAME_*)
+  double bck[PKPM_FRAME_NUM]; // factors of the change of frame back to the side
 };
 
 // The frame and the coefficients of the flux at one transverse node of a face.
@@ -71,22 +126,6 @@ struct pkpm_remap_flux_node {
   double fc[PKPM_FC_NUM]; // face coefficients (pkpm_harm_face_coef)
   double kinks[3]; // sorted face-frame labels where the HLL weights have kinks
   int num_kinks;
-};
-
-// The cell a side's sweep is currently in, at one transverse node. Y and P are stored [mode][block].
-struct pkpm_remap_flux_cell {
-  int k; // velocity cell of the side (-1: outside its grid)
-  double w_center, dw; // center and width of the cell
-  // block traces in the face frame, X = Y0 + Y1 eta + Y2 (3 eta^2 - 1)
-  double Y[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
-  // accumulated Legendre projection of the face flux onto the cell, face frame
-  double P[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
-};
-
-// The sum over a face of the flux weighted for the shares, per receiving side.
-struct pkpm_remap_flux_share {
-  double momentum_out[2], momentum_total[2]; // weight |w_s F|
-  double energy_out[2], energy_total[2]; // weight w_s^2 F + 2 G
 };
 
 struct gkyl_dg_pkpm_remap_flux_surf {
@@ -101,19 +140,19 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired).
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map).
   pkpm_remap_flux_trace_t trace[3]; // Block traces in each direction.
+  pkpm_remap_flux_to_face_t to_face; // Blocks of a velocity cell at a node, in both frames.
+  pkpm_remap_flux_interval_t interval[3]; // Supermesh interval in each direction.
+  pkpm_remap_flux_from_face_t from_face[3]; // Face-frame projection back to a side, stored.
+  pkpm_remap_flux_label_t label[3]; // Label-paired flux of a velocity cell in each direction.
   pkpm_remap_flux_store_t store[3]; // Store of projections in each direction.
 
   double *psi; // Transverse modes at the nodes, [node][mode].
   double *wpsi; // Node weight times the transverse modes, [node][mode].
   double *conf_trace[3]; // Conf basis at the face nodes per direction, [side][node][basis].
   double *vel_edges; // Edges of the velocity grid.
-
-  // Gauss-Legendre rule of a velocity interval and the velocity modes of the basis: mode m is
-  // vel_norm[m] times the m-th of [1, eta, 3 eta^2 - 1].
-  double vel_ordinates[PKPM_REMAP_FLUX_VEL_QUAD]; // Ordinates on [-1, 1].
-  double vel_weights[PKPM_REMAP_FLUX_VEL_QUAD]; // Weights.
-  double vel_modes[PKPM_REMAP_FLUX_VEL_QUAD][PKPM_NUM_VEL_MODES]; // Modes at the ordinates.
-  double vel_norm[PKPM_NUM_VEL_MODES]; // Normalization of each mode.
+  double *vel_center; // Center of each velocity cell.
+  double *vel_dw; // Width of each velocity cell.
+  double *vel_rdw2; // 2/width of each velocity cell.
 
   // Gauss-Legendre nodes of a cell (those of gkyl_dg_conf_nodal).
   dg_conf_nodal_kern_t conf_to_nodal; // Expansion to node values.
@@ -124,9 +163,20 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   // Workspace for one face.
   long *column; // Phase index of each velocity cell, [side][cell].
   double *block_traces; // Modal block traces, [side][cell][block][mode].
-  double *face_flux; // Kinetic flux of the face, [side][cell][block][mode].
-  struct gkyl_supermesh_1d_interval *mesh; // Supermesh of one node.
+  double *remap_flux; // Remap flux of the face, [side][cell][block][mode].
+  double *label_flux; // Label-paired flux of the face (both sides receive it), [cell][block][mode].
+  // Largest speeds of the flux over the nodes of the face and the Gauss-Legendre points of each
+  // velocity cell, [cell][fastest signal in either direction, largest spread of the two bounds].
+  double *cell_speed;
   struct pkpm_remap_flux_node *nodes; // Frame of every node.
+  // Workspace for one transverse node. A side has a slot per velocity cell (slot = cell + 1) and
+  // slot 0 for the labels outside its grid, where it has no blocks: an interval of the supermesh
+  // then reads and writes the slots of its two cells with no test.
+  struct gkyl_supermesh_1d_interval *mesh; // Supermesh.
+  double *node_X; // Blocks in the frame of the side, [side][cell][mode][block].
+  double *node_Y; // Blocks in the face frame, [side][slot][mode][block] (slot 0: zero).
+  double *node_P; // Projection of the face-frame flux, [side][slot][mode][block].
+  double *node_cell; // Cell coordinate of each slot (PKPM_RF_CELL_*), [side][slot].
 };
 
 // Value at the node of a p=1 field from its modal coefficients.
@@ -140,137 +190,18 @@ pkpm_remap_flux_trace_at(int num_basis, const double *table, const double *coeff
   return val;
 }
 
-// Enter velocity cell k of a side at a node: the block traces in the face frame, and clear the
-// accumulated projection.
-GKYL_CU_DH static inline void
-pkpm_remap_flux_cell_enter(
-  const struct gkyl_dg_pkpm_remap_flux_surf *up, int side, int k, const double *psi,
-  const struct pkpm_remap_flux_side *sd, struct pkpm_remap_flux_cell *cell
-)
-{
-  int nv = up->num_vel_cells, nt = up->num_surf_basis, na = up->num_trans_modes;
-  const double *G = &up->block_traces[(side * nv + k) * PKPM_DIST_NUM_BLOCKS * nt];
-  double X[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
-  for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-    double q[PKPM_NUM_VEL_MODES] = {0.0};
-    for (int a = 0; a < na; ++a) {
-      for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-        q[m] += psi[a] * G[c * nt + a * PKPM_NUM_VEL_MODES + m];
-      }
-    }
-    for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-      X[m][c] = up->vel_norm[m] * q[m];
-    }
-  }
-  for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-    pkpm_harm_frame_change(X[m], sd->map.K, sd->map.r, sd->map.c_perp, cell->Y[m]);
-    for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-      cell->P[m][c] = 0.0;
-    }
-  }
-  cell->k = k;
-  cell->dw = up->vel_edges[k + 1] - up->vel_edges[k];
-  cell->w_center = 0.5 * (up->vel_edges[k + 1] + up->vel_edges[k]);
-}
-
-// Leave the velocity cell of a side at a node: map the accumulated projection back to the side's
-// frame and add it to the side's flux with the transverse weight.
-GKYL_CU_DH static inline void
-pkpm_remap_flux_cell_leave(
-  const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, const double *wpsi,
-  const struct pkpm_remap_flux_side *sd, const struct pkpm_remap_flux_cell *cell, double *flux
-)
-{
-  double Z[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
-  for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-    pkpm_harm_frame_change(cell->P[m], sd->map.K_inv, sd->map.r_inv, sd->map.c_perp_inv, Z[m]);
-  }
-  up->store[dir](wpsi, &Z[0][0], flux);
-}
-
-// One supermesh Gauss point: the HLL flux of the two sides' face-frame blocks at the label wb, with
-// the flux projected per side, the face-frame moments and the shares accumulated.
-GKYL_CU_DH static inline void
-pkpm_remap_flux_point(
-  const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, double wb, double om,
-  const struct pkpm_remap_flux_node *nd, struct pkpm_remap_flux_cell *cells, double *mom,
-  struct pkpm_remap_flux_share *share
-)
-{
-  double X[2][PKPM_DIST_NUM_BLOCKS], eta[2], w_side[2];
-  for (int s = 0; s < 2; ++s) {
-    const struct pkpm_remap_flux_cell *cell = &cells[s];
-    w_side[s] = nd->side[s].map.r * wb + nd->side[s].map.c_par;
-    if (cell->k < 0) {
-      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-        X[s][c] = 0.0;
-      }
-      continue;
-    }
-    eta[s] = 2.0 * (w_side[s] - cell->w_center) / cell->dw;
-    double e2 = 3.0 * eta[s] * eta[s] - 1.0;
-    for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-      X[s][c] = cell->Y[0][c] + cell->Y[1][c] * eta[s] + cell->Y[2][c] * e2;
-    }
-  }
-  double phi_l[PKPM_DIST_NUM_BLOCKS], phi_r[PKPM_DIST_NUM_BLOCKS], bounds[2],
-    flux[PKPM_DIST_NUM_BLOCKS];
-  pkpm_harm_conf_flux(dir, X[0], X[1], wb, nd->fc, 1, phi_l, phi_r, bounds);
-  for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-    flux[c] = phi_l[c] + phi_r[c];
-  }
-
-  mom[0] += om * flux[PKPM_DIST_F];
-  mom[1] += om * wb * flux[PKPM_DIST_F];
-  mom[2] += om * wb * wb * flux[PKPM_DIST_F];
-  mom[3] += om * flux[PKPM_DIST_G];
-  for (int k = 0; k < 3; ++k) {
-    mom[4 + k] += om * flux[PKPM_DIST_M0 + k];
-  }
-
-  double mass = om * fabs(flux[PKPM_DIST_F]);
-  for (int s = 0; s < 2; ++s) {
-    const struct pkpm_remap_flux_side *sd = &nd->side[s];
-    struct pkpm_remap_flux_cell *cell = &cells[s];
-    const double *ci = sd->map.c_perp_inv;
-    const double *flux_m0 = &flux[PKPM_DIST_M0];
-    double cM = ci[0] * flux_m0[0] + ci[1] * flux_m0[1] + ci[2] * flux_m0[2];
-    double y_f = sd->map.K_inv * flux[PKPM_DIST_F];
-    double y_g = sd->energy_g * (flux[PKPM_DIST_G] - cM + 0.5 * sd->cc_inv * flux[PKPM_DIST_F]);
-    double w2 = w_side[s] * w_side[s];
-    double momentum = mass * fabs(w_side[s]);
-    double energy = om * (fabs(y_f) * w2 + 2.0 * fabs(y_g));
-    share->momentum_total[s] += momentum;
-    share->energy_total[s] += energy;
-    if (cell->k < 0) {
-      share->momentum_out[s] += momentum;
-      share->energy_out[s] += energy;
-      continue;
-    }
-    double wt = om * sd->map.r * 2.0 / cell->dw;
-    double e = eta[s];
-    double leg[PKPM_NUM_VEL_MODES] = {
-      up->vel_norm[0], up->vel_norm[1] * e, up->vel_norm[2] * (3.0 * e * e - 1.0)
-    };
-    for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-        cell->P[m][c] += wt * leg[m] * flux[c];
-      }
-    }
-  }
-}
-
 // The largest share of the flux outside the receiving side's velocity grid.
 GKYL_CU_DH static inline double
-pkpm_remap_flux_blend(const struct pkpm_remap_flux_share *share)
+pkpm_remap_flux_blend(const double *share)
 {
   double momentum = 0.0, energy = 0.0;
   for (int s = 0; s < 2; ++s) {
-    if (share->momentum_total[s] > 0.0) {
-      momentum = fmax(momentum, share->momentum_out[s] / share->momentum_total[s]);
+    if (share[PKPM_RF_SHARE_MOM_TOT + s] > 0.0) {
+      momentum =
+        fmax(momentum, share[PKPM_RF_SHARE_MOM_OUT + s] / share[PKPM_RF_SHARE_MOM_TOT + s]);
     }
-    if (share->energy_total[s] > 0.0) {
-      energy = fmax(energy, share->energy_out[s] / share->energy_total[s]);
+    if (share[PKPM_RF_SHARE_EN_TOT + s] > 0.0) {
+      energy = fmax(energy, share[PKPM_RF_SHARE_EN_OUT + s] / share[PKPM_RF_SHARE_EN_TOT + s]);
     }
   }
   return fmax(momentum, energy);
@@ -366,13 +297,21 @@ pkpm_remap_flux_node_traces(
   return admissible;
 }
 
-// The face frame of a node and the map of each side to it, and the kinks of the HLL weights.
+// The face frame of a node and the map of each side to it, and the kinks of the HLL weights. A
+// face that is not admissible (a non-positive density or thermal-speed trace at one of its nodes)
+// takes the label-paired flux alone: its remap flux carries no weight and is formed with unit
+// density and thermal speed on both sides, which keeps it finite.
 GKYL_CU_DH static inline void
-pkpm_remap_flux_node_frame(struct pkpm_remap_flux_node *nd)
+pkpm_remap_flux_node_frame(struct pkpm_remap_flux_node *nd, int admissible)
 {
+  double rho[2], xi[2];
+  for (int s = 0; s < 2; ++s) {
+    rho[s] = admissible ? nd->side[s].rho : 1.0;
+    xi[s] = admissible ? nd->side[s].xi : 1.0;
+  }
   const struct pkpm_remap_flux_side *sl = &nd->side[0], *sr = &nd->side[1];
-  nd->rho_bar = 0.5 * (sl->rho + sr->rho);
-  nd->xi_bar = 0.5 * (sl->xi + sr->xi);
+  nd->rho_bar = 0.5 * (rho[0] + rho[1]);
+  nd->xi_bar = 0.5 * (xi[0] + xi[1]);
   double bmag = 0.0;
   for (int k = 0; k < 3; ++k) {
     nd->u_bar[k] = 0.5 * (sl->u[k] + sr->u[k]);
@@ -386,11 +325,18 @@ pkpm_remap_flux_node_frame(struct pkpm_remap_flux_node *nd)
   for (int s = 0; s < 2; ++s) {
     struct pkpm_remap_flux_side *sd = &nd->side[s];
     pkpm_harm_face_map(
-      sd->rho, sd->u, sd->xi, nd->rho_bar, nd->u_bar, nd->xi_bar, nd->b_bar, &sd->map
+      rho[s], sd->u, xi[s], nd->rho_bar, nd->u_bar, nd->xi_bar, nd->b_bar, &sd->map
     );
-    sd->energy_g = sd->map.K_inv / (sd->map.r_inv * sd->map.r_inv);
-    const double *ci = sd->map.c_perp_inv;
-    sd->cc_inv = ci[0] * ci[0] + ci[1] * ci[1] + ci[2] * ci[2];
+    pkpm_harm_frame_factors(sd->map.K, sd->map.r, sd->map.c_perp, sd->fwd);
+    pkpm_harm_frame_factors(sd->map.K_inv, sd->map.r_inv, sd->map.c_perp_inv, sd->bck);
+    sd->kin[PKPM_RF_SIDE_R] = sd->map.r;
+    sd->kin[PKPM_RF_SIDE_C] = sd->map.c_par;
+    sd->kin[PKPM_RF_SIDE_KINV] = sd->map.K_inv;
+    sd->kin[PKPM_RF_SIDE_EG] = sd->bck[PKPM_FRAME_K2];
+    sd->kin[PKPM_RF_SIDE_CC] = sd->bck[PKPM_FRAME_CC];
+    for (int k = 0; k < 3; ++k) {
+      sd->kin[PKPM_RF_SIDE_CPERP + k] = sd->map.c_perp_inv[k];
+    }
   }
   double a0 = nd->fc[PKPM_FC_A0], a1 = nd->fc[PKPM_FC_A1], c = nd->fc[PKPM_FC_C];
   nd->num_kinks = 0;
@@ -409,134 +355,93 @@ pkpm_remap_flux_node_frame(struct pkpm_remap_flux_node *nd)
   }
 }
 
-// The sweep of one transverse node of a face over its supermesh: adds the remap flux of each side
-// to the output and returns the face-frame moments in mom.
+// The remap flux of one transverse node of a face: every velocity cell of both sides goes to the
+// face frame, the flux is integrated over each interval of the supermesh of the two mapped grids
+// and projected on the cells of both sides, and every projection goes back to its side and into
+// the remap flux of the face. Returns the face-frame moments of the flux in mom and adds to the
+// shares of the face.
 GKYL_CU_DH static inline void
-pkpm_remap_flux_node_sweep(
+pkpm_remap_flux_node_remap(
   const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, int node,
-  const struct pkpm_remap_flux_node *nd, double *flux_out, int nflux, double *mom,
-  struct pkpm_remap_flux_share *share
+  const struct pkpm_remap_flux_node *nd, int nflux, double *mom, double *share
 )
 {
-  int nv = up->num_vel_cells, na = up->num_trans_modes;
+  int nv = up->num_vel_cells, na = up->num_trans_modes, nslot = nv + 1;
+  int ncoef = PKPM_REMAP_FLUX_NUM_COEFF;
   const double *psi = &up->psi[node * na], *wpsi = &up->wpsi[node * na];
+  for (int s = 0; s < 2; ++s) {
+    const struct pkpm_remap_flux_side *sd = &nd->side[s];
+    for (int k = 0; k < nv; ++k) {
+      long slot = s * nslot + k + 1;
+      up->to_face(
+        psi, sd->fwd, &up->block_traces[(s * nv + k) * nflux], &up->node_X[(s * nv + k) * ncoef],
+        &up->node_Y[slot * ncoef]
+      );
+      // eta = 2 (r wbar + c - w_center)/dw at the face-frame label wbar
+      double *cell = &up->node_cell[slot * PKPM_RF_CELL_NUM];
+      cell[PKPM_RF_CELL_ETA0] = (sd->map.c_par - up->vel_center[k]) * up->vel_rdw2[k];
+      cell[PKPM_RF_CELL_ETA1] = sd->map.r * up->vel_rdw2[k];
+      for (int m = 0; m < ncoef; ++m) {
+        up->node_P[slot * ncoef + m] = 0.0;
+      }
+    }
+  }
+
   double tol = 1e-13 * up->phase_grid.dx[up->cdim];
   int num_intervals = gkyl_supermesh_1d_merge(
     nv + 1, up->vel_edges, nd->side[0].map.r, nd->side[0].map.c_par, nv + 1, up->vel_edges,
     nd->side[1].map.r, nd->side[1].map.c_par, nd->num_kinks, nd->kinks, tol, up->mesh
   );
-  for (int m = 0; m < PKPM_REMAP_FLUX_NUM_MOMS; ++m) {
+  for (int m = 0; m < PKPM_RF_NUM_MOMS; ++m) {
     mom[m] = 0.0;
   }
-  struct pkpm_remap_flux_cell cells[2];
-  cells[0].k = cells[1].k = -1;
   for (int q = 0; q < num_intervals; ++q) {
     const struct gkyl_supermesh_1d_interval *iv = &up->mesh[q];
-    int k_side[2] = {iv->k_l, iv->k_r};
-    for (int s = 0; s < 2; ++s) {
-      if (k_side[s] == cells[s].k) {
-        continue;
-      }
-      if (cells[s].k >= 0) {
-        pkpm_remap_flux_cell_leave(
-          up, dir, wpsi, &nd->side[s], &cells[s], &flux_out[(s * nv + cells[s].k) * nflux]
-        );
-      }
-      if (k_side[s] >= 0) {
-        pkpm_remap_flux_cell_enter(up, s, k_side[s], psi, &nd->side[s], &cells[s]);
-      } else {
-        cells[s].k = -1;
-      }
-    }
-    double mid = 0.5 * (iv->lo + iv->up), half = 0.5 * (iv->up - iv->lo);
-    for (int g = 0; g < PKPM_REMAP_FLUX_VEL_QUAD; ++g) {
-      pkpm_remap_flux_point(
-        up, dir, mid + half * up->vel_ordinates[g], half * up->vel_weights[g], nd, cells, mom, share
-      );
-    }
+    long slot_l = iv->k_l + 1, slot_r = nslot + iv->k_r + 1;
+    up->interval[dir](
+      nd->fc, iv->lo, iv->up, nd->side[0].kin, nd->side[1].kin,
+      &up->node_cell[slot_l * PKPM_RF_CELL_NUM], &up->node_cell[slot_r * PKPM_RF_CELL_NUM],
+      &up->node_Y[slot_l * ncoef], &up->node_Y[slot_r * ncoef], &up->node_P[slot_l * ncoef],
+      &up->node_P[slot_r * ncoef], mom, share
+    );
   }
+
   for (int s = 0; s < 2; ++s) {
-    if (cells[s].k >= 0) {
-      pkpm_remap_flux_cell_leave(
-        up, dir, wpsi, &nd->side[s], &cells[s], &flux_out[(s * nv + cells[s].k) * nflux]
+    for (int k = 0; k < nv; ++k) {
+      up->from_face[dir](
+        wpsi, nd->side[s].bck, &up->node_P[(s * nslot + k + 1) * ncoef],
+        &up->remap_flux[(s * nv + k) * nflux]
       );
     }
   }
 }
 
-// Add blend times the label-paired flux of one transverse node to both sides' fluxes and return
-// its fluid flux: the flux of the two sides paired at equal w, one velocity cell at a time, as
-// the moment map of each one-sided contribution in that side's own frame.
+// The label-paired flux of one transverse node of a face, into the label-paired flux of the
+// face: the flux of the two sides paired at equal w, one velocity cell at a time (the blocks in
+// the frame of each side are those pkpm_remap_flux_node_remap left for the node). Returns its
+// fluid flux, the moment map of each one-sided contribution in the frame of that side, and raises
+// the speeds of the cells of the face to those of this node.
 GKYL_CU_DH static inline void
 pkpm_remap_flux_node_label(
-  const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, int node, double blend,
-  const struct pkpm_remap_flux_node *nd, double *flux_out, int nflux, double *fluid_flux
+  const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, int node,
+  const struct pkpm_remap_flux_node *nd, int nflux, double *fluid_flux
 )
 {
-  int nv = up->num_vel_cells, nt = up->num_surf_basis, na = up->num_trans_modes;
-  const double *psi = &up->psi[node * na];
-  double blend_wpsi[4];
-  for (int a = 0; a < na; ++a) {
-    blend_wpsi[a] = blend * up->wpsi[node * na + a];
-  }
-  double moms[2][PKPM_REMAP_FLUX_NUM_MOMS];
+  int nv = up->num_vel_cells, na = up->num_trans_modes, ncoef = PKPM_REMAP_FLUX_NUM_COEFF;
+  const double *wpsi = &up->wpsi[node * na];
+  double moms[2][PKPM_RF_NUM_MOMS];
   for (int s = 0; s < 2; ++s) {
-    for (int m = 0; m < PKPM_REMAP_FLUX_NUM_MOMS; ++m) {
+    for (int m = 0; m < PKPM_RF_NUM_MOMS; ++m) {
       moms[s][m] = 0.0;
     }
   }
   for (int k = 0; k < nv; ++k) {
-    double dw = up->vel_edges[k + 1] - up->vel_edges[k];
-    double w_center = 0.5 * (up->vel_edges[k + 1] + up->vel_edges[k]);
-    double q[2][PKPM_DIST_NUM_BLOCKS][PKPM_NUM_VEL_MODES];
-    for (int s = 0; s < 2; ++s) {
-      const double *G = &up->block_traces[(s * nv + k) * PKPM_DIST_NUM_BLOCKS * nt];
-      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-        for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-          q[s][c][m] = 0.0;
-          for (int a = 0; a < na; ++a) {
-            q[s][c][m] += psi[a] * G[c * nt + a * PKPM_NUM_VEL_MODES + m];
-          }
-        }
-      }
-    }
-    double proj[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
-    for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-        proj[m][c] = 0.0;
-      }
-    }
-    for (int j = 0; j < PKPM_REMAP_FLUX_VEL_QUAD; ++j) {
-      const double *leg = up->vel_modes[j];
-      double wq = w_center + 0.5 * up->vel_ordinates[j] * dw;
-      double X[2][PKPM_DIST_NUM_BLOCKS];
-      for (int s = 0; s < 2; ++s) {
-        for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-          X[s][c] = q[s][c][0] * leg[0] + q[s][c][1] * leg[1] + q[s][c][2] * leg[2];
-        }
-      }
-      double phi_l[PKPM_DIST_NUM_BLOCKS], phi_r[PKPM_DIST_NUM_BLOCKS], bounds[2];
-      pkpm_harm_conf_flux(dir, X[0], X[1], wq, nd->fc, 1, phi_l, phi_r, bounds);
-      for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
-        for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
-          proj[m][c] += up->vel_weights[j] * leg[m] * (phi_l[c] + phi_r[c]);
-        }
-      }
-      double wgt = 0.5 * up->vel_weights[j] * dw;
-      const double *phi[2] = {phi_l, phi_r};
-      for (int s = 0; s < 2; ++s) {
-        moms[s][0] += wgt * phi[s][PKPM_DIST_F];
-        moms[s][1] += wgt * wq * phi[s][PKPM_DIST_F];
-        moms[s][2] += wgt * wq * wq * phi[s][PKPM_DIST_F];
-        moms[s][3] += wgt * phi[s][PKPM_DIST_G];
-        for (int a = 0; a < 3; ++a) {
-          moms[s][4 + a] += wgt * phi[s][PKPM_DIST_M0 + a];
-        }
-      }
-    }
-    for (int s = 0; s < 2; ++s) {
-      up->store[dir](blend_wpsi, &proj[0][0], &flux_out[(s * nv + k) * nflux]);
-    }
+    double proj[PKPM_REMAP_FLUX_NUM_COEFF];
+    up->label[dir](
+      nd->fc, up->vel_center[k], up->vel_dw[k], &up->node_X[k * ncoef],
+      &up->node_X[(nv + k) * ncoef], proj, moms[0], moms[1], &up->cell_speed[2 * k]
+    );
+    up->store[dir](wpsi, proj, &up->label_flux[k * nflux]);
   }
   for (int m = 0; m < PKPM_FLUID_NUM_COMP; ++m) {
     fluid_flux[m] = 0.0;

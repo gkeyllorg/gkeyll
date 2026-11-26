@@ -1338,18 +1338,25 @@ vm_pkpm_species_face_flux(
   );
 }
 
-// Collisionless configuration-space pass of the kinetic update into rhs (cleared here): the
-// streaming terms with the stored face fluxes, then the first-harmonic w fluxes and sources.
-// The closures are computed from the moments of this partial right-hand side, after the
-// sources and collision operators have been accumulated into it.
+// Collisionless configuration-space pass of the kinetic update, in its two parts: the streaming
+// terms with the stored face fluxes into rhs (cleared here), then the first-harmonic w fluxes and
+// sources. The closures are computed from the moments of this partial right-hand side, after
+// the sources and collision operators have been accumulated into it.
 static void
-vm_pkpm_species_kinetic_conf_pass(
+vm_pkpm_species_kinetic_streaming(
   gkyl_vlasov_app *app, struct vm_species *kin, const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
   gkyl_array_clear(rhs, 0.0);
   gkyl_hyper_dg_advance(kin->pkpm.slvr_kinetic_conf, &kin->local, fin, kin->cflrate, rhs);
-  // the known first-harmonic w fluxes and sources of the eight blocks (modal, exact)
+}
+
+// The known first-harmonic w fluxes and sources of the eight blocks (modal, exact), added to rhs.
+static void
+vm_pkpm_species_kinetic_harm_vol(
+  gkyl_vlasov_app *app, struct vm_species *kin, const struct gkyl_array *fin, struct gkyl_array *rhs
+)
+{
   gkyl_dg_pkpm_harm_vol_coef(
     kin->pkpm.harm_vol, &app->local, app->field->bvar, app->field->grad_b, kin->pkpm.u,
     kin->pkpm.grad_u, kin->pkpm.xi, kin->pkpm.grad_xi, kin->pkpm.grad_ln_n, kin->pkpm.theta,
@@ -1506,7 +1513,8 @@ vm_pkpm_species_calc_diag_vars(
   gkyl_array_clear(species->fluid->cflrate, 0.0);
   vm_pkpm_species_face_flux(app, species, fin);
   // fnew is free scratch between time steps.
-  vm_pkpm_species_kinetic_conf_pass(app, species->kinetic, fin, species->kinetic->fnew);
+  vm_pkpm_species_kinetic_streaming(app, species->kinetic, fin, species->kinetic->fnew);
+  vm_pkpm_species_kinetic_harm_vol(app, species->kinetic, fin, species->kinetic->fnew);
   vm_pkpm_species_kinetic_closure(app, species->kinetic, fin, species->kinetic->fnew, true);
 }
 
@@ -1519,11 +1527,18 @@ vm_pkpm_kinetic_species_rhs(
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
-  struct timespec tm = gkyl_wall_clock();
   // Kinetic equations: the collisionless configuration pass (clears rhs), the sources and
   // collisions, the closures from the moments of that partial right-hand side, then the
-  // velocity pass accumulating into the same rhs.
-  vm_pkpm_species_kinetic_conf_pass(app, kin, fin, rhs);
+  // velocity pass accumulating into the same rhs. Each term has its own timer (the sources and
+  // collisions keep theirs).
+  struct timespec tm = gkyl_wall_clock();
+  vm_pkpm_species_kinetic_streaming(app, kin, fin, rhs);
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
+
+  tm = gkyl_wall_clock();
+  vm_pkpm_species_kinetic_harm_vol(app, kin, fin, rhs);
+  app->stat.species_pkpm_harm_tm += gkyl_time_diff_now_sec(tm);
+
   // Sources and collisions enter before the closures, which keep the constraints exact
   // against them (the fluid carries the density and energy changes). The LBO conserves the
   // constraints on its own (boundary corrections, zero-flux w edges).
@@ -1537,12 +1552,20 @@ vm_pkpm_kinetic_species_rhs(
   }
   // The nodal increment of the LBO, converted and added to rhs.
   vm_pkpm_species_nodal_accumulate(app, kin, rhs);
+
+  tm = gkyl_wall_clock();
   int num_null = vm_pkpm_species_kinetic_closure(app, kin, fin, rhs, kin->pkpm.closure_from_step);
   vm_pkpm_species_kinetic_closure_stat(kin, num_null);
+  app->stat.species_pkpm_closure_tm += gkyl_time_diff_now_sec(tm);
+
+  tm = gkyl_wall_clock();
   gkyl_dg_pkpm_vel_flux_surf_advance(
     kin->pkpm.calc_vel_flux, &app->local, &kin->local, kin->pkpm.harm_wnode, kin->pkpm.theta,
     app->field->bvar, kin->pkpm.alpha_0, kin->pkpm.c_h, fin, kin->pkpm.vel_flux_surf
   );
+  app->stat.species_pkpm_vel_flux_tm += gkyl_time_diff_now_sec(tm);
+
+  tm = gkyl_wall_clock();
   gkyl_hyper_dg_advance(kin->pkpm.slvr_kinetic_vel, &kin->local, fin, kin->cflrate, rhs);
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
 
@@ -1570,11 +1593,11 @@ vm_pkpm_fluid_species_rhs(
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
+  struct timespec tm = gkyl_wall_clock();
   gkyl_array_clear(rhs, 0.0);
 
   // The energy relaxation of the explicit temperature source of the stage (staged with the
   // species), then the volume and surface terms from the stored face fluxes and the source.
-  struct timespec tm = gkyl_wall_clock();
   if (fl->pkpm.has_src_bgk_rhs) {
     gkyl_array_accumulate_range(rhs, 1.0, fl->pkpm.src_bgk_rhs, &app->local);
   }
@@ -1589,7 +1612,6 @@ vm_pkpm_fluid_species_rhs(
       rhs, -1.0, fl->pkpm.kin_exch[k], PKPM_FLUID_MOM * app->basis.num_basis, &app->local
     );
   }
-  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(tm);
 
   if (fl->has_diffusion) {
     gkyl_dg_pkpm_mom_diffusion_advance(fl->pkpm.mom_diff, &app->local, fluidin, fl->cflrate, rhs);
@@ -1598,6 +1620,7 @@ vm_pkpm_fluid_species_rhs(
   // The forces: the Lorentz force of the explicit coupling and the applied acceleration (always
   // here, with the pressure gradient it may balance).
   fl->rhs_force_func(app, fl, fluidin, em, rhs);
+  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(tm);
 
   tm = gkyl_wall_clock();
   gkyl_array_reduce_range(fl->omegaCfl_ptr, fl->cflrate, GKYL_MAX, &app->local);
@@ -1626,7 +1649,9 @@ vm_pkpm_species_calc_self_moms(
   sp->kinetic->pkpm.closure_from_step = stage == 1;
   // Every kernel of the stage sees first-harmonic blocks perpendicular to the stage's b: project
   // M0_perp and N_perp of the stage state at the Gauss-Legendre nodes of b.
+  struct timespec tm = gkyl_wall_clock();
   vm_pkpm_species_project_transverse(app, sp, fin);
+  app->stat.species_pkpm_harm_tm += gkyl_time_diff_now_sec(tm);
   // Configuration-space variables of the stage: the moments of the normalized distributions,
   // the flow and thermal speed, the kinetic coupling moments and T_perp/T.
   vm_pkpm_species_calc_pkpm_vars(app, sp, fin, fluidin);
@@ -1641,12 +1666,12 @@ vm_pkpm_species_calc_self_moms(
 
   // Configuration-space face fluxes of the stage (kinetic, fluid and their rates, which start
   // here) and the particle loss rates they imply through absorbing walls.
-  struct timespec tm = gkyl_wall_clock();
+  tm = gkyl_wall_clock();
   gkyl_array_clear(sp->kinetic->cflrate, 0.0);
   gkyl_array_clear(sp->fluid->cflrate, 0.0);
   vm_pkpm_species_face_flux(app, sp, fin);
   vm_pkpm_species_calc_bflux(app, sp);
-  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(tm);
+  app->stat.species_pkpm_conf_flux_tm += gkyl_time_diff_now_sec(tm);
 
   // Explicit temperature source: its energy relaxation for the fluid right-hand side and the
   // rate of the distributions for the kinetic one.
@@ -1676,7 +1701,9 @@ vm_pkpm_species_finish_stage(
 {
   // at the nodes the gyrophase mixing damps, the first-harmonic blocks are replaced by the
   // integrating-factor stage; the fluid state is limited
+  struct timespec tm = gkyl_wall_clock();
   vm_pkpm_species_harm_exp_advance(app, sp, stage, dt, fout);
+  app->stat.species_pkpm_harm_tm += gkyl_time_diff_now_sec(tm);
   vm_pkpm_species_apply_positivity(app, sp->fluid, fluidout);
 }
 

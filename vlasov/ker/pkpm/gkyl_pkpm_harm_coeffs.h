@@ -2,8 +2,9 @@
 
 // Pointwise parts of the first harmonic of the normalized PKPM kinetic equations shared by the
 // code that needs them at its own evaluation points: the configuration-space face flux and the
-// frame map of gkyl_dg_pkpm_remap_flux_surf, and the w flux at a node of the w surface-flux
-// kernels pkpm_vel_flux_vpar_* and of the closure kernels pkpm_vars_closure_*.
+// frame map of gkyl_dg_pkpm_remap_flux_surf and of its kernels pkpm_remap_flux_*, and the w flux
+// at a node of the w surface-flux kernels pkpm_vel_flux_vpar_* and of the closure kernels
+// pkpm_vars_closure_*.
 //
 // The distributions are the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)], and
 // I_perp v = v - b (b.v) for the field direction b at the point.
@@ -135,31 +136,16 @@ pkpm_harm_conf_flux(
     T_r[2 + k] = X_r[1] * pk;
     T_r[5 + k] = H_r * pk;
   }
+  // Where ds = 0 the flux is the central (T_l + T_r)/2: weights 1/2 and no streaming part.
   double ds = s_r - s_l;
-  if (!(ds > 0.0)) {
-    for (int k = 0; k < 8; ++k) {
-      phi_l[k] = 0.5 * T_l[k];
-      phi_r[k] = 0.5 * T_r[k];
-    }
-    return;
-  }
-  double w_l = s_r / ds, w_r = -s_l / ds, diss = s_l * s_r / ds;
-  double A_l = w_l * a - diss, A_r = w_r * a + diss;
+  double ids = ds > 0.0 ? 1.0 / ds : 0.0;
+  double w_l = ds > 0.0 ? s_r * ids : 0.5, w_r = ds > 0.0 ? -s_l * ids : 0.5;
+  double diss = s_l * s_r * ids;
+  double A_l = ds > 0.0 ? w_l * a - diss : 0.0, A_r = ds > 0.0 ? w_r * a + diss : 0.0;
   for (int k = 0; k < 8; ++k) {
     phi_l[k] = A_l * X_l[k] + w_l * T_l[k];
     phi_r[k] = A_r * X_r[k] + w_r * T_r[k];
   }
-}
-
-// Speed bounds of the flux of pkpm_harm_conf_flux at one face node and w, for the time step.
-GKYL_CU_DH static inline void
-pkpm_harm_conf_bounds(double w, const double *fc, int nn, double *sb)
-{
-  double a = fc[PKPM_FC_A0 * nn] + fc[PKPM_FC_A1 * nn] * w, c = fc[PKPM_FC_C * nn];
-  double vn_l = fc[PKPM_FC_UL * nn] + fc[PKPM_FC_SL * nn] * w, c_l = fc[PKPM_FC_CL * nn];
-  double vn_r = fc[PKPM_FC_UR * nn] + fc[PKPM_FC_SR * nn] * w, c_r = fc[PKPM_FC_CR * nn];
-  sb[0] = fmin(fmin(vn_l - c_l, vn_r - c_r), fmin(a - c, 0.0));
-  sb[1] = fmax(fmax(vn_l + c_l, vn_r + c_r), fmax(a + c, 0.0));
 }
 
 // The map of one side of a face to the face frame and back (gkyl_dg_pkpm_remap_flux_surf).
@@ -196,22 +182,53 @@ pkpm_harm_face_map(
   }
 }
 
+// Factors of the change of frame of the eight blocks (pkpm_harm_frame_change), which depend on
+// the map alone: fac[PKPM_FRAME_*].
+#define PKPM_FRAME_K0 0 // K
+#define PKPM_FRAME_K1 1 // K/r
+#define PKPM_FRAME_K2 2 // K/r^2
+#define PKPM_FRAME_K3 3 // K/r^3
+#define PKPM_FRAME_C 4 // the shift c across the field direction, three components
+#define PKPM_FRAME_CC 7 // |c|^2
+#define PKPM_FRAME_NUM 8
+
 /**
- * Exact change of frame of the eight blocks X = [F, G, M0_perp, N_perp] at the source label to
- * the blocks Y at the target label. The factors do not
- * depend on w, and the map is linear, so it also applies to Legendre coefficients in w.
+ * The factors fac of the change of frame with density factor K, dilation r and shift c across
+ * the field direction (the forward or the backward half of a pkpm_harm_face_map).
  */
 GKYL_CU_DH static inline void
-pkpm_harm_frame_change(const double *X, double K, double r, const double *c, double *Y)
+pkpm_harm_frame_factors(double K, double r, const double *c, double *fac)
+{
+  fac[PKPM_FRAME_K0] = K;
+  fac[PKPM_FRAME_K1] = K / r;
+  fac[PKPM_FRAME_K2] = K / (r * r);
+  fac[PKPM_FRAME_K3] = K / (r * r * r);
+  for (int k = 0; k < 3; ++k) {
+    fac[PKPM_FRAME_C + k] = c[k];
+  }
+  fac[PKPM_FRAME_CC] = c[0] * c[0] + c[1] * c[1] + c[2] * c[2];
+}
+
+/**
+ * Change of frame of the eight blocks X = [F, G, M0_perp, N_perp] at the source label to the
+ * blocks Y at the target label, with the factors fac of the map (pkpm_harm_frame_factors). The
+ * factors do not depend on w, and the map is linear, so it also applies to Legendre coefficients
+ * in w. It is exact for blocks of a distribution with no second gyroangle harmonic: the row of
+ * N_perp takes the second moment across b to be G I_perp (the -2 G c term). The shift generates
+ * a second harmonic, so the map with the backward factors is the inverse for F, G and M0_perp
+ * and for N_perp to first order in c: there and back gives N + |c|^2 M0 - |c|^2 F c/2.
+ */
+GKYL_CU_DH static inline void
+pkpm_harm_frame_change(const double *X, const double *fac, double *Y)
 {
   const double F = X[0], G = X[1], *M = &X[2], *N = &X[5];
+  const double *c = &fac[PKPM_FRAME_C], cc = fac[PKPM_FRAME_CC];
   double cM = c[0] * M[0] + c[1] * M[1] + c[2] * M[2];
-  double cc = c[0] * c[0] + c[1] * c[1] + c[2] * c[2];
-  Y[0] = K * F;
-  Y[1] = K / (r * r) * (G - cM + 0.5 * cc * F);
+  Y[0] = fac[PKPM_FRAME_K0] * F;
+  Y[1] = fac[PKPM_FRAME_K2] * (G - cM + 0.5 * cc * F);
   for (int k = 0; k < 3; ++k) {
-    Y[2 + k] = K / r * (M[k] - c[k] * F);
-    Y[5 + k] = K / (r * r * r) * (N[k] - 2.0 * G * c[k] + c[k] * cM + 0.5 * cc * M[k] - 0.5 * cc * F * c[k]);
+    Y[2 + k] = fac[PKPM_FRAME_K1] * (M[k] - c[k] * F);
+    Y[5 + k] = fac[PKPM_FRAME_K3] * (N[k] - 2.0 * G * c[k] + c[k] * cM + 0.5 * cc * M[k] - 0.5 * cc * F * c[k]);
   }
 }
 

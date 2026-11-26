@@ -654,13 +654,16 @@ vm_apply_bc(
 // force of the backgrounds, gives the force that holds each held species (its momentum moment divided
 // by the density); the right-hand side with that force is the remainder every stage subtracts. The
 // initial conditions wait in the fnew buffers (the projection of a PKPM species uses f1), the field in
-// em1.
+// em1. The statistics keep the time of the capture as initialization of the species and nothing
+// else of its stage evaluations, which are not part of a time step.
 static void
 vlasov_capture_backgrounds(gkyl_vlasov_app *app, double t0)
 {
   if (!app->has_background) {
     return;
   }
+  struct timespec wtm = gkyl_wall_clock();
+  struct gkyl_vlasov_stat stat_ic = app->stat;
   int num_species = app->num_species;
   struct vm_field *field = app->field;
   bool has_em = field->field_id == GKYL_FIELD_E_B;
@@ -726,6 +729,8 @@ vlasov_capture_backgrounds(gkyl_vlasov_app *app, double t0)
   if (has_em) {
     gkyl_array_copy(field->em, field->em1);
   }
+  app->stat = stat_ic;
+  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 }
 
 void
@@ -976,6 +981,10 @@ comm_reduce_app_stat(
     FLUID_SPECIES_RHS_TM,
     FLUID_SPECIES_VARS_TM,
     SPECIES_PKPM_VARS_TM,
+    SPECIES_PKPM_CONF_FLUX_TM,
+    SPECIES_PKPM_HARM_TM,
+    SPECIES_PKPM_CLOSURE_TM,
+    SPECIES_PKPM_VEL_FLUX_TM,
     FIELD_EM_VARS_TM,
     SPECIES_COLL_MOM_TM,
     SPECIES_COL_TM,
@@ -1008,6 +1017,10 @@ comm_reduce_app_stat(
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
     [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
     [SPECIES_PKPM_VARS_TM] = local->species_pkpm_vars_tm,
+    [SPECIES_PKPM_CONF_FLUX_TM] = local->species_pkpm_conf_flux_tm,
+    [SPECIES_PKPM_HARM_TM] = local->species_pkpm_harm_tm,
+    [SPECIES_PKPM_CLOSURE_TM] = local->species_pkpm_closure_tm,
+    [SPECIES_PKPM_VEL_FLUX_TM] = local->species_pkpm_vel_flux_tm,
     [FIELD_EM_VARS_TM] = local->field_em_vars_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
@@ -1041,6 +1054,10 @@ comm_reduce_app_stat(
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
   global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
   global->species_pkpm_vars_tm = d_red_global[SPECIES_PKPM_VARS_TM];
+  global->species_pkpm_conf_flux_tm = d_red_global[SPECIES_PKPM_CONF_FLUX_TM];
+  global->species_pkpm_harm_tm = d_red_global[SPECIES_PKPM_HARM_TM];
+  global->species_pkpm_closure_tm = d_red_global[SPECIES_PKPM_CLOSURE_TM];
+  global->species_pkpm_vel_flux_tm = d_red_global[SPECIES_PKPM_VEL_FLUX_TM];
   global->field_em_vars_tm = d_red_global[FIELD_EM_VARS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
@@ -1195,9 +1212,18 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app *app)
   gkyl_vlasov_app_cout(app, fp, " n_field_diag_io : %ld,\n", stat.n_field_diag_io);
 
   if (app->has_pkpm) {
-    // PKPM species: the configuration-space variables of the stages and b of the field, and the
-    // record of the closure solves of each species.
+    // PKPM species: the configuration-space variables of the stages, the terms of the kinetic
+    // equations that species_rhs_tm does not hold and b of the field, and the record of the
+    // closure solves of each species.
     gkyl_vlasov_app_cout(app, fp, " species_pkpm_vars_tm : %lg,\n", stat.species_pkpm_vars_tm);
+    gkyl_vlasov_app_cout(
+      app, fp, " species_pkpm_conf_flux_tm : %lg,\n", stat.species_pkpm_conf_flux_tm
+    );
+    gkyl_vlasov_app_cout(app, fp, " species_pkpm_harm_tm : %lg,\n", stat.species_pkpm_harm_tm);
+    gkyl_vlasov_app_cout(app, fp, " species_pkpm_closure_tm : %lg,\n", stat.species_pkpm_closure_tm);
+    gkyl_vlasov_app_cout(
+      app, fp, " species_pkpm_vel_flux_tm : %lg,\n", stat.species_pkpm_vel_flux_tm
+    );
     gkyl_vlasov_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
     for (int i = 0; i < app->num_species; ++i) {
       if (app->species[i].type == GKYL_SPECIES_PKPM) {

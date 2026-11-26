@@ -1123,6 +1123,376 @@ test_rate_narrower_cell(void)
   teardown(&s);
 }
 
+// ---- The kernels of one transverse node (gkyl_pkpm_remap_flux_kernels.h).
+
+typedef void (*interval_kern_t)(
+  const double *fc, double w_lo, double w_up, const double *side_l, const double *side_r,
+  const double *cell_l, const double *cell_r, const double *Y_l, const double *Y_r, double *P_l,
+  double *P_r, double *mom, double *share
+);
+typedef void (*label_kern_t)(
+  const double *fc, double w_center, double dw, const double *X_l, const double *X_r, double *proj,
+  double *mom_l, double *mom_r, double *speed
+);
+typedef void (*to_face_kern_t)(
+  const double *psi, const double *fwd, const double *G, double *X, double *Y
+);
+typedef void (*face_store_kern_t)(
+  const double *wpsi, const double *bck, const double *P, double *flux
+);
+typedef void (*store_kern_t)(const double *wpsi, const double *proj, double *flux);
+
+static const interval_kern_t interval_kernels[3] = {
+  pkpm_remap_flux_interval_x_1v_p2, pkpm_remap_flux_interval_y_1v_p2,
+  pkpm_remap_flux_interval_z_1v_p2
+};
+static const label_kern_t label_kernels[3] = {
+  pkpm_remap_flux_label_x_1v_p2, pkpm_remap_flux_label_y_1v_p2, pkpm_remap_flux_label_z_1v_p2
+};
+static const to_face_kern_t to_face_kernels[3] = {
+  pkpm_remap_flux_to_face_1x1v_ser_p1, pkpm_remap_flux_to_face_2x1v_ser_p1,
+  pkpm_remap_flux_to_face_3x1v_ser_p1
+};
+static const face_store_kern_t from_face_kernels[3][3] = {
+  {pkpm_remap_flux_from_face_x_1x1v_ser_p1, NULL, NULL},
+  {pkpm_remap_flux_from_face_x_2x1v_ser_p1, pkpm_remap_flux_from_face_y_2x1v_ser_p1, NULL},
+  {pkpm_remap_flux_from_face_x_3x1v_ser_p1, pkpm_remap_flux_from_face_y_3x1v_ser_p1,
+   pkpm_remap_flux_from_face_z_3x1v_ser_p1}
+};
+static const store_kern_t store_kernels[3][3] = {
+  {pkpm_remap_flux_store_x_1x1v_ser_p1, NULL, NULL},
+  {pkpm_remap_flux_store_x_2x1v_ser_p1, pkpm_remap_flux_store_y_2x1v_ser_p1, NULL},
+  {pkpm_remap_flux_store_x_3x1v_ser_p1, pkpm_remap_flux_store_y_3x1v_ser_p1,
+   pkpm_remap_flux_store_z_3x1v_ser_p1}
+};
+
+static double
+rand_unit(void)
+{
+  return 2.0 * rand() / RAND_MAX - 1.0;
+}
+
+// The factors of the Legendre modes of the velocity basis, phi_m = norm_m [1, eta, 3 eta^2 - 1].
+static void
+vel_mode_norm(double *norm)
+{
+  struct gkyl_basis vel_basis;
+  gkyl_cart_modal_serendip(&vel_basis, 1, 2);
+  double eta = 1.0, modes[3];
+  vel_basis.eval(&eta, modes);
+  norm[0] = modes[0];
+  norm[1] = modes[1];
+  norm[2] = 0.5 * modes[2];
+}
+
+// Face coefficients of a face of direction dir whose field direction is oblique to the normal,
+// with different frames on the two sides: the coupled speed c is positive and the HLL weights of
+// the flux have kinks at kinks[0] < kinks[1], between which both sides contribute.
+static void
+oblique_face_coef(int dir, double *fc, double *kinks)
+{
+  double b_l[3] = {0.62, 0.55, 0.56}, b_r[3] = {0.57, 0.6, 0.56};
+  pkpm_harm_face_coef(dir, 0.3, -0.1, 1.1, 0.9, b_l, b_r, 0.8, 1.2, 1, fc);
+  double a0 = fc[PKPM_FC_A0], a1 = fc[PKPM_FC_A1], c = fc[PKPM_FC_C];
+  TEST_CHECK(c > 0.0 && fabs(a1) > 0.0);
+  kinks[0] = fmin((-c - a0) / a1, (c - a0) / a1);
+  kinks[1] = fmax((-c - a0) / a1, (c - a0) / a1);
+}
+
+// 9. The interval kernel is the exact integral of the flux function against the Legendre modes
+// of the cell of each side, and of its face-frame moments, on an interval between the kinks of
+// the HLL weights, in each of the three regimes (the lower upwind side, both sides, the upper
+// upwind side): compared with a 5-point rule of pkpm_harm_conf_flux. The shares are those of
+// the 3 Gauss-Legendre points, counted as outside for a side with cell[PKPM_RF_CELL_OUT] = 1.
+static void
+test_interval_kernel_dir(int dir)
+{
+  srand(31 + dir);
+  double norm[3];
+  vel_mode_norm(norm);
+  double fc[PKPM_FC_NUM], kinks[2];
+  oblique_face_coef(dir, fc, kinks);
+  double span = kinks[1] - kinks[0];
+  const double ends[3][2] = {
+    {kinks[0] - 1.3, kinks[0] - 0.2},
+    {kinks[0] + 0.1 * span, kinks[1] - 0.15 * span},
+    {kinks[1] + 0.2, kinks[1] + 1.5},
+  };
+  // maps of the sides (r, c), and the cell of each side (center, width)
+  const double map[2][2] = {{1.2, 0.3}, {0.85, -0.2}}, vcell[2][2] = {{0.4, 1.5}, {-0.3, 1.1}};
+  double side[2][PKPM_RF_SIDE_NUM], cell[2][PKPM_RF_CELL_NUM];
+  for (int s = 0; s < 2; ++s) {
+    side[s][PKPM_RF_SIDE_R] = map[s][0];
+    side[s][PKPM_RF_SIDE_C] = map[s][1];
+    side[s][PKPM_RF_SIDE_KINV] = 0.9 + 0.2 * s;
+    side[s][PKPM_RF_SIDE_EG] = 1.3 - 0.4 * s;
+    side[s][PKPM_RF_SIDE_CC] = 0.2 + 0.1 * s;
+    for (int k = 0; k < 3; ++k) {
+      side[s][PKPM_RF_SIDE_CPERP + k] = 0.3 * rand_unit();
+    }
+    cell[s][PKPM_RF_CELL_ETA0] = 2.0 * (map[s][1] - vcell[s][0]) / vcell[s][1];
+    cell[s][PKPM_RF_CELL_ETA1] = 2.0 * map[s][0] / vcell[s][1];
+  }
+  cell[0][PKPM_RF_CELL_OUT] = 1.0;
+  cell[1][PKPM_RF_CELL_OUT] = 0.0;
+
+  for (int regime = 0; regime < 3; ++regime) {
+    double Y[2][24], P[2][24] = {{0.0}}, mom[PKPM_RF_NUM_MOMS] = {0.0};
+    double share[PKPM_RF_SHARE_NUM] = {0.0};
+    for (int s = 0; s < 2; ++s) {
+      for (int k = 0; k < 24; ++k) {
+        Y[s][k] = rand_unit();
+      }
+    }
+    double lo = ends[regime][0], up = ends[regime][1];
+    interval_kernels[dir](
+      fc, lo, up, side[0], side[1], cell[0], cell[1], Y[0], Y[1], P[0], P[1], mom, share
+    );
+
+    // reference: nq-point rule of the flux function; the shares at the 3 points of the kernel
+    double P_ref[2][24] = {{0.0}}, mom_ref[PKPM_RF_NUM_MOMS] = {0.0};
+    double share_ref[PKPM_RF_SHARE_NUM] = {0.0};
+    for (int pass = 0; pass < 2; ++pass) {
+      int nq = pass == 0 ? 5 : 3;
+      for (int q = 0; q < nq; ++q) {
+        double wb = 0.5 * (up + lo) + 0.5 * (up - lo) * gkyl_gauss_ordinates[nq][q];
+        double om = 0.5 * (up - lo) * gkyl_gauss_weights[nq][q];
+        double X[2][8], eta[2], phi_l[8], phi_r[8], sb[2], flux[8];
+        for (int s = 0; s < 2; ++s) {
+          eta[s] = 2.0 * (map[s][0] * wb + map[s][1] - vcell[s][0]) / vcell[s][1];
+          for (int c = 0; c < 8; ++c) {
+            X[s][c] =
+              Y[s][c] + Y[s][8 + c] * eta[s] + Y[s][16 + c] * (3.0 * eta[s] * eta[s] - 1.0);
+          }
+        }
+        pkpm_harm_conf_flux(dir, X[0], X[1], wb, fc, 1, phi_l, phi_r, sb);
+        for (int c = 0; c < 8; ++c) {
+          flux[c] = phi_l[c] + phi_r[c];
+        }
+        if (pass == 0) {
+          for (int s = 0; s < 2; ++s) {
+            double leg[3] = {norm[0], norm[1] * eta[s], norm[2] * (3.0 * eta[s] * eta[s] - 1.0)};
+            for (int m = 0; m < 3; ++m) {
+              for (int c = 0; c < 8; ++c) {
+                P_ref[s][m * 8 + c] += om * 2.0 * map[s][0] / vcell[s][1] * leg[m] * flux[c];
+              }
+            }
+          }
+          mom_ref[0] += om * flux[0];
+          mom_ref[1] += om * wb * flux[0];
+          mom_ref[2] += om * wb * wb * flux[0];
+          mom_ref[3] += om * flux[1];
+          for (int k = 0; k < 3; ++k) {
+            mom_ref[4 + k] += om * flux[2 + k];
+          }
+        } else {
+          for (int s = 0; s < 2; ++s) {
+            const double *ci = &side[s][PKPM_RF_SIDE_CPERP];
+            double w_s = map[s][0] * wb + map[s][1];
+            double cM = ci[0] * flux[2] + ci[1] * flux[3] + ci[2] * flux[4];
+            double y_f = side[s][PKPM_RF_SIDE_KINV] * flux[0];
+            double y_g = side[s][PKPM_RF_SIDE_EG] *
+                         (flux[1] - cM + 0.5 * side[s][PKPM_RF_SIDE_CC] * flux[0]);
+            share_ref[PKPM_RF_SHARE_MOM_TOT + s] += om * fabs(flux[0]) * fabs(w_s);
+            share_ref[PKPM_RF_SHARE_EN_TOT + s] +=
+              om * (fabs(y_f) * w_s * w_s + 2.0 * fabs(y_g));
+          }
+        }
+      }
+    }
+    share_ref[PKPM_RF_SHARE_MOM_OUT] = share_ref[PKPM_RF_SHARE_MOM_TOT];
+    share_ref[PKPM_RF_SHARE_EN_OUT] = share_ref[PKPM_RF_SHARE_EN_TOT];
+
+    double max_err = 0.0, max_val = 0.0, max_share_err = 0.0, max_share = 0.0;
+    for (int s = 0; s < 2; ++s) {
+      for (int k = 0; k < 24; ++k) {
+        max_err = fmax(max_err, fabs(P[s][k] - P_ref[s][k]));
+        max_val = fmax(max_val, fabs(P_ref[s][k]));
+      }
+    }
+    for (int k = 0; k < PKPM_RF_NUM_MOMS; ++k) {
+      max_err = fmax(max_err, fabs(mom[k] - mom_ref[k]));
+      max_val = fmax(max_val, fabs(mom_ref[k]));
+    }
+    for (int k = 0; k < PKPM_RF_SHARE_NUM; ++k) {
+      max_share_err = fmax(max_share_err, fabs(share[k] - share_ref[k]));
+      max_share = fmax(max_share, fabs(share_ref[k]));
+    }
+    TEST_CHECK(max_val > 0.1);
+    TEST_CHECK(max_err < 1e-13 * max_val);
+    TEST_MSG("dir %d regime %d: projection and moments off by %g of %g", dir, regime, max_err, max_val);
+    TEST_CHECK(max_share > 0.0);
+    TEST_CHECK(max_share_err < 1e-13 * max_share);
+    TEST_MSG("dir %d regime %d: shares off by %g of %g", dir, regime, max_share_err, max_share);
+    TEST_CHECK(share[PKPM_RF_SHARE_MOM_OUT + 1] == 0.0 && share[PKPM_RF_SHARE_EN_OUT + 1] == 0.0);
+  }
+}
+
+void
+test_interval_kernel(void)
+{
+  for (int dir = 0; dir < 3; ++dir) {
+    test_interval_kernel_dir(dir);
+  }
+}
+
+// 10. The label-paired kernel of a velocity cell is the interval kernel on that cell with the
+// identity map on both sides (the same three points, whether or not a kink falls in the cell):
+// the same projection for both sides and the same moments, the sum of the two contributions.
+// Its speeds are the bounds of the flux function at the three points, and are only raised.
+static void
+test_label_kernel_dir(int dir)
+{
+  srand(57 + dir);
+  double fc[PKPM_FC_NUM], kinks[2];
+  oblique_face_coef(dir, fc, kinks);
+  // a cell that contains the lower kink
+  double w_center = kinks[0] + 0.2, dw = 1.5;
+  double X[2][24];
+  for (int s = 0; s < 2; ++s) {
+    for (int k = 0; k < 24; ++k) {
+      X[s][k] = rand_unit();
+    }
+  }
+  double proj[24], mom_side[2][PKPM_RF_NUM_MOMS] = {{0.0}}, speed[2] = {0.0, 0.0};
+  label_kernels[dir](fc, w_center, dw, X[0], X[1], proj, mom_side[0], mom_side[1], speed);
+
+  double side[PKPM_RF_SIDE_NUM] = {0.0};
+  side[PKPM_RF_SIDE_R] = 1.0;
+  side[PKPM_RF_SIDE_KINV] = 1.0;
+  side[PKPM_RF_SIDE_EG] = 1.0;
+  double cell[PKPM_RF_CELL_NUM] = {-2.0 * w_center / dw, 2.0 / dw, 0.0};
+  double P[2][24] = {{0.0}}, mom[PKPM_RF_NUM_MOMS] = {0.0}, share[PKPM_RF_SHARE_NUM] = {0.0};
+  interval_kernels[dir](
+    fc, w_center - 0.5 * dw, w_center + 0.5 * dw, side, side, cell, cell, X[0], X[1], P[0], P[1],
+    mom, share
+  );
+
+  double max_err = 0.0, max_val = 0.0;
+  for (int k = 0; k < 24; ++k) {
+    max_err = fmax(max_err, fmax(fabs(proj[k] - P[0][k]), fabs(proj[k] - P[1][k])));
+    max_val = fmax(max_val, fabs(proj[k]));
+  }
+  for (int k = 0; k < PKPM_RF_NUM_MOMS; ++k) {
+    max_err = fmax(max_err, fabs(mom_side[0][k] + mom_side[1][k] - mom[k]));
+    max_val = fmax(max_val, fabs(mom[k]));
+  }
+  TEST_CHECK(max_val > 0.1);
+  TEST_CHECK(max_err < 1e-13 * max_val);
+  TEST_MSG("dir %d: label-paired kernel off the interval kernel by %g of %g", dir, max_err, max_val);
+
+  double speed_ref[2] = {0.0, 0.0};
+  for (int q = 0; q < 3; ++q) {
+    double wq = w_center + 0.5 * gkyl_gauss_ordinates[3][q] * dw;
+    double x_l[8] = {0.0}, x_r[8] = {0.0}, phi_l[8], phi_r[8], sb[2];
+    pkpm_harm_conf_flux(dir, x_l, x_r, wq, fc, 1, phi_l, phi_r, sb);
+    speed_ref[0] = fmax(speed_ref[0], fmax(-sb[0], sb[1]));
+    speed_ref[1] = fmax(speed_ref[1], sb[1] - sb[0]);
+  }
+  TEST_CHECK(speed_ref[0] > 0.0 && speed_ref[1] > 0.0);
+  TEST_CHECK(fabs(speed[0] - speed_ref[0]) < 1e-14 * speed_ref[0]);
+  TEST_CHECK(fabs(speed[1] - speed_ref[1]) < 1e-14 * speed_ref[1]);
+  TEST_MSG("dir %d: speeds %g %g, expected %g %g", dir, speed[0], speed[1], speed_ref[0], speed_ref[1]);
+  double speed_high[2] = {10.0 * speed_ref[0], 10.0 * speed_ref[1]};
+  label_kernels[dir](fc, w_center, dw, X[0], X[1], proj, mom_side[0], mom_side[1], speed_high);
+  TEST_CHECK(speed_high[0] == 10.0 * speed_ref[0] && speed_high[1] == 10.0 * speed_ref[1]);
+}
+
+void
+test_label_kernel(void)
+{
+  for (int dir = 0; dir < 3; ++dir) {
+    test_label_kernel_dir(dir);
+  }
+}
+
+// 11. The kernels that take one velocity cell of a side to the face frame and back. The blocks
+// at the node are the transverse interpolation of the modal traces, and with the factors of the
+// identity map the face frame is the frame of the side. With the two halves of a face map the
+// way to the face frame and back is the identity, so that the store of the returned blocks is
+// the store of the blocks themselves: for all blocks when the frames differ in density, thermal
+// speed and flow along the field direction, and for F, G and M0_perp when they also differ in
+// the flow across it (the row of N_perp replaces a second moment by G and closes only to first
+// order in that shift, so it is left out).
+static void
+test_face_frame_kernels_cdim(int cdim)
+{
+  srand(73 + cdim);
+  int na = 1 << (cdim - 1), nt = 3 * na;
+  double norm[3];
+  vel_mode_norm(norm);
+  double G[8 * 12], psi[4], wpsi[4];
+  for (int k = 0; k < 8 * nt; ++k) {
+    G[k] = rand_unit();
+  }
+  for (int a = 0; a < na; ++a) {
+    psi[a] = rand_unit();
+    wpsi[a] = rand_unit();
+  }
+
+  double c_zero[3] = {0.0, 0.0, 0.0}, identity[PKPM_FRAME_NUM];
+  pkpm_harm_frame_factors(1.0, 1.0, c_zero, identity);
+  double X[24], Y[24];
+  to_face_kernels[cdim - 1](psi, identity, G, X, Y);
+  double max_err = 0.0, max_val = 0.0;
+  for (int m = 0; m < 3; ++m) {
+    for (int c = 0; c < 8; ++c) {
+      double ref = 0.0;
+      for (int a = 0; a < na; ++a) {
+        ref += norm[m] * psi[a] * G[c * nt + a * 3 + m];
+      }
+      max_err = fmax(max_err, fabs(X[m * 8 + c] - ref));
+      max_val = fmax(max_val, fabs(ref));
+      TEST_CHECK(Y[m * 8 + c] == X[m * 8 + c]);
+    }
+  }
+  TEST_CHECK(max_val > 0.1);
+  TEST_CHECK(max_err < 1e-14 * max_val);
+  TEST_MSG("%dx: blocks at the node off by %g of %g", cdim, max_err, max_val);
+
+  double b_bar[3] = {0.6, 0.0, 0.8}, u_s[3] = {0.3, -0.2, 0.5};
+  // flow of the face frame: shifted along b_bar (all blocks), then also across it (F, G, M0_perp)
+  const double u_bar[2][3] = {{0.3 + 0.4 * 0.6, -0.2, 0.5 + 0.4 * 0.8}, {0.1, 0.25, 0.35}};
+  const int num_blocks[2] = {8, 5};
+  for (int shift = 0; shift < 2; ++shift) {
+    struct pkpm_harm_face_map map;
+    pkpm_harm_face_map(1.3, u_s, 0.9, 1.1, u_bar[shift], 1.2, b_bar, &map);
+    double fwd[PKPM_FRAME_NUM], bck[PKPM_FRAME_NUM];
+    pkpm_harm_frame_factors(map.K, map.r, map.c_perp, fwd);
+    pkpm_harm_frame_factors(map.K_inv, map.r_inv, map.c_perp_inv, bck);
+    to_face_kernels[cdim - 1](psi, fwd, G, X, Y);
+    double frame_diff = 0.0;
+    for (int k = 0; k < 24; ++k) {
+      frame_diff = fmax(frame_diff, fabs(Y[k] - X[k]));
+    }
+    TEST_CHECK(frame_diff > 0.01);
+    for (int dir = 0; dir < cdim; ++dir) {
+      double flux_back[8 * 12] = {0.0}, flux_side[8 * 12] = {0.0};
+      from_face_kernels[cdim - 1][dir](wpsi, bck, Y, flux_back);
+      store_kernels[cdim - 1][dir](wpsi, X, flux_side);
+      max_err = 0.0, max_val = 0.0;
+      for (int k = 0; k < num_blocks[shift] * nt; ++k) {
+        max_err = fmax(max_err, fabs(flux_back[k] - flux_side[k]));
+        max_val = fmax(max_val, fabs(flux_side[k]));
+      }
+      TEST_CHECK(max_val > 0.1);
+      TEST_CHECK(max_err < 1e-13 * max_val);
+      TEST_MSG(
+        "%dx dir %d shift %d: to the face frame and back off by %g of %g", cdim, dir, shift,
+        max_err, max_val
+      );
+    }
+  }
+}
+
+void
+test_face_frame_kernels(void)
+{
+  for (int cdim = 1; cdim <= 3; ++cdim) {
+    test_face_frame_kernels_cdim(cdim);
+  }
+}
+
 TEST_LIST = {
   {"test_identity_1x", test_identity_1x},
   {"test_identity_2x", test_identity_2x},
@@ -1137,5 +1507,8 @@ TEST_LIST = {
   {"test_rate_larger_face", test_rate_larger_face},
   {"test_rate_decomposition", test_rate_decomposition_all},
   {"test_rate_narrower_cell", test_rate_narrower_cell},
+  {"test_interval_kernel", test_interval_kernel},
+  {"test_label_kernel", test_label_kernel},
+  {"test_face_frame_kernels", test_face_frame_kernels},
   {NULL, NULL}
 };

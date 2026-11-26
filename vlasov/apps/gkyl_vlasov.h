@@ -688,7 +688,9 @@ struct gkyl_vlasov_stat {
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields
 
-  double species_rhs_tm; // time to compute species collisionless RHS
+  // time to compute species collisionless RHS (PKPM species: the streaming and velocity passes;
+  // the other terms of its kinetic equations have the timers species_pkpm_*_tm below)
+  double species_rhs_tm;
   double fluid_species_rhs_tm; // time to compute fluid species RHS
   double fluid_species_vars_tm; // time to compute fluid variables (flow velocity and pressure)
 
@@ -715,6 +717,15 @@ struct gkyl_vlasov_stat {
   // moments of the normalized distributions, the flow and thermal speed, the kinetic coupling
   // moments, the constraints and the gradients for the sources
   double species_pkpm_vars_tm;
+  // time to compute the configuration-space face fluxes of a stage of a PKPM species (kinetic
+  // and fluid, with their rates) and the in-cell gradients of u, rho and xi
+  double species_pkpm_conf_flux_tm;
+  // time for the first harmonic of a PKPM species: the projection perpendicular to b, the
+  // coefficients, w fluxes and sources of the blocks and the integrating factor
+  double species_pkpm_harm_tm;
+  // time to compute the closures of a PKPM species (moments of the partial RHS and the solve)
+  double species_pkpm_closure_tm;
+  double species_pkpm_vel_flux_tm; // time to compute the velocity-space face fluxes (PKPM species)
   double field_em_vars_tm; // time to compute b = B/|B| and its gradient (PKPM species)
 
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for species
