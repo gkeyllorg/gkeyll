@@ -53,7 +53,7 @@ gk_field_ts_fem_perpproj_validate(const gkyl_gyrokinetic_app *app, const struct 
   if (!app->gk_geom->has_LCFS && field->bc_par_phi != GKYL_BC_GK_FIELD_TWISTSHIFT) {
     gkyl_exit("ts_field_dg=false requires twist-shift field boundaries.");
   }
-  if (field->use_flr) {
+  if (field->info.flr.type != GKYL_GK_FLR_NONE) {
     gkyl_exit("ts_field_dg=false does not support FLR.");
   }
   if (app->gk_geom->has_LCFS && (!app->global_core.volume || !app->global_sol.volume)) {

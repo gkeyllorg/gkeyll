@@ -9,8 +9,8 @@
  *
  * This header contains forward declarations for internal field-related
  * functions used by the gyrokinetic application. These functions handle
- * FEM projections, field solves, boundary conditions, energy diagnostics,
- * FLR corrections and polarization potentials.
+ * FEM projections, field solves, boundary conditions, energy diagnostics
+ * and polarization potentials.
  */
 
 /** FEM Initialization Functions **/
@@ -144,59 +144,3 @@ void gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *g
  * @param gkf Field object.
  */
 void gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/** Finite Larmor Radius (FLR) Correction Functions **/
-
-/**
- * Initialize FLR correction objects for the field solver.
- * Sets up machinery for gyroaveraging and FLR effects in the potential.
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object to initialize FLR corrections for.
- */
-void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/**
- * Release FLR correction resources.
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object whose FLR resources are to be released.
- */
-void gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/**
- * Retrieve the electrostatic potential phi from the modified potential Phi_0 with the
- * simplified term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J, valid for constant rho_i
- * and eps_pol. Also conserves Phi_0 for the field energy computation.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing solver state.
- * @param phi Electrostatic potential array (input/output).
- */
-void gk_field_invert_flr_const(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
-);
-
-/**
- * Same as gk_field_invert_flr_const but applying A = 1 - rho_i^2*nabla_perp^2
- * to Phi_0 with the FEM perpendicular operator.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing solver state.
- * @param phi Electrostatic potential array (input/output).
- */
-void gk_field_invert_flr_op(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
-);
-
-/**
- * No-op function for FLR inversion (when FLR corrections are disabled).
- * Used when long-wavelength approximation is valid and FLR effects are negligible.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object.
- * @param phi Electrostatic potential array (unchanged).
- */
-void gk_field_invert_flr_none(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
-);

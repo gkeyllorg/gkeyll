@@ -15,7 +15,6 @@
 #include <gkyl_util.h>
 
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_gk_field_priv.h>
 #include <gkyl_app_priv.h>
 
 #include <mpack.h>
@@ -1385,11 +1384,6 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // Initialize each species.
   for (int i = 0; i < ns; ++i) {
     gk_species_init(gk, app, &app->species[i]);
-  }
-
-  // Create the field FLR operators (need the species reference gyroradii).
-  if (app->field->use_flr) {
-    gk_field_flr_new(app, app->field);
   }
 
   for (int i = 0; i < neuts; ++i) {

@@ -598,9 +598,6 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
   gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
-  // Finish the Poisson solve with FLR effects.
-  field->invert_flr(app, field, field->phi_smooth);
-
   // Smooth the potential along z.
   field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
 }
@@ -616,8 +613,6 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field, str
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
   gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, out);
 
-  field->invert_flr_apar(app, field, field->apardot);
-
   field->remove_em_zonal_func(app, field, field->apardot);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -632,8 +627,6 @@ gk_field_ampere_solve_enabled(
 
   gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
   gkyl_fem_poisson_perp_solve(field->fem_apar_solver, out);
-
-  field->invert_flr_apar(app, field, out);
 
   // Smooth Apar along z with the same parallel BCs used during time stepping.
   field->fem_projection_par_apar_func(app, field, out, out);
@@ -778,10 +771,6 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
       gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_lo);
       gkyl_array_release(gkf->bc_buffer);
     }
-  }
-
-  if (gkf->use_flr) {
-    gk_field_flr_release(app, gkf);
   }
 }
 
@@ -1055,15 +1044,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->calc_em_energy = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu
   );
-
-  // FLR effects (operators created in gk_field_flr_new once the species,
-  // which provide the reference gyroradii, are initialized).
-  // With the Pade model of each mu cell the species are gyroaveraged while the field equations
-  // are those without FLR effects (long wavelength polarization).
-  gkf->use_flr = gkf->info.flr.type != GKYL_GK_FLR_NONE &&
-                 gkf->info.flr.type != GKYL_GK_FLR_PADE_MU;
-  gkf->invert_flr = gk_field_invert_flr_none;
-  gkf->invert_flr_apar = gk_field_invert_flr_none;
 
   gkf->bc_par_phi = 0;
   // Deterime if we need IWL or TWISTSHIFT BCs on phi fro the species BCs.

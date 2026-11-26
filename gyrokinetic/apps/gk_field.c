@@ -173,18 +173,6 @@ gk_field_energy_bg_none(
 }
 
 static void
-gk_field_es_energy(
-  gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
-)
-{
-  // Integrate the ES energy without FLR effects, (1/2) int eps |grad_perp(phi)|^2, into out[0].
-  gkyl_array_integrate_advance(
-    field->calc_em_energy, field->phi_smooth, factor, field->es_energy_fac, &app->local,
-    &app->local, out
-  );
-}
-
-static void
 gk_field_calc_energy_dt_active(
   gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
 )
@@ -575,7 +563,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkf->has_adiabatic_species = gkf->gk_adiab.num_species > 0;
   gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
   gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
-  gkf->es_energy_func = gk_field_es_energy;
 
   // Initialize the field solver
   if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {

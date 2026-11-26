@@ -1,6 +1,7 @@
 // Rosenbluth-Hinton zonal flow test with kinetic ions and adiabatic electrons
 // (flux-surface averaged response) in the circular Cyclone base case geometry,
-// with Pade FLR effects (same as rt_gk_rosenbluth_hinton_2x2v_p1 otherwise).
+// with FLR effects, the Pade approximant of the gyroaverage in each mu cell (same as
+// rt_gk_rosenbluth_hinton_2x2v_p1 otherwise).
 // The initial perturbation is in the density, n0 delta_n g(x) sin(kx (x-x_min)),
 // with a Gaussian envelope g(x) vanishing at the walls, and a parallel flow,
 // upar = -(Ti/mi) (Bt/B)/Omega_pol dln(n)/dx, to approach canonical maxwellian.
@@ -629,18 +630,20 @@ main(int argc, char **argv)
     // Fixed Maxwellian ghost cells: the walls act as a reservoir for the radial
     // magnetic drift (zero-flux and copy BCs build up boundary layers).
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -685,10 +688,12 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_axis, // Important for the Rosenbluth-Hinton residual to be correct.
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
-    .flr = {.type = GKYL_GK_FLR_PADE, .use_fem_operator = true},
+    .flr = {.type = GKYL_GK_FLR_PADE_MU},
   };
 
   // Geometry

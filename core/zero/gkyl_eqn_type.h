@@ -228,8 +228,6 @@ enum gkyl_vel_edge {
 // Identifiers for FLR models (in gyrokinetics).
 enum gkyl_gk_flr_type {
   GKYL_GK_FLR_NONE = 0, // No FLR effects.
-  GKYL_GK_FLR_PADE, // Pade approximants of the FLR operators w/ const. gyroradii (DR #797).
-  GKYL_GK_FLR_GYROMATRIX, // Gyro-matrix FLR operators.
   // Pade approximant of the gyroaverage with the gyroradius of each mu cell, and long
   // wavelength polarization (Ishizawa et al., Phys. Plasmas 26, 082301 (2019)).
   GKYL_GK_FLR_PADE_MU

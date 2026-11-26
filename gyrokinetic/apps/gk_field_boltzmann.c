@@ -200,9 +200,7 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gk
   }
 
   // FLR effects are not implemented for this field type.
-  gkf->use_flr = gkf->info.flr.type != GKYL_GK_FLR_NONE;
-  gkf->invert_flr = gk_field_invert_flr_none;
-  assert(!gkf->use_flr);
+  assert(gkf->info.flr.type == GKYL_GK_FLR_NONE);
 
   gkf->release_func = gk_field_fem_release_boltzmann;
 }
