@@ -3,7 +3,7 @@
 #include <acutest.h>
 
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_mom_calc.h>
+
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_gk_geometry.h>
@@ -100,7 +100,7 @@ test_mom_gyrokinetic_ho()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = {1, 1, 1}; // 3 elements because it's used by geo.
@@ -151,25 +151,19 @@ test_mom_gyrokinetic_ho()
   struct gkyl_velocity_map *gvm =
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M2, false
+  struct gkyl_mom_gyrokinetic *m2 = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M2, false, false
   );
+  TEST_CHECK(gkyl_mom_gyrokinetic_num_mom(m2) == 1);
 
-  TEST_CHECK(m2->cdim == 1);
-  TEST_CHECK(m2->pdim == 3);
-  TEST_CHECK(m2->poly_order == 1);
-  TEST_CHECK(m2->num_config == confBasis.num_basis);
-  TEST_CHECK(m2->num_phase == basis.num_basis);
-  TEST_CHECK(m2->num_mom == 1);
-
-  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M3PAR, false
+  struct gkyl_mom_gyrokinetic *m3par = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M3PAR, false, false
   );
-  TEST_CHECK(m3par->num_mom == 1);
+  TEST_CHECK(gkyl_mom_gyrokinetic_num_mom(m3par) == 1);
 
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_mom_type_release(m2);
-  gkyl_mom_type_release(m3par);
+  gkyl_mom_gyrokinetic_release(m2);
+  gkyl_mom_gyrokinetic_release(m3par);
   gkyl_velocity_map_release(gvm);
   gkyl_position_map_release(pmap);
 }
@@ -323,18 +317,18 @@ test_1x1v(int polyOrder, bool use_gpu)
   struct gkyl_velocity_map *gvm =
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0, use_gpu
+  struct gkyl_mom_gyrokinetic *M0_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0, false, use_gpu
   );
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M1, use_gpu
+  struct gkyl_mom_gyrokinetic *M1_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M1, false, use_gpu
   );
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M2, use_gpu
+  struct gkyl_mom_gyrokinetic *M2_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M2, false, use_gpu
   );
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
+  gkyl_mom_gyrokinetic *m0calc = M0_t;
+  gkyl_mom_gyrokinetic *m1calc = M1_t;
+  gkyl_mom_gyrokinetic *m2calc = M2_t;
 
   // create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
@@ -347,13 +341,13 @@ test_1x1v(int polyOrder, bool use_gpu)
 
   // compute the moments
   if (use_gpu) {
-    gkyl_mom_calc_advance_cu(m0calc, &local, &confLocal, distf, m0);
-    gkyl_mom_calc_advance_cu(m1calc, &local, &confLocal, distf, m1);
-    gkyl_mom_calc_advance_cu(m2calc, &local, &confLocal, distf, m2);
+    gkyl_mom_gyrokinetic_advance(m0calc, &local, &confLocal, NULL, distf, m0);
+    gkyl_mom_gyrokinetic_advance(m1calc, &local, &confLocal, NULL, distf, m1);
+    gkyl_mom_gyrokinetic_advance(m2calc, &local, &confLocal, NULL, distf, m2);
   } else {
-    gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-    gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
-    gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+    gkyl_mom_gyrokinetic_advance(m0calc, &local, &confLocal, NULL, distf, m0);
+    gkyl_mom_gyrokinetic_advance(m1calc, &local, &confLocal, NULL, distf, m1);
+    gkyl_mom_gyrokinetic_advance(m2calc, &local, &confLocal, NULL, distf, m2);
   }
   gkyl_array_copy(m0_ho, m0);
   gkyl_array_copy(m1_ho, m1);
@@ -466,12 +460,9 @@ test_1x1v(int polyOrder, bool use_gpu)
   gkyl_array_release(m0_ho);
   gkyl_array_release(m1_ho);
   gkyl_array_release(m2_ho);
-  gkyl_mom_calc_release(m0calc);
-  gkyl_mom_calc_release(m1calc);
-  gkyl_mom_calc_release(m2calc);
-  gkyl_mom_type_release(M0_t);
-  gkyl_mom_type_release(M1_t);
-  gkyl_mom_type_release(M2_t);
+  gkyl_mom_gyrokinetic_release(m0calc);
+  gkyl_mom_gyrokinetic_release(m1calc);
+  gkyl_mom_gyrokinetic_release(m2calc);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
@@ -600,18 +591,18 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_velocity_map *gvm =
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0, use_gpu
+  struct gkyl_mom_gyrokinetic *M0_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0, false, use_gpu
   );
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M1, use_gpu
+  struct gkyl_mom_gyrokinetic *M1_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M1, false, use_gpu
   );
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M2, use_gpu
+  struct gkyl_mom_gyrokinetic *M2_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M2, false, use_gpu
   );
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
+  gkyl_mom_gyrokinetic *m0calc = M0_t;
+  gkyl_mom_gyrokinetic *m1calc = M1_t;
+  gkyl_mom_gyrokinetic *m2calc = M2_t;
 
   // create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
@@ -624,13 +615,13 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // compute the moments
   if (use_gpu) {
-    gkyl_mom_calc_advance_cu(m0calc, &local, &confLocal, distf, m0);
-    gkyl_mom_calc_advance_cu(m1calc, &local, &confLocal, distf, m1);
-    gkyl_mom_calc_advance_cu(m2calc, &local, &confLocal, distf, m2);
+    gkyl_mom_gyrokinetic_advance(m0calc, &local, &confLocal, NULL, distf, m0);
+    gkyl_mom_gyrokinetic_advance(m1calc, &local, &confLocal, NULL, distf, m1);
+    gkyl_mom_gyrokinetic_advance(m2calc, &local, &confLocal, NULL, distf, m2);
   } else {
-    gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-    gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
-    gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+    gkyl_mom_gyrokinetic_advance(m0calc, &local, &confLocal, NULL, distf, m0);
+    gkyl_mom_gyrokinetic_advance(m1calc, &local, &confLocal, NULL, distf, m1);
+    gkyl_mom_gyrokinetic_advance(m2calc, &local, &confLocal, NULL, distf, m2);
   }
   gkyl_array_copy(m0_ho, m0);
   gkyl_array_copy(m1_ho, m1);
@@ -730,12 +721,9 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_release(m0_ho);
   gkyl_array_release(m1_ho);
   gkyl_array_release(m2_ho);
-  gkyl_mom_calc_release(m0calc);
-  gkyl_mom_calc_release(m1calc);
-  gkyl_mom_calc_release(m2calc);
-  gkyl_mom_type_release(M0_t);
-  gkyl_mom_type_release(M1_t);
-  gkyl_mom_type_release(M2_t);
+  gkyl_mom_gyrokinetic_release(m0calc);
+  gkyl_mom_gyrokinetic_release(m1calc);
+  gkyl_mom_gyrokinetic_release(m2calc);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
@@ -864,18 +852,18 @@ test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_velocity_map *gvm =
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0, use_gpu
+  struct gkyl_mom_gyrokinetic *M0_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0, false, use_gpu
   );
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M1, use_gpu
+  struct gkyl_mom_gyrokinetic *M1_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M1, false, use_gpu
   );
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(
-    &confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, GKYL_F_MOMENT_M2, use_gpu
+  struct gkyl_mom_gyrokinetic *M2_t = gkyl_mom_gyrokinetic_new(
+    mass, charge, &confBasis, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M2, false, use_gpu
   );
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
+  gkyl_mom_gyrokinetic *m0calc = M0_t;
+  gkyl_mom_gyrokinetic *m1calc = M1_t;
+  gkyl_mom_gyrokinetic *m2calc = M2_t;
 
   // create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
@@ -888,13 +876,13 @@ test_2x2v(int poly_order, bool use_gpu)
 
   // compute the moments
   if (use_gpu) {
-    gkyl_mom_calc_advance_cu(m0calc, &local, &confLocal, distf, m0);
-    gkyl_mom_calc_advance_cu(m1calc, &local, &confLocal, distf, m1);
-    gkyl_mom_calc_advance_cu(m2calc, &local, &confLocal, distf, m2);
+    gkyl_mom_gyrokinetic_advance(m0calc, &local, &confLocal, NULL, distf, m0);
+    gkyl_mom_gyrokinetic_advance(m1calc, &local, &confLocal, NULL, distf, m1);
+    gkyl_mom_gyrokinetic_advance(m2calc, &local, &confLocal, NULL, distf, m2);
   } else {
-    gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-    gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
-    gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+    gkyl_mom_gyrokinetic_advance(m0calc, &local, &confLocal, NULL, distf, m0);
+    gkyl_mom_gyrokinetic_advance(m1calc, &local, &confLocal, NULL, distf, m1);
+    gkyl_mom_gyrokinetic_advance(m2calc, &local, &confLocal, NULL, distf, m2);
   }
   gkyl_array_copy(m0_ho, m0);
   gkyl_array_copy(m1_ho, m1);
@@ -1158,12 +1146,9 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_release(m0_ho);
   gkyl_array_release(m1_ho);
   gkyl_array_release(m2_ho);
-  gkyl_mom_calc_release(m0calc);
-  gkyl_mom_calc_release(m1calc);
-  gkyl_mom_calc_release(m2calc);
-  gkyl_mom_type_release(M0_t);
-  gkyl_mom_type_release(M1_t);
-  gkyl_mom_type_release(M2_t);
+  gkyl_mom_gyrokinetic_release(m0calc);
+  gkyl_mom_gyrokinetic_release(m1calc);
+  gkyl_mom_gyrokinetic_release(m2calc);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
@@ -1234,10 +1219,151 @@ test_mom_gyrokinetic_2x2v_p2_dev()
 {
   test_2x2v(2, true);
 }
+
+// Exercise every supported ordinary/integrated moment target with nonuniform
+// modal inputs. The stack geometry/map fixtures own only the fields read by
+// this updater and retain one reference until both updaters have been released.
+static void
+test_mom_gyrokinetic_dispatch_all_dev()
+{
+  const enum gkyl_distribution_moments moments[] = {
+    GKYL_F_MOMENT_M0,
+    GKYL_F_MOMENT_M1,
+    GKYL_F_MOMENT_M2,
+    GKYL_F_MOMENT_M3,
+    GKYL_F_MOMENT_M2PAR,
+    GKYL_F_MOMENT_M2PERP,
+    GKYL_F_MOMENT_M3PAR,
+    GKYL_F_MOMENT_M3PERP,
+    GKYL_F_MOMENT_M0M1M2,
+    GKYL_F_MOMENT_M0M1M2M3,
+    GKYL_F_MOMENT_M0M1M2PARM2PERP,
+    GKYL_F_MOMENT_M0M1M2PARM2PERPM3PARM3PERP,
+    GKYL_F_MOMENT_HAMILTONIAN
+  };
+
+  const int dimensions[][2] = {{1, 1}, {1, 2}, {2, 2}, {3, 2}};
+
+  for (int shape = 0; shape < 4; ++shape) {
+    int cdim = dimensions[shape][0], vdim = dimensions[shape][1], pdim = cdim + vdim;
+    for (int order = 1; order <= (cdim == 3 ? 1 : 2); ++order) {
+      struct gkyl_basis cbasis, pbasis;
+      gkyl_cart_modal_serendip(&cbasis, cdim, order);
+      if (order == 1) {
+        gkyl_cart_modal_gkhybrid(&pbasis, cdim, vdim);
+      } else {
+        gkyl_cart_modal_serendip(&pbasis, pdim, order);
+      }
+
+      double lower[GKYL_MAX_DIM] = {0}, upper[GKYL_MAX_DIM];
+      int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM] = {0}, vel_ghost[GKYL_MAX_DIM] = {0};
+      for (int d = 0; d < pdim; ++d) {
+        cells[d] = 2;
+        upper[d] = 1.5 + 0.2 * d;
+        ghost[d] = d < cdim ? 1 : 0;
+      }
+
+      struct gkyl_rect_grid grid, conf_grid, vel_grid;
+      gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
+      gkyl_rect_grid_init(&conf_grid, cdim, lower, upper, cells);
+      gkyl_rect_grid_init(&vel_grid, vdim, lower + cdim, upper + cdim, cells + cdim);
+
+      struct gkyl_range phase, phase_ext, conf, conf_ext, vel, vel_ext;
+      gkyl_create_grid_ranges(&grid, ghost, &phase_ext, &phase);
+      gkyl_create_grid_ranges(&conf_grid, ghost, &conf_ext, &conf);
+      gkyl_create_grid_ranges(&vel_grid, vel_ghost, &vel_ext, &vel);
+
+      int nc[] = {cbasis.num_basis, 2 * vdim, cbasis.num_basis, pbasis.num_basis};
+      long sizes[] = {conf_ext.volume, vel_ext.volume, conf_ext.volume, phase_ext.volume};
+      struct gkyl_array *host[4], *device[4];
+      for (int field = 0; field < 4; ++field) {
+        host[field] = mkarr(false, nc[field], sizes[field]);
+        device[field] = mkarr(true, nc[field], sizes[field]);
+        for (long cell = 0; cell < sizes[field]; ++cell) {
+          double *values = gkyl_array_fetch(host[field], cell);
+          for (int k = 0; k < nc[field]; ++k) {
+            values[k] = 0.2 + 0.03 * field + 0.001 * cell + 0.007 * k;
+          }
+        }
+        gkyl_array_copy(device[field], host[field]);
+      }
+
+      struct gk_geometry geometry[2] = {0};
+      struct gkyl_velocity_map maps[2] = {0};
+      for (int gpu = 0; gpu < 2; ++gpu) {
+        geometry[gpu].ref_count = gkyl_ref_count_init(NULL);
+        maps[gpu].ref_count = gkyl_ref_count_init(NULL);
+        geometry[gpu].geo_corn.bmag = gpu ? device[0] : host[0];
+        maps[gpu].vmap = gpu ? device[1] : host[1];
+        maps[gpu].local_vel = vel;
+      }
+
+      for (int integrated = 0; integrated < 2; ++integrated) {
+        for (int kind = 0; kind < sizeof(moments) / sizeof(moments[0]); ++kind) {
+          if (vdim == 1 &&
+              (moments[kind] == GKYL_F_MOMENT_M2PERP || moments[kind] == GKYL_F_MOMENT_M3PERP ||
+               moments[kind] == GKYL_F_MOMENT_M0M1M2PARM2PERP ||
+               moments[kind] == GKYL_F_MOMENT_M0M1M2PARM2PERPM3PARM3PERP)) {
+            continue;
+          }
+          struct gkyl_mom_gyrokinetic *up[2];
+          for (int gpu = 0; gpu < 2; ++gpu) {
+            up[gpu] = gkyl_mom_gyrokinetic_new(
+              2.3, -1.7, &cbasis, &pbasis, &grid, &maps[gpu], &geometry[gpu], moments[kind],
+              integrated, gpu
+            );
+          }
+
+          int nout = gkyl_mom_gyrokinetic_num_mom(up[0]) * (integrated ? 1 : cbasis.num_basis);
+
+          struct gkyl_array *expected = mkarr(false, nout, conf_ext.volume);
+          struct gkyl_array *actual = mkarr(false, nout, conf_ext.volume);
+          struct gkyl_array *out = mkarr(true, nout, conf_ext.volume);
+
+          gkyl_array_clear(expected, 0.375);
+          gkyl_array_copy(out, expected);
+
+          // Repeated calls exercise clearing of the local output; ghosts stay unchanged.
+          for (int repeat = 0; repeat < 2; ++repeat) {
+            gkyl_mom_gyrokinetic_advance(up[0], &phase, &conf, host[2], host[3], expected);
+            gkyl_mom_gyrokinetic_advance(up[1], &phase, &conf, device[2], device[3], out);
+
+            gkyl_array_copy(actual, out);
+            for (long cell = 0; cell < conf_ext.volume; ++cell) {
+              const double *want = gkyl_array_cfetch(expected, cell);
+              const double *got = gkyl_array_cfetch(actual, cell);
+              for (int k = 0; k < nout; ++k) {
+                TEST_CHECK(gkyl_compare(got[k], want[k], 1e-11));
+                TEST_MSG(
+                  "shape=%d p=%d integrated=%d kind=%d cell=%ld component=%d: %.17g != %.17g",
+                  shape, order, integrated, moments[kind], cell, k, got[k], want[k]
+                );
+              }
+            }
+          }
+          gkyl_array_release(expected);
+          gkyl_array_release(actual);
+          gkyl_array_release(out);
+          for (int gpu = 0; gpu < 2; ++gpu) {
+            gkyl_mom_gyrokinetic_release(up[gpu]);
+          }
+        }
+      }
+      for (int gpu = 0; gpu < 2; ++gpu) {
+        TEST_CHECK(geometry[gpu].ref_count.count == 1);
+        TEST_CHECK(maps[gpu].ref_count.count == 1);
+      }
+      for (int field = 0; field < 4; ++field) {
+        gkyl_array_release(host[field]);
+        gkyl_array_release(device[field]);
+      }
+    }
+  }
+}
 #endif
 
 TEST_LIST = {
-  {"mom_gyrokinetic_ho", test_mom_gyrokinetic_ho},
+  {"test_mom_gyrokinetic_ho", test_mom_gyrokinetic_ho},
   {"test_mom_gyrokinetic_1x1v_p1_ho", test_mom_gyrokinetic_1x1v_p1_ho},
   // { "test_mom_gyrokinetic_1x1v_p2_ho", test_mom_gyrokinetic_1x1v_p2_ho },
   {"test_mom_gyrokinetic_1x2v_p1_ho", test_mom_gyrokinetic_1x2v_p1_ho},
@@ -1245,6 +1371,7 @@ TEST_LIST = {
   {"test_mom_gyrokinetic_2x2v_p1_ho", test_mom_gyrokinetic_2x2v_p1_ho},
 // { "test_mom_gyrokinetic_2x2v_p2_ho", test_mom_gyrokinetic_2x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
+  {"test_mom_gyrokinetic_dispatch_all_dev", test_mom_gyrokinetic_dispatch_all_dev},
   {"test_mom_gyrokinetic_1x1v_p1_dev", test_mom_gyrokinetic_1x1v_p1_dev},
   // { "test_mom_gyrokinetic_1x1v_p2_dev", test_mom_gyrokinetic_1x1v_p2_dev },
   {"test_mom_gyrokinetic_1x2v_p1_dev", test_mom_gyrokinetic_1x2v_p1_dev},
