@@ -30,11 +30,12 @@ kinetic_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *sp)
   return vm_species_bflux_loss_rate(app, &sp->kinetic->bflux);
 }
 
-// A fluid species has no wall-loss diagnostic.
+// Wall losses of a fluid species: the particle loss rate through its absorbing walls, recorded in
+// its right-hand side of the stage (zero without absorbing walls).
 static double
 fluid_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *sp)
 {
-  return 0.0;
+  return sp->fluid->wall_loss_rate;
 }
 
 // Nothing to keep at the end of a time step (kinetic and fluid species).
@@ -94,7 +95,8 @@ fluid_accumulate_poisson_sources(
 }
 
 // The square of a rate set by the density of a fluid species: weight times the cell average of
-// its mass density (a DG fluid state carries no position-map Jacobian).
+// its mass density (on a position map the state carries the Jacobian, divided out here: it is
+// constant in a cell).
 static void
 fluid_accumulate_omega_sq(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
@@ -103,6 +105,9 @@ fluid_accumulate_omega_sq(
 )
 {
   gkyl_dg_calc_average_range(&app->basis, 0, buffer, 0, fluidin, app->local);
+  if (sp->fluid->weight_by_pos_jacob) {
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, 1, buffer, buffer);
+  }
   gkyl_array_accumulate_range(omega_sq, weight, buffer, &app->local);
 }
 
@@ -947,6 +952,19 @@ vlasov_species_gather_dist(gkyl_vlasov_app *app, const struct gkyl_array *fin[])
 static void
 vlasov_species_flag_bflux_providers(gkyl_vlasov_app *app)
 {
+  // A fluid species with a boundary-flux source of a kinetic source species.
+  for (int i = 0; i < app->num_species; ++i) {
+    if (app->species[i].type != GKYL_SPECIES_FLUID) {
+      continue;
+    }
+    const struct gkyl_vlasov_fluid_source *fsrc = &app->species[i].fluid->info.source;
+    if (fsrc->source_id == GKYL_BFLUX_SOURCE) {
+      struct vm_species *provider = vm_find_species(app, fsrc->source_species);
+      if (provider) {
+        provider->calc_bflux = true;
+      }
+    }
+  }
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].type != GKYL_SPECIES_VLASOV) {
       continue;

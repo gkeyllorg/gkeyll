@@ -137,9 +137,11 @@ vlasov_fluid_is_euler_3dof(const struct gkyl_vlasov_fluid_species *fluid)
 // which carries the exchange of the pair in the stages. A PKPM species in a collision pair needs
 // LBO or BGK collisions of its own. The partners of an adaptive source are read through the data
 // of the kinetic route.
-// The source species of a boundary-flux source needs wall losses (a kinetic or PKPM species); a
-// PKPM species forms its source rate before the right-hand sides, when only the losses of PKPM
-// species are known, so its source species must be a PKPM species.
+// The source species of a boundary-flux source needs wall losses (any species: kinetic, PKPM, or an
+// Euler or isothermal Euler fluid, whose losses are zero without absorbing walls); a PKPM species
+// forms its source rate before the right-hand sides, when only the losses of PKPM species are
+// known, so its source species must be a PKPM species. Kinetic and fluid species add their
+// sources after every right-hand side of the stage, which records the losses of every species.
 static void
 vlasov_check_species_partners(const gkyl_vlasov_app *app, const struct gkyl_vm *vm)
 {
@@ -197,15 +199,17 @@ vlasov_check_species_partners(const gkyl_vlasov_app *app, const struct gkyl_vm *
       );
     }
     if (is_fluid) {
+      if (inp->fluid.source.source_id == GKYL_BFLUX_SOURCE &&
+          !vlasov_find_species(app, inp->fluid.source.source_species)) {
+        gkyl_exit("gkyl_vlasov_app_new: the source species of a boundary-flux source must exist.");
+      }
       continue;
     }
     const struct gkyl_vlasov_source *src = &inp->kinetic.source;
     if (src->source_id == GKYL_BFLUX_SOURCE) {
       const struct vlasov_species *other = vlasov_find_species(app, src->source_species);
-      if (!other || other->type == GKYL_SPECIES_FLUID) {
-        gkyl_exit(
-          "gkyl_vlasov_app_new: the source species of a boundary-flux source must be a kinetic or a PKPM species."
-        );
+      if (!other) {
+        gkyl_exit("gkyl_vlasov_app_new: the source species of a boundary-flux source must exist.");
       }
       if (inp->type == GKYL_SPECIES_PKPM && other->type != GKYL_SPECIES_PKPM) {
         gkyl_exit(

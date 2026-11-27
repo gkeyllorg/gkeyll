@@ -7,6 +7,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_euler_priv.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wave_geom.h>
@@ -23,6 +24,46 @@ mk_geom(
   return gkyl_wave_geom_new(grid, range, NULL, NULL, false);
 }
 
+// An Euler equation object on the grid with the identity position map and its own u and p.
+struct euler_eqn_test {
+  struct gkyl_vlasov_position_map *pos_map;
+  struct gkyl_array *u, *p;
+  struct gkyl_dg_eqn *eqn;
+};
+
+static struct euler_eqn_test
+mk_eqn(
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *crange, const struct gkyl_wv_eqn *wv, const struct gkyl_wave_geom *geom
+)
+{
+  struct euler_eqn_test et;
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = {0};
+  et.pos_map = gkyl_vlasov_position_map_new(grid, crange, crange, cbasis, inp_pmap, false);
+  et.u = gkyl_array_new(GKYL_DOUBLE, 3 * cbasis->num_basis, crange->volume);
+  et.p = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, crange->volume);
+  et.eqn = gkyl_dg_euler_inew(&(struct gkyl_dg_euler_inp){
+    .cbasis = cbasis,
+    .conf_range = crange,
+    .wv_eqn = wv,
+    .geom = geom,
+    .pos_map = et.pos_map,
+    .u = et.u,
+    .p = et.p,
+    .use_gpu = false,
+  });
+  return et;
+}
+
+static void
+release_eqn(struct euler_eqn_test *et)
+{
+  gkyl_dg_eqn_release(et->eqn);
+  gkyl_array_release(et->u);
+  gkyl_array_release(et->p);
+  gkyl_vlasov_position_map_release(et->pos_map);
+}
+
 void
 test_euler_1x_p1()
 {
@@ -37,7 +78,8 @@ test_euler_1x_p1()
   double gas_gamma = 1.4;
   struct gkyl_wv_eqn *wv = gkyl_wv_euler_new(gas_gamma, false);
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_new(&cbasis, &crange, wv, geom, false);
+  struct euler_eqn_test et = mk_eqn(&cbasis, &grid, &crange, wv, geom);
+  struct gkyl_dg_eqn *eqn = et.eqn;
 
   // Euler has 5 conserved variables (rho, momentum x3, energy)
   TEST_CHECK(eqn->num_equations == 5);
@@ -56,11 +98,14 @@ test_euler_1x_p1()
   TEST_CHECK(euler->wv_eqn == wv);
   TEST_CHECK(euler->geom == geom);
 
-  // aux fields start NULL
-  TEST_CHECK(euler->auxfields.u == 0);
-  TEST_CHECK(euler->auxfields.p == 0);
+  // the arrays of the input and the kernels of the volume term and of the absorbing wall
+  TEST_CHECK(euler->u == et.u);
+  TEST_CHECK(euler->p == et.p);
+  TEST_CHECK(euler->wall_flux[0] == euler_wall_fluxx_1x_ser_p1);
+  TEST_CHECK(euler->boundary_surf[0] == euler_boundary_surfx_1x_ser_p1);
+  TEST_CHECK(euler->vol == euler_vol_1x_ser_p1);
 
-  gkyl_dg_eqn_release(eqn);
+  release_eqn(&et);
   gkyl_wv_eqn_release(wv);
   gkyl_wave_geom_release(geom);
 }
@@ -79,7 +124,8 @@ test_euler_2x_p1()
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_wv_eqn *wv = gkyl_wv_euler_new(gas_gamma, false);
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_new(&cbasis, &crange, wv, geom, false);
+  struct euler_eqn_test et = mk_eqn(&cbasis, &grid, &crange, wv, geom);
+  struct gkyl_dg_eqn *eqn = et.eqn;
 
   TEST_CHECK(eqn->num_equations == 5);
   TEST_CHECK(eqn->vol_term != 0);
@@ -91,7 +137,7 @@ test_euler_2x_p1()
   TEST_CHECK(euler->surf[0] != 0);
   TEST_CHECK(euler->surf[1] != 0);
 
-  gkyl_dg_eqn_release(eqn);
+  release_eqn(&et);
   gkyl_wv_eqn_release(wv);
   gkyl_wave_geom_release(geom);
 }
@@ -110,7 +156,8 @@ test_euler_3x_p1()
 
   struct gkyl_wv_eqn *wv = gkyl_wv_euler_new(1.4, false);
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_new(&cbasis, &crange, wv, geom, false);
+  struct euler_eqn_test et = mk_eqn(&cbasis, &grid, &crange, wv, geom);
+  struct gkyl_dg_eqn *eqn = et.eqn;
 
   TEST_CHECK(eqn->num_equations == 5);
 
@@ -121,7 +168,7 @@ test_euler_3x_p1()
   TEST_CHECK(euler->surf[1] != 0);
   TEST_CHECK(euler->surf[2] != 0);
 
-  gkyl_dg_eqn_release(eqn);
+  release_eqn(&et);
   gkyl_wv_eqn_release(wv);
   gkyl_wave_geom_release(geom);
 }
@@ -140,7 +187,8 @@ test_iso_euler(int cdim)
 
   double vt = 0.7;
   struct gkyl_wv_eqn *wv = gkyl_wv_iso_euler_new(vt, false);
-  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_new(&cbasis, &crange, wv, geom, false);
+  struct euler_eqn_test et = mk_eqn(&cbasis, &grid, &crange, wv, geom);
+  struct gkyl_dg_eqn *eqn = et.eqn;
 
   TEST_CHECK(eqn->num_equations == 4);
   TEST_CHECK(eqn->num_equations == wv->num_equations);
@@ -156,7 +204,7 @@ test_iso_euler(int cdim)
   }
   TEST_CHECK(euler->wv_eqn == wv);
 
-  gkyl_dg_eqn_release(eqn);
+  release_eqn(&et);
   gkyl_wv_eqn_release(wv);
   gkyl_wave_geom_release(geom);
 }

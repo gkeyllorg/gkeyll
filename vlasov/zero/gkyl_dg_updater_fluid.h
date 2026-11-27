@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
@@ -16,25 +17,33 @@ struct gkyl_dg_updater_fluid_tm {
   double fluid_tm; // time for fluid updates
 };
 
+// Input packaged as a struct
+struct gkyl_dg_updater_fluid_inp {
+  const struct gkyl_rect_grid *grid; // Configuration-space grid.
+  const struct gkyl_basis *cbasis; // Configuration-space basis functions.
+  const struct gkyl_range *conf_range; // Configuration-space range.
+  const struct gkyl_wv_eqn *wv_eqn; // Wave equation object: selects the fluid equation.
+  const struct gkyl_wave_geom *geom; // Wave geometry of the faces (Euler and isothermal Euler).
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Position map (REQUIRED for Euler and isothermal Euler).
+  // Auxiliary arrays: struct gkyl_dg_advection_auxfields, gkyl_dg_euler_auxfields or
+  // gkyl_dg_canonical_pb_fluid_auxfields, by the equation.
+  void *aux_inp;
+  // Edges whose face carries the absorbing-wall flux of an Euler or isothermal Euler fluid instead
+  // of the interface flux: [d] the lower edge of direction d, [d + cdim] the upper one. Set only on
+  // the ranks whose range holds that edge of the global domain.
+  bool wall_flux[2 * GKYL_MAX_CDIM];
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create new updater to update fluid equations using hyper dg.
- * Supports advection, isothermal Euler, and Euler
+ * Supports advection, isothermal Euler, Euler and canonical Poisson-bracket fluids.
  *
- * @param grid Grid object
- * @param cbasis Configuration space basis functions
- * @param conf_range Config space range
- * @param wv_eqn Wave equation object which contains information and functions for the specific fluid equation
- * @param geom Wave geometry object for computing fluctuations local to surfaces
- * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
- * @param use_gpu Boolean to determine whether struct objects are on host or device
- * 
+ * @param inp Input parameters defined in gkyl_dg_updater_fluid_inp struct.
  * @return New fluid updater object
  */
-gkyl_dg_updater_fluid *gkyl_dg_updater_fluid_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu
-);
+gkyl_dg_updater_fluid *gkyl_dg_updater_fluid_inew(const struct gkyl_dg_updater_fluid_inp *inp);
 
 /**
  * Acquire fluid equation object

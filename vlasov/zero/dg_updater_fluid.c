@@ -20,39 +20,50 @@ gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid *fluid)
 }
 
 gkyl_dg_updater_fluid *
-gkyl_dg_updater_fluid_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu
-)
+gkyl_dg_updater_fluid_inew(const struct gkyl_dg_updater_fluid_inp *inp)
 {
   gkyl_dg_updater_fluid *up = gkyl_malloc(sizeof(gkyl_dg_updater_fluid));
-  up->eqn_id = wv_eqn->type;
-  up->use_gpu = use_gpu;
+  up->eqn_id = inp->wv_eqn->type;
+  up->use_gpu = inp->use_gpu;
+  bool has_wall_flux = false;
   if (up->eqn_id == GKYL_EQN_ADVECTION) {
-    up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, up->use_gpu);
-    struct gkyl_dg_advection_auxfields *adv_in = aux_inp;
+    up->eqn_fluid = gkyl_dg_advection_new(inp->cbasis, inp->conf_range, up->use_gpu);
+    struct gkyl_dg_advection_auxfields *adv_in = inp->aux_inp;
     gkyl_advection_set_auxfields(up->eqn_fluid, *adv_in);
   } else if (up->eqn_id == GKYL_EQN_EULER || up->eqn_id == GKYL_EQN_ISO_EULER) {
-    up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, wv_eqn, geom, up->use_gpu);
-    struct gkyl_dg_euler_auxfields *euler_inp = aux_inp;
-    gkyl_euler_set_auxfields(up->eqn_fluid, *euler_inp);
+    struct gkyl_dg_euler_auxfields *euler_in = inp->aux_inp;
+    up->eqn_fluid = gkyl_dg_euler_inew(&(struct gkyl_dg_euler_inp){
+      .cbasis = inp->cbasis,
+      .conf_range = inp->conf_range,
+      .wv_eqn = inp->wv_eqn,
+      .geom = inp->geom,
+      .pos_map = inp->pos_map,
+      .u = euler_in->u,
+      .p = euler_in->p,
+      .use_gpu = up->use_gpu,
+    });
+    has_wall_flux = true;
   } else {
-    up->eqn_fluid = gkyl_dg_canonical_pb_fluid_new(cbasis, conf_range, wv_eqn, up->use_gpu);
-    struct gkyl_dg_canonical_pb_fluid_auxfields *dg_can_pb_fluid_inp = aux_inp;
+    up->eqn_fluid =
+      gkyl_dg_canonical_pb_fluid_new(inp->cbasis, inp->conf_range, inp->wv_eqn, up->use_gpu);
+    struct gkyl_dg_canonical_pb_fluid_auxfields *dg_can_pb_fluid_inp = inp->aux_inp;
     gkyl_canonical_pb_fluid_set_auxfields(up->eqn_fluid, *dg_can_pb_fluid_inp);
   }
 
-  int cdim = cbasis->ndim;
+  // The absorbing-wall edges take the boundary surface term of the equation (hyper_dg's
+  // zero-flux flags); only the Euler equations have one.
+  int cdim = inp->cbasis->ndim;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2 * GKYL_MAX_DIM];
   for (int d = 0; d < cdim; ++d) {
     up_dirs[d] = d;
-    zero_flux_flags[d] = zero_flux_flags[d + cdim] = 0;
+    zero_flux_flags[d] = has_wall_flux && inp->wall_flux[d];
+    zero_flux_flags[d + cdim] = has_wall_flux && inp->wall_flux[d + cdim];
+    assert(has_wall_flux || !(inp->wall_flux[d] || inp->wall_flux[d + cdim]));
   }
   int num_up_dirs = cdim;
 
   up->up_fluid = gkyl_hyper_dg_new(
-    grid, cbasis, up->eqn_fluid, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu
+    inp->grid, inp->cbasis, up->eqn_fluid, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu
   );
 
   up->fluid_tm = 0.0;

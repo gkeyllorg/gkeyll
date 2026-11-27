@@ -1627,6 +1627,18 @@ struct vlasov_fluid_species_lw {
   bool has_cross_nu_func[GKYL_MAX_SPECIES]; // Are there cross-collision frequency functions?
   struct lua_func_ctx cross_nu_func_ref
     [GKYL_MAX_SPECIES]; // Lua registry references to cross-collision frequency functions.
+
+  // Source: the LTE projections of a projected or boundary-flux source (the scalars and names are
+  // in the input struct).
+  struct lua_func_ctx source_density_ref[GKYL_MAX_PROJ]; // Lua registry references to densities.
+  struct lua_func_ctx source_temp_ref[GKYL_MAX_PROJ]; // Lua registry references to temperatures.
+  bool source_has_V_drift[GKYL_MAX_PROJ]; // Is there a drift velocity function?
+  struct lua_func_ctx source_V_drift_ref[GKYL_MAX_PROJ]; // Lua registry references to drifts.
+
+  // Temperature source (Euler fluids).
+  bool has_source_bgk; // Is there a temperature source?
+  struct lua_func_ctx source_bgk_rate_ref; // Lua registry reference to the source rate.
+  struct lua_func_ctx source_bgk_temp_ref; // Lua registry reference to the source temperature.
 };
 
 // Release the fluid species' reference on its equation object.
@@ -1755,6 +1767,58 @@ vlasov_fluid_species_lw_new(lua_State *L)
     }
   }
 
+  // Source: a projected or boundary-flux source with LTE projections, as for kinetic species.
+  int source_density_ref[GKYL_MAX_PROJ], source_temp_ref[GKYL_MAX_PROJ];
+  int source_V_drift_ref[GKYL_MAX_PROJ];
+  for (int i = 0; i < GKYL_MAX_PROJ; ++i) {
+    source_density_ref[i] = source_temp_ref[i] = source_V_drift_ref[i] = LUA_NOREF;
+  }
+  with_lua_tbl_tbl(L, "source")
+  {
+    struct gkyl_vlasov_fluid_source *src = &vm_fluid_species.source;
+    src->source_id = glua_tbl_get_integer(L, "sourceID", 0);
+    src->source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
+    strcpy(src->source_species, glua_tbl_get_string(L, "sourceSpecies", ""));
+    src->write_source = glua_tbl_get_bool(L, "writeSource", false);
+    src->num_sources = glua_tbl_get_integer(L, "numSources", 0);
+    if (src->num_sources > GKYL_MAX_PROJ) {
+      return luaL_error(L, "Fluid species source: too many projections!");
+    }
+    with_lua_tbl_tbl(L, "projections")
+    {
+      for (int i = 0; i < src->num_sources; i++) {
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          src->projection[i].proj_id = glua_tbl_get_integer(L, "projectionID", 0);
+          if (glua_tbl_get_func(L, "densityInit")) {
+            source_density_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          }
+          if (glua_tbl_get_func(L, "temperatureInit")) {
+            source_temp_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          }
+          if (glua_tbl_get_func(L, "driftVelocityInit")) {
+            source_V_drift_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          }
+          lua_pop(L, 1);
+        }
+      }
+    }
+  }
+
+  // Temperature source (Euler fluids), as for kinetic species.
+  bool has_source_bgk = false;
+  int source_bgk_rate_ref = LUA_NOREF, source_bgk_temp_ref = LUA_NOREF;
+  with_lua_tbl_tbl(L, "sourceBGK")
+  {
+    has_source_bgk = true;
+    vm_fluid_species.source_bgk.is_implicit = glua_tbl_get_bool(L, "useImplicitScheme", false);
+    if (glua_tbl_get_func(L, "rateProfile")) {
+      source_bgk_rate_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+    if (glua_tbl_get_func(L, "tempShape")) {
+      source_bgk_temp_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+  }
+
   with_lua_tbl_tbl(L, "bcx")
   {
     vm_lw_check_bc_array(L, "FluidSpecies", "bcx");
@@ -1808,6 +1872,21 @@ vlasov_fluid_species_lw_new(lua_State *L)
     vmfs_lw->cross_nu_func_ref[i] =
       (struct lua_func_ctx){.func_ref = cross_nu_func_ref[i], .ndim = 0, .nret = 1, .L = L};
   }
+
+  for (int i = 0; i < vm_fluid_species.source.num_sources; i++) {
+    vmfs_lw->source_density_ref[i] =
+      (struct lua_func_ctx){.func_ref = source_density_ref[i], .ndim = 0, .nret = 1, .L = L};
+    vmfs_lw->source_temp_ref[i] =
+      (struct lua_func_ctx){.func_ref = source_temp_ref[i], .ndim = 0, .nret = 1, .L = L};
+    vmfs_lw->source_has_V_drift[i] = source_V_drift_ref[i] != LUA_NOREF;
+    vmfs_lw->source_V_drift_ref[i] =
+      (struct lua_func_ctx){.func_ref = source_V_drift_ref[i], .ndim = 0, .nret = 3, .L = L};
+  }
+  vmfs_lw->has_source_bgk = has_source_bgk;
+  vmfs_lw->source_bgk_rate_ref =
+    (struct lua_func_ctx){.func_ref = source_bgk_rate_ref, .ndim = 0, .nret = 1, .L = L};
+  vmfs_lw->source_bgk_temp_ref =
+    (struct lua_func_ctx){.func_ref = source_bgk_temp_ref, .ndim = 0, .nret = 1, .L = L};
 
   vmfs_lw->has_app_advect_func = has_app_advect_func;
   vmfs_lw->app_advect_func_ref = (struct lua_func_ctx){
@@ -3947,6 +4026,34 @@ vm_app_new(lua_State *L)
         coll->cross_nu[i] = gkyl_lw_eval_cb;
         coll->cross_nu_ctx[i] = vm_app_ctx(app_lw, &fluid_species[s]->cross_nu_func_ref[i], cdim);
       }
+    }
+
+    struct gkyl_vlasov_fluid_source *fsrc = &vm.species[num_kinetic_species + s].fluid.source;
+    for (int i = 0; i < fsrc->num_sources; i++) {
+      if (fluid_species[s]->source_density_ref[i].func_ref != LUA_NOREF) {
+        fsrc->projection[i].density = gkyl_lw_eval_cb;
+        fsrc->projection[i].ctx_density =
+          vm_app_ctx(app_lw, &fluid_species[s]->source_density_ref[i], cdim);
+      }
+      if (fluid_species[s]->source_temp_ref[i].func_ref != LUA_NOREF) {
+        fsrc->projection[i].temp = gkyl_lw_eval_cb;
+        fsrc->projection[i].ctx_temp =
+          vm_app_ctx(app_lw, &fluid_species[s]->source_temp_ref[i], cdim);
+      }
+      if (fluid_species[s]->source_has_V_drift[i]) {
+        fsrc->projection[i].V_drift = gkyl_lw_eval_cb;
+        fsrc->projection[i].ctx_V_drift =
+          vm_app_ctx(app_lw, &fluid_species[s]->source_V_drift_ref[i], cdim);
+      }
+    }
+
+    if (fluid_species[s]->has_source_bgk) {
+      struct gkyl_vlasov_source_bgk *sbgk = &vm.species[num_kinetic_species + s].fluid.source_bgk;
+      sbgk->source_bgk_id = GKYL_SOURCE_BGK_HEATING;
+      sbgk->rate_profile = gkyl_lw_eval_cb;
+      sbgk->rate_profile_ctx = vm_app_ctx(app_lw, &fluid_species[s]->source_bgk_rate_ref, cdim);
+      sbgk->temp_shape = gkyl_lw_eval_cb;
+      sbgk->temp_shape_ctx = vm_app_ctx(app_lw, &fluid_species[s]->source_bgk_temp_ref, cdim);
     }
   }
 

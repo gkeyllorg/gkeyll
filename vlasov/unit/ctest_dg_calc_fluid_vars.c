@@ -29,6 +29,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
@@ -317,7 +318,21 @@ test_lax_flux_1x()
   int nb = ft.basis.num_basis;
   double c0 = avg_coeff(1), gas_gamma = 5.0 / 3.0;
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_new(&ft.basis, &ft.local, ft.wv_eqn, ft.geom, false);
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_position_map *pos_map =
+    gkyl_vlasov_position_map_new(&ft.grid, &ft.local, &ft.local_ext, &ft.basis, inp_pmap, false);
+  struct gkyl_array *u = gkyl_array_new(GKYL_DOUBLE, 3 * nb, ft.local_ext.volume);
+  struct gkyl_array *p = gkyl_array_new(GKYL_DOUBLE, nb, ft.local_ext.volume);
+  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_inew(&(struct gkyl_dg_euler_inp){
+    .cbasis = &ft.basis,
+    .conf_range = &ft.local,
+    .wv_eqn = ft.wv_eqn,
+    .geom = ft.geom,
+    .pos_map = pos_map,
+    .u = u,
+    .p = p,
+    .use_gpu = false,
+  });
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   TEST_CHECK(gkyl_wv_euler_rp_type(ft.wv_eqn) == WV_EULER_RP_LAX);
   TEST_CHECK(euler->surf[0] == euler_surfx_1x_ser_p1);
@@ -367,6 +382,9 @@ test_lax_flux_1x()
   }
 
   gkyl_dg_eqn_release(eqn);
+  gkyl_array_release(u);
+  gkyl_array_release(p);
+  gkyl_vlasov_position_map_release(pos_map);
   fluid_vars_test_release(&ft);
 }
 

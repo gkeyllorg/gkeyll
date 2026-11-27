@@ -175,9 +175,9 @@ fluid_em_coupling_field_none(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
 {
 }
 
-// The physical fluid states of the solve: the fluid of a PKPM species carries the position-map
-// Jacobian, which is divided out (identity map: a copy) and restored by
-// fluid_em_coupling_restore_fluids.
+// The physical fluid states of the solve: the fluid of a PKPM species, and that of a fluid species
+// on a position map, carry the position-map Jacobian, which is divided out (a PKPM species on the
+// identity map: a copy) and restored by fluid_em_coupling_restore_fluids.
 static void
 fluid_em_coupling_physical_fluids(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em,
@@ -187,11 +187,13 @@ fluid_em_coupling_physical_fluids(
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     fluids[i] = fs->fluid;
-    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
+    struct gkyl_array *fluid_no_J =
+      fl_em->species[i]->type == GKYL_SPECIES_PKPM ? fs->pkpm.fluid_no_J : fs->fluid_no_J;
+    if (fluid_no_J) {
       gkyl_vlasov_position_map_divide_jacobpos_conf(
-        app->pos_map, &app->local, fs->fluid->ncomp, fs->fluid, fs->pkpm.fluid_no_J
+        app->pos_map, &app->local, fs->fluid->ncomp, fs->fluid, fluid_no_J
       );
-      fluids[i] = fs->pkpm.fluid_no_J;
+      fluids[i] = fluid_no_J;
     }
   }
 }
@@ -201,9 +203,11 @@ fluid_em_coupling_restore_fluids(struct gkyl_vlasov_app *app, struct vm_fluid_em
 {
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
-    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
+    struct gkyl_array *fluid_no_J =
+      fl_em->species[i]->type == GKYL_SPECIES_PKPM ? fs->pkpm.fluid_no_J : fs->fluid_no_J;
+    if (fluid_no_J) {
       gkyl_vlasov_position_map_rescale_jacobpos_conf(
-        app->pos_map, &app->local, fs->pkpm.fluid_no_J, fs->fluid
+        app->pos_map, &app->local, fluid_no_J, fs->fluid
       );
     }
     vm_fluid_species_apply_bc(app, fs, fs->fluid);

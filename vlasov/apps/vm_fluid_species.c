@@ -11,18 +11,17 @@ vm_fluid_species_euler_prim_vars(
 {
   struct timespec tm = gkyl_wall_clock();
 
+  // The primitive variables of the physical state (the ghost cells hold a state at every BC).
+  const struct gkyl_array *fluid_phys = f->physical_func(app, f, fluid);
+
   // Compute flow velocity in both the volume and on surfaces
-  if (f->bc_is_absorb) {
-    gkyl_dg_calc_fluid_vars_advance(f->calc_fluid_vars, fluid, f->cell_avg_prim, f->u, f->u_surf);
-  } else {
-    gkyl_dg_calc_fluid_vars_advance(
-      f->calc_fluid_vars_ext, fluid, f->cell_avg_prim, f->u, f->u_surf
-    );
-  }
+  gkyl_dg_calc_fluid_vars_advance(
+    f->calc_fluid_vars_ext, fluid_phys, f->cell_avg_prim, f->u, f->u_surf
+  );
 
   // Compute scalar pressure in the volume and at needed surfaces
   gkyl_dg_calc_fluid_vars_pressure(
-    f->calc_fluid_vars, &app->local_ext, fluid, f->u, f->p, f->p_surf
+    f->calc_fluid_vars, &app->local_ext, fluid_phys, f->u, f->p, f->p_surf
   );
 
   app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
@@ -37,10 +36,12 @@ vm_fluid_species_euler_calc_integrated(
   gkyl_array_clear(f->integ_mom, 0.0);
   vm_fluid_species_prim_vars(app, f, f->fluid);
   // Euler and isothermal Euler integrated quantities: rho, rho ux, rho uy, rho uz, rho u^2, p
-  // (p = vth^2*rho for isothermal Euler).
+  // (p = vth^2*rho for isothermal Euler), of the physical state over the physical cells (J times
+  // the computational volume on a position map).
   gkyl_dg_calc_fluid_integrated_vars(
-    f->calc_fluid_vars, &app->local, f->fluid, f->u, f->p, f->integ_mom
+    f->calc_fluid_vars, &app->local, f->physical_func(app, f, f->fluid), f->u, f->p, f->integ_mom
   );
+  f->weight_func(app, f->integ_mom, &app->local);
   gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
   if (app->use_gpu) {
     gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
@@ -68,11 +69,13 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, d
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
-  // copy data from device to host before writing it out
+  // The physical state (without the position-map Jacobian), copied to the host.
+  const struct gkyl_array *fluid_out = f->physical_func(app, f, f->fluid);
   if (app->use_gpu) {
-    gkyl_array_copy(f->fluid_host, f->fluid);
+    gkyl_array_copy(f->fluid_host, fluid_out);
+    fluid_out = f->fluid_host;
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, f->fluid_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, fluid_out, fileNm);
 
   // Also write out the primitive variables (u, p)
   vm_fluid_species_prim_vars(app, f, f->fluid);
@@ -104,6 +107,13 @@ vm_fluid_species_euler_release(const gkyl_vlasov_app *app, struct vm_fluid_speci
   gkyl_array_release(f->p_surf);
   gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars);
   gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars_ext);
+  gkyl_dg_eqn_release(f->wall_eqn);
+  gkyl_array_release(f->wall_flux_int);
+  if (app->use_gpu) {
+    gkyl_cu_free(f->red_wall_flux);
+  } else {
+    gkyl_free(f->red_wall_flux);
+  }
 }
 
 // Vertex positivity limiter of the Euler state at polynomial order 1.
@@ -160,6 +170,25 @@ vm_fluid_species_euler_limiter(
   vm_fluid_species_apply_bc(app, f, fluid);
 }
 
+// The same on a position map: the characteristic limiter compares the cell averages of
+// neighboring cells, so both limiters act on the physical state, which then takes J again.
+static void
+vm_fluid_species_euler_limiter_mapped(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  f->physical_func(app, f, fluid);
+  gkyl_dg_calc_fluid_vars_limiter(f->calc_fluid_vars, &app->local, f->fluid_no_J);
+  f->positivity_func(app, f, f->fluid_no_J);
+  gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, f->fluid_no_J, fluid);
+
+  app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
+
+  vm_fluid_species_apply_bc(app, f, fluid);
+}
+
 // The advection and canonical-PB fluids have no slope limiter.
 static void
 vm_fluid_species_no_limiter(
@@ -212,10 +241,27 @@ vm_fluid_species_euler_init(
     f->equation, app->geom, &app->basis, &app->local, limiter_fac, app->use_gpu
   );
 
+  // The absorbing walls of the edges this rank holds take the boundary flux of the equation.
   struct gkyl_dg_euler_auxfields aux_inp = {.u = f->u, .p = f->p};
-  f->advect_slvr = gkyl_dg_updater_fluid_new(
-    &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
-  );
+  struct gkyl_dg_updater_fluid_inp up_inp = {
+    .grid = &app->grid,
+    .cbasis = &app->basis,
+    .conf_range = &app->local,
+    .wv_eqn = f->equation,
+    .geom = app->geom,
+    .pos_map = app->pos_map,
+    .aux_inp = &aux_inp,
+    .use_gpu = app->use_gpu,
+  };
+  for (int e = 0; e < 2 * app->cdim; ++e) {
+    up_inp.wall_flux[e] = f->wall_flux_edge[e];
+  }
+  f->advect_slvr = gkyl_dg_updater_fluid_inew(&up_inp);
+  f->wall_eqn = gkyl_dg_updater_fluid_acquire_eqn(f->advect_slvr);
+  f->wall_flux_int = mkarr(app->use_gpu, f->num_equations, app->local_ext.volume);
+  gkyl_array_clear(f->wall_flux_int, 0.0);
+  f->red_wall_flux = app->use_gpu ? gkyl_cu_malloc(sizeof(double[5])) :
+                                    gkyl_malloc(sizeof(double[5]));
 
   // Euler and isothermal Euler integrated quantities: rho, rho ux, rho uy, rho uz, rho u^2, p
   // (p = vth^2*rho for isothermal Euler).
@@ -236,8 +282,9 @@ vm_fluid_species_euler_init(
   // before it on request; at higher orders there is no positivity limiter and the characteristic
   // limiter is always applied.
   bool use_char_limiter = f->info.limit_fluid || app->poly_order > 1;
-  f->limiter_func = use_char_limiter ? vm_fluid_species_euler_limiter :
-                                       vm_fluid_species_euler_positivity_limiter;
+  f->limiter_func = !use_char_limiter      ? vm_fluid_species_euler_positivity_limiter :
+                    f->weight_by_pos_jacob ? vm_fluid_species_euler_limiter_mapped :
+                                             vm_fluid_species_euler_limiter;
   f->prim_vars_func = vm_fluid_species_euler_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_euler_calc_integrated;
   f->write_func = vm_fluid_species_euler_write;
@@ -364,9 +411,15 @@ vm_fluid_species_advect_init(
   gkyl_eval_on_nodes_release(app_advect_proj);
 
   struct gkyl_dg_advection_auxfields aux_inp = {.u_i = f->app_advect};
-  f->advect_slvr = gkyl_dg_updater_fluid_new(
-    &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
-  );
+  f->advect_slvr = gkyl_dg_updater_fluid_inew(&(struct gkyl_dg_updater_fluid_inp){
+    .grid = &app->grid,
+    .cbasis = &app->basis,
+    .conf_range = &app->local,
+    .wv_eqn = f->equation,
+    .geom = app->geom,
+    .aux_inp = &aux_inp,
+    .use_gpu = app->use_gpu,
+  });
 
   // array for storing integrated quantities in each cell = f, f^2
   // We compute each separate and then write them to the dynvector f->integ_diag
@@ -670,9 +723,15 @@ vm_fluid_species_can_pb_fluid_init(
     .sgn_alpha_surf = f->sgn_alpha_surf,
     .const_sgn_alpha = f->const_sgn_alpha,
   };
-  f->advect_slvr = gkyl_dg_updater_fluid_new(
-    &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
-  );
+  f->advect_slvr = gkyl_dg_updater_fluid_inew(&(struct gkyl_dg_updater_fluid_inp){
+    .grid = &app->grid,
+    .cbasis = &app->basis,
+    .conf_range = &app->local,
+    .wv_eqn = f->equation,
+    .geom = app->geom,
+    .aux_inp = &aux_inp,
+    .use_gpu = app->use_gpu,
+  });
 
   // Canonical Poisson bracket for fluid equations integrated quantities: f, f^2, E
   // where E is the integrated energy = integral(phi*f) since f = grad^2 phi -> E = integral(|grad phi|^2)
@@ -712,6 +771,7 @@ vm_fluid_species_project_state(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, evalf_t func, void *ctx, double t0
 )
 {
+  // Sampled at the physical coordinates of the position map.
   if (fluid_species->info.eval_on_nodes) {
     struct gkyl_eval_on_nodes *ev = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
       .grid = &app->grid,
@@ -719,19 +779,31 @@ vm_fluid_species_project_state(
       .num_ret_vals = fluid_species->num_equations,
       .eval = func,
       .ctx = ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
     });
     gkyl_eval_on_nodes_advance(ev, t0, &app->local_ext, fluid_species->fluid_host);
     gkyl_eval_on_nodes_release(ev);
   } else {
-    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, app->poly_order + 1, fluid_species->num_equations, func, ctx
-    );
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->poly_order + 1,
+      .num_ret_vals = fluid_species->num_equations,
+      .eval = func,
+      .ctx = ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
     gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
     gkyl_proj_on_basis_release(proj);
   }
   if (app->use_gpu) {
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
   }
+  // The evolved state carries the position-map Jacobian (identity map: unchanged).
+  fluid_species->weight_func(app, fluid_species->fluid, &app->local_ext);
 }
 
 // Methods common to all fluid equation types, assigned in
@@ -769,9 +841,6 @@ vm_fluid_species_apply_ic_enabled(
 
   // Pre-compute applied acceleration in case it's time-independent
   vm_fluid_species_calc_app_accel(app, fluid_species, t0);
-
-  // Evaluate the source at t0.
-  vm_fluid_species_source_calc(app, fluid_species, t0);
 }
 // Forces in the RHS of the fluid species, assigned in vm_fluid_species_init.
 // None: no force, or the implicit fluid-EM coupling applies them.
@@ -804,6 +873,13 @@ vm_fluid_species_rhs_force_em(
 )
 {
   double qbym = fluid_species->charge / fluid_species->mass;
+  // the physical field (a field on a position map carries its Jacobian)
+  if (fluid_species->em_no_J) {
+    gkyl_vlasov_position_map_divide_jacobpos_conf(
+      app->pos_map, &app->local, fluid_species->em_no_J->ncomp, em, fluid_species->em_no_J
+    );
+    em = fluid_species->em_no_J;
+  }
   gkyl_array_set_offset(fluid_species->qmem, qbym, em, 0);
   gkyl_array_accumulate_range(fluid_species->qmem, qbym, app->field->ext_em, &app->local);
   gkyl_array_accumulate_range(fluid_species->qmem, 1.0, fluid_species->app_accel, &app->local);
@@ -850,14 +926,28 @@ vm_fluid_species_rhs_enabled(
     app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
   }
 
+  // The rate of the physical state (on a position map each cell has its physical size), which
+  // takes the position-map Jacobian at the end.
+  const struct gkyl_array *fluid_phys = fluid_species->physical_func(app, fluid_species, fluid);
+
   gkyl_dg_updater_fluid_advance(
-    fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs
+    fluid_species->advect_slvr, &app->local, fluid_phys, fluid_species->cflrate, rhs
   );
 
   // Accumulate the forces the fluid applies itself: external forces without a
   // field, and the Lorentz force of a field coupled explicitly. With the implicit
   // fluid-EM coupling the source solve applies them, see vm_fluid_em_coupling.c.
-  fluid_species->rhs_force_func(app, fluid_species, fluid, em, rhs);
+  fluid_species->rhs_force_func(app, fluid_species, fluid_phys, em, rhs);
+
+  // Temperature source (Euler).
+  if (fluid_species->tsrc.is_on) {
+    vm_fluid_species_temp_source_rhs(app, fluid_species, fluid_phys, rhs);
+  }
+
+  // Particle loss rate through the absorbing walls, for boundary-flux sources.
+  if (fluid_species->has_wall_flux) {
+    vm_fluid_species_calc_wall_loss(app, fluid_species, fluid_phys);
+  }
 
   if (fluid_species->has_diffusion) {
     if (fluid_species->info.diffusion.Dij) {
@@ -872,6 +962,8 @@ vm_fluid_species_rhs_enabled(
       );
     }
   }
+
+  fluid_species->weight_func(app, rhs, &app->local);
 
   gkyl_array_reduce_range(
     fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local
@@ -991,11 +1083,8 @@ vm_fluid_species_from_file_enabled(
     if (app->use_gpu) {
       gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
     }
-    // Fluid sources never evolve. Since the quantity is not evolving, pass 0.0 to
-    // guard against static sources that were specified as being time-dependent.
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status && fluid_species->source_id) {
-      vm_fluid_species_source_calc(app, fluid_species, 0.0);
-    }
+    // The file holds the physical state; the evolved one carries the position-map Jacobian.
+    fluid_species->weight_func(app, fluid_species->fluid, &app->local);
   }
   // A non-evolving applied acceleration likewise keeps its value at 0.0.
   vm_fluid_species_calc_app_accel(
@@ -1021,6 +1110,74 @@ vm_fluid_species_rhs_source_disabled(
 {
 }
 
+// The physical state of a state on the identity map: the state itself.
+static const struct gkyl_array *
+vm_fluid_species_physical_identity(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid
+)
+{
+  return fluid;
+}
+
+// The physical state on a position map: the state divided by J (constant in a cell), over the
+// extended range (the ghost cells carry the J of their boundary cell or of their neighbor).
+static const struct gkyl_array *
+vm_fluid_species_physical_mapped(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid
+)
+{
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local_ext, fluid->ncomp, fluid, f->fluid_no_J
+  );
+  return f->fluid_no_J;
+}
+
+static void
+vm_fluid_species_weight_identity(
+  gkyl_vlasov_app *app, struct gkyl_array *arr, const struct gkyl_range *range
+)
+{
+}
+
+static void
+vm_fluid_species_weight_mapped(
+  gkyl_vlasov_app *app, struct gkyl_array *arr, const struct gkyl_range *range
+)
+{
+  gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, range, arr, arr);
+}
+
+void
+vm_fluid_species_calc_wall_loss(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid_phys
+)
+{
+  // The mass flux through each absorbing wall this rank holds, integrated over the wall faces of
+  // the boundary cells (the flux of the boundary surface term), as a particle loss rate.
+  int cdim = app->cdim;
+  double loss_local = 0.0;
+  for (int d = 0; d < cdim; ++d) {
+    for (int e = 0; e < 2; ++e) {
+      if (!f->wall_flux_edge[d + e * cdim]) {
+        continue;
+      }
+      int edge = e == 0 ? -1 : 1;
+      const struct gkyl_range *skin = e == 0 ? &app->lower_skin[d] : &app->upper_skin[d];
+      gkyl_dg_euler_wall_flux(f->wall_eqn, &app->grid, d, edge, skin, fluid_phys, f->wall_flux_int);
+      double red[5] = {0.0};
+      gkyl_array_reduce_range(f->red_wall_flux, f->wall_flux_int, GKYL_SUM, skin);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(red, f->red_wall_flux, sizeof(double[f->num_equations]), GKYL_CU_MEMCPY_D2H);
+      } else {
+        red[0] = f->red_wall_flux[0];
+      }
+      // the flux is along the coordinate: outgoing is negative at a lower wall
+      loss_local += edge * red[0] / f->mass;
+    }
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &loss_local, &f->wall_loss_rate);
+}
+
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
@@ -1035,13 +1192,71 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   if (f->eqn_type == GKYL_EQN_ISO_EULER && app->use_gpu) {
     gkyl_exit("vm_fluid_species: isothermal Euler fluid species are not supported on the GPU.");
   }
-  // The fluid solvers (and their initial conditions, sources and coefficients) work on the
-  // computational grid and do not use the position map.
-  if (!app->pos_map->is_identity) {
-    gkyl_exit("vm_fluid_species: fluid species do not support a position map.");
-  }
   f->num_equations = f->info.equation->num_equations;
   f->equation = gkyl_wv_eqn_acquire(f->info.equation);
+  bool is_euler = f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER;
+
+  // Position map: an Euler or isothermal Euler fluid evolves J times its state (the map is
+  // separable and J constant in a cell), with the physical state in fluid_no_J. Deferred for the
+  // advection and canonical Poisson-bracket fluids (their kernels and the canonical-PB Poisson
+  // solve have no metric; the advection kernels would take the physical cell size as Euler's do)
+  // and for fluid diffusion (its kernels take the computational cell size and need the metric of
+  // the second derivative).
+  f->weight_by_pos_jacob = !app->pos_map->is_identity;
+  if (f->weight_by_pos_jacob && (!is_euler || f->info.diffusion.D || f->info.diffusion.Dij)) {
+    gkyl_exit(
+      "vm_fluid_species: on a position map a fluid species must be an Euler or isothermal Euler fluid without diffusion."
+    );
+  }
+  f->fluid_no_J = 0;
+  f->physical_func = vm_fluid_species_physical_identity;
+  f->weight_func = vm_fluid_species_weight_identity;
+  if (f->weight_by_pos_jacob) {
+    f->fluid_no_J =
+      mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, app->local_ext.volume);
+    f->physical_func = vm_fluid_species_physical_mapped;
+    f->weight_func = vm_fluid_species_weight_mapped;
+  }
+
+  // determine which directions are not periodic
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  for (int d = 0; d < num_periodic_dir; ++d) {
+    is_np[app->periodic_dirs[d]] = 0;
+  }
+
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    f->lower_bc[dir] = f->upper_bc[dir] = GKYL_SPECIES_COPY;
+    if (is_np[dir]) {
+      const enum gkyl_species_bc_type *bc;
+      if (dir == 0) {
+        bc = f->info.bcx;
+      } else if (dir == 1) {
+        bc = f->info.bcy;
+      } else {
+        bc = f->info.bcz;
+      }
+
+      f->lower_bc[dir] = bc[0];
+      f->upper_bc[dir] = bc[1];
+    }
+  }
+
+  // Absorbing walls: the boundary flux of an Euler or isothermal Euler fluid (the flux of the
+  // particles of the Maxwellian of the boundary cell that move toward the wall), applied by the
+  // ranks that hold the edge; every rank records the loss rate (a reduction over all ranks).
+  f->has_wall_flux = false;
+  f->wall_loss_rate = 0.0;
+  for (int d = 0; d < cdim; ++d) {
+    bool absorb_lo = f->lower_bc[d] == GKYL_SPECIES_ABSORB;
+    bool absorb_up = f->upper_bc[d] == GKYL_SPECIES_ABSORB;
+    if ((absorb_lo || absorb_up) && !is_euler) {
+      gkyl_exit("vm_fluid_species: absorbing boundaries need an Euler or isothermal Euler fluid.");
+    }
+    f->has_wall_flux = f->has_wall_flux || absorb_lo || absorb_up;
+    f->wall_flux_edge[d] = absorb_lo && app->local.lower[d] == app->global.lower[d];
+    f->wall_flux_edge[d + cdim] = absorb_up && app->local.upper[d] == app->global.upper[d];
+  }
+
   if (f->eqn_type == GKYL_EQN_ADVECTION) {
     vm_fluid_species_advect_init(vm, app, f);
   } else if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
@@ -1163,10 +1378,18 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     if (app->use_gpu) {
       f->app_accel_host = mkarr(false, 3 * app->basis.num_basis, app->local_ext.volume);
     }
-    f->app_accel_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, app->basis.poly_order + 1, 3, f->info.app_accel,
-      f->info.app_accel_ctx
-    );
+    // Sampled at the physical coordinates of the position map.
+    f->app_accel_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 3,
+      .eval = f->info.app_accel,
+      .ctx = f->info.app_accel_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
   }
 
   // Forces in the RHS of the fluid: the Lorentz force of a momentum-carrying fluid when the
@@ -1180,38 +1403,22 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->qmem = mkarr(app->use_gpu, 6 * app->basis.num_basis, app->local_ext.volume);
     f->mom = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
     f->rhs_force_func = vm_fluid_species_rhs_force_em;
+    // The evolved field of a position map carries the Jacobian: the force takes the physical one.
+    if (app->field->weight_by_pos_jacob) {
+      f->em_no_J = mkarr(app->use_gpu, app->field->em->ncomp, app->local_ext.volume);
+    }
   } else if (f->has_app_accel) {
     f->rhs_force_func = vm_fluid_species_rhs_force_app_accel;
   }
   f->has_explicit_force = f->rhs_force_func != vm_fluid_species_rhs_force_none;
 
+  // Temperature source (Euler).
+  vm_fluid_species_temp_source_init(app, f, &f->tsrc);
+
   // set species source id
   f->source_id = f->info.source.source_id;
   f->rhs_source_func = f->source_id ? vm_fluid_species_rhs_source_enabled :
                                       vm_fluid_species_rhs_source_disabled;
-
-  // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
-  for (int d = 0; d < num_periodic_dir; ++d) {
-    is_np[app->periodic_dirs[d]] = 0;
-  }
-
-  for (int dir = 0; dir < app->cdim; ++dir) {
-    f->lower_bc[dir] = f->upper_bc[dir] = GKYL_SPECIES_COPY;
-    if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
-      if (dir == 0) {
-        bc = f->info.bcx;
-      } else if (dir == 1) {
-        bc = f->info.bcy;
-      } else {
-        bc = f->info.bcz;
-      }
-
-      f->lower_bc[dir] = bc[0];
-      f->upper_bc[dir] = bc[1];
-    }
-  }
 
   // allocate buffer for applying BCs
   long buff_sz = 0;
@@ -1235,17 +1442,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
 
-  // Certain operations fail if absorbing BCs used because absorbing BCs
-  // means the mass density is 0 in the ghost cells (divide by zero)
-  f->bc_is_absorb = false;
+  // Ghost cells: an absorbing wall is a boundary flux that reads no ghost cell, which holds a copy
+  // of the boundary cell for the stencil of the slope limiter.
   for (int d = 0; d < app->cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (f->lower_bc[d] == GKYL_SPECIES_COPY) {
+    if (f->lower_bc[d] == GKYL_SPECIES_COPY || f->lower_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_COPY;
-    } else if (f->lower_bc[d] == GKYL_SPECIES_ABSORB) {
-      bctype = GKYL_BC_ABSORB;
-      f->bc_is_absorb = true;
     } else if (f->lower_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype = GKYL_BC_EULER_REFLECT;
     } else if (f->lower_bc[d] == GKYL_SPECIES_NO_SLIP) {
@@ -1261,11 +1464,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
     // Upper BC updater. Copy BCs by default.
     bctype = GKYL_BC_COPY;
-    if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
+    if (f->upper_bc[d] == GKYL_SPECIES_COPY || f->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_COPY;
-    } else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB) {
-      bctype = GKYL_BC_ABSORB;
-      f->bc_is_absorb = true;
     } else if (f->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype = GKYL_BC_EULER_REFLECT;
     } else if (f->upper_bc[d] == GKYL_SPECIES_NO_SLIP) {
@@ -1437,6 +1637,9 @@ void
 vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
   f->write_func(app, f, tm, frame);
+  if (f->source_id) {
+    vm_fluid_species_source_write(app, f, &f->src, tm, frame);
+  }
 }
 
 // Read the fluid state from a file.
@@ -1529,6 +1732,13 @@ vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
     gkyl_array_release(f->qmem);
     gkyl_array_release(f->mom);
   }
+  if (f->em_no_J) {
+    gkyl_array_release(f->em_no_J);
+  }
+  if (f->fluid_no_J) {
+    gkyl_array_release(f->fluid_no_J);
+  }
+  vm_fluid_species_temp_source_release(app, &f->tsrc);
   gkyl_array_release(f->app_accel);
   if (f->app_accel_proj) {
     if (app->use_gpu) {

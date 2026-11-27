@@ -1193,12 +1193,27 @@ struct vm_species {
   void (*write_L2_func)(gkyl_vlasov_app *app, struct vm_species *vms);
 };
 
+// Source of a fluid species: the rate of the state (with the position-map Jacobian of the state),
+// times scale (1, or the wall-loss rate of the source species over the source length).
 struct vm_fluid_source {
-  struct vm_species_moment moms; // source moments
+  struct gkyl_array
+    *source; // rate of the state, J-weighted like the state (num_equations components)
+  struct gkyl_array *source_host; // physical rate (host), for I/O
+  bool calc_bflux; // the source is scaled by the wall losses of source_species
+  double source_length; // length over which the wall losses are replaced
+  const struct vlasov_species *source_species; // species whose wall losses set the rate
+  double scale; // factor of the source in the stage (1 without the boundary flux)
+};
 
-  struct gkyl_array *source; // applied source
-  struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
+// Temperature source of an Euler fluid: d_t E = (nu_Q T_Q/m rho - nu_Q p)/(gas_gamma - 1), as the
+// weak products of the coefficients (evaluated at the nodes, at the physical coordinates).
+struct vm_fluid_temp_source {
+  bool is_on; // the species has a temperature source
+  struct gkyl_array *nu_temp; // nu_Q T_Q / m
+  struct gkyl_array *nu; // nu_Q
+  struct gkyl_array *nu_cfl; // cell average of nu_Q (its rate in the time step)
+  struct gkyl_array *buf; // scratch for the weak products
+  double inv_gamma_m1; // 1/(gas_gamma - 1)
 };
 
 // fluid species data
@@ -1302,8 +1317,31 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_up[3];
   // buffers of the fixed-function BCs per direction (allocated for the edges that have one)
   struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3];
-  bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
-    // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range
+  // Absorbing walls of an Euler or isothermal Euler fluid: the boundary flux of the equation object
+  // on the edges this rank holds, and the particle loss rate through them in the last stage.
+  bool has_wall_flux; // some edge of the global domain is an absorbing wall
+  bool wall_flux_edge[2 * GKYL_MAX_CDIM]; // [d] lower, [d + cdim] upper edge of d: absorbing
+  struct gkyl_dg_eqn *wall_eqn; // equation object of the boundary flux (acquired; Euler fluids)
+  struct gkyl_array *wall_flux_int; // integrated wall flux of the boundary cells (num_equations)
+  double *red_wall_flux; // reduction of the integrated wall flux (device memory on GPUs)
+  double wall_loss_rate; // particle loss rate through the absorbing walls (stage), all ranks
+
+  // Position map: the state carries the position-map Jacobian J (constant in a cell) on a
+  // non-identity map, and the physical state (fluid_no_J, over the extended range) gives the
+  // primitive variables, the DG operator and the forces; the right-hand side is the physical rate
+  // times J. On the identity map the state is the physical one (fluid_no_J is NULL).
+  bool weight_by_pos_jacob; // the state carries the position-map Jacobian
+  struct gkyl_array *fluid_no_J; // physical state (NULL on the identity map)
+  struct gkyl_array *em_no_J; // physical field of the explicit Lorentz force on a position map
+  // The physical state of a state: the state itself (identity map) or its division by J into
+  // fluid_no_J (over the extended range).
+  const struct gkyl_array *(*physical_func)(
+    gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid
+  );
+  // Multiply a physical state or rate by J in place over a range (no-op on the identity map).
+  void (*weight_func)(gkyl_vlasov_app *app, struct gkyl_array *arr, const struct gkyl_range *range);
+
+  struct vm_fluid_temp_source tsrc; // temperature source (Euler)
 
   struct gkyl_array *integ_mom; // Integrated moments
   double *red_integ_diag; // for reduction on GPU
@@ -3408,18 +3446,17 @@ void vm_fluid_species_source_init(
 );
 
 /**
- * Compute fluid species applied source term
+ * Set the factor of a boundary-flux source of a fluid species for the stage: the wall-loss rate of
+ * the source species over the source length (no-op for other sources).
  *
  * @param app Vlasov app object
- * @param fluid_species Species object
- * @param tm Time for use in source
+ * @param src Pointer to source
  */
-void vm_fluid_species_source_calc(
-  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
-);
+void vm_fluid_species_source_calc_rate(gkyl_vlasov_app *app, struct vm_fluid_source *src);
 
 /**
- * Accumulate the fluid source onto the fluid RHS.
+ * Accumulate the fluid source onto the fluid RHS (scaled by the wall losses of the source species
+ * for a boundary-flux source).
  *
  * @param app Vlasov app object
  * @param species Pointer to fluid species
@@ -3432,6 +3469,20 @@ void vm_fluid_species_source_rhs(
 );
 
 /**
+ * Write the physical rate of the source profile of a fluid species (if write_source).
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param src Pointer to source
+ * @param tm Time of the frame
+ * @param frame Frame number
+ */
+void vm_fluid_species_source_write(
+  gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
+  const struct vm_fluid_source *src, double tm, int frame
+);
+
+/**
  * Release fluid species source object.
  *
  * @param app Vlasov app object
@@ -3441,7 +3492,57 @@ void vm_fluid_species_source_release(
   const struct gkyl_vlasov_app *app, const struct vm_fluid_source *src
 );
 
+/** vm_fluid_species_source_bgk API */
+
+/**
+ * Initialize the temperature source of a fluid species (Euler; nothing without a source).
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param tsrc Temperature source object
+ */
+void vm_fluid_species_temp_source_init(
+  struct gkyl_vlasov_app *app, struct vm_fluid_species *f, struct vm_fluid_temp_source *tsrc
+);
+
+/**
+ * Accumulate the rate of the temperature source of the physical state onto the physical rate,
+ * and its frequency onto the CFL rate. Needs the pressure of the state (prim vars).
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param fluid Physical fluid state
+ * @param rhs Physical rate to accumulate onto
+ */
+void vm_fluid_species_temp_source_rhs(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid,
+  struct gkyl_array *rhs
+);
+
+/**
+ * Release the temperature source of a fluid species.
+ *
+ * @param app Vlasov app object
+ * @param tsrc Temperature source object
+ */
+void vm_fluid_species_temp_source_release(
+  const struct gkyl_vlasov_app *app, const struct vm_fluid_temp_source *tsrc
+);
+
 /** vm_fluid_species API */
+
+/**
+ * Record the particle loss rate of an Euler or isothermal Euler fluid through its absorbing walls
+ * (the flux of the boundary surface term, integrated over the walls and summed over ranks) in
+ * wall_loss_rate.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param fluid_phys Physical fluid state
+ */
+void vm_fluid_species_calc_wall_loss(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid_phys
+);
 
 /**
  * Create new fluid species object

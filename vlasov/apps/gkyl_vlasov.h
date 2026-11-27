@@ -116,8 +116,9 @@ struct gkyl_vlasov_source {
   int num_sources;
 
   double source_length; // required for boundary flux source
-  // Boundary-flux source: the species whose wall losses set the rate (a kinetic or a PKPM species;
-  // a PKPM species must name a PKPM one).
+  // Boundary-flux source: the species whose wall losses set the rate (any species with absorbing
+  // walls: kinetic, PKPM, or an Euler or isothermal Euler fluid; a PKPM species must name a PKPM
+  // one).
   char source_species[128];
 
   // Sources using projection routine.
@@ -150,13 +151,33 @@ struct gkyl_vlasov_bcs {
   struct gkyl_vlasov_bc lower, upper;
 };
 
-// Parameters for fluid species source
+// Source of a fluid species, added to the right-hand side of every stage.
+//   GKYL_FUNC_SOURCE: profile gives the rate of every component of the state (num_equations values).
+//   GKYL_PROJ_SOURCE (Euler and isothermal Euler): the fluid image of the LTE projections, with
+//     density n_s, temperature T_s and drift u_s (three components; V_drift may be NULL):
+//     [m n_s, m n_s u_s, m n_s |u_s|^2/2 + n_s T_s/(gas_gamma - 1)] (no energy row for an
+//     isothermal fluid), the moments of the Maxwellian source of a kinetic species.
+//   GKYL_BFLUX_SOURCE (Euler and isothermal Euler): that image times the particle loss rate of
+//     source_species through its absorbing walls over source_length. With an n_s that integrates
+//     to source_length over the domain, the source replaces the losses, as for a kinetic species.
+// The profiles are sampled at the physical coordinates of a position map.
 struct gkyl_vlasov_fluid_source {
   enum gkyl_source_id source_id; // type of source
+  bool write_source; // write the source rate (with the frames)
 
   void *ctx; // context for source function
-  // function for computing source profile
+  // function for computing source profile (GKYL_FUNC_SOURCE)
   void (*profile)(double t, const double *xn, double *aout, void *ctx);
+
+  double source_length; // length of the boundary-flux source (GKYL_BFLUX_SOURCE)
+  // Boundary-flux source: the species whose wall losses set the rate (any species with absorbing
+  // walls: kinetic, PKPM, or an Euler or isothermal Euler fluid).
+  char source_species[128];
+
+  // LTE projections (proj_id GKYL_PROJ_VLASOV_LTE) of GKYL_PROJ_SOURCE and GKYL_BFLUX_SOURCE,
+  // summed.
+  int num_sources;
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
 
 // Parameters for fluid species advection
@@ -406,6 +427,12 @@ struct gkyl_vlasov_fluid_species {
   // pointer to background density function in canonical PB fluid systems
   void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
 
+  // Temperature source of an Euler fluid (GKYL_SOURCE_BGK_HEATING): the moments of the BGK-form
+  // source of a kinetic species (see gkyl_vlasov_source_bgk), which relaxes the pressure toward
+  // n T_Q at the rate nu_Q, d_t p = nu_Q (n T_Q - p), with the density and the momentum unchanged.
+  // Explicit, in every stage (is_implicit is not available for a fluid).
+  struct gkyl_vlasov_source_bgk source_bgk;
+
   // Applied acceleration [ax, ay, az] (external force per unit mass) of an Euler or isothermal
   // Euler fluid and of the fluid block of a PKPM species: rho a in the momentum and rho u.a in the
   // energy, in the right-hand side of every SSP-RK3 stage (also with the implicit fluid-EM
@@ -415,7 +442,12 @@ struct gkyl_vlasov_fluid_species {
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
 
-  // boundary conditions
+  // Boundary conditions. An absorbing wall (GKYL_SPECIES_ABSORB) of an Euler or isothermal Euler
+  // fluid is a boundary flux: that of the particles of the Maxwellian of the boundary cell (its
+  // density, flow and temperature) that move toward the wall, none coming back, the fluid
+  // counterpart of the kinetic flux of a kinetic or PKPM species against the empty ghost cells of
+  // its absorbing walls. The wall losses are recorded for boundary-flux sources. The ghost cells
+  // hold a copy of the boundary cell for the slope limiter.
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
