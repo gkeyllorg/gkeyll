@@ -316,6 +316,32 @@ check_weighted(int cdim, int vdim, int order, bool gpu, bool mapped)
             );
           }
 
+#if defined(GKYL_HAVE_CUDA) && defined(GKYL_DETERMINISTIC_REDUCTIONS_GPU)
+          if (gpu) {
+            gkyl_array_copy(out_ho, out);
+            struct gkyl_array *first_ho = mkarr(false, out->ncomp, conf_ext.volume);
+            gkyl_array_copy(first_ho, out_ho);
+            if (unweighted) {
+              gkyl_mom_gyrokinetic_advance(unweighted, &phase, &selected_conf, phi, fin, out);
+            } else {
+              gkyl_mom_weighted_gyrokinetic_advance(
+                up, &phase, &selected_conf, &wrange, weight, NULL, fin, out
+              );
+            }
+            gkyl_array_copy(out_ho, out);
+            gkyl_range_iter_init(&iter, &selected_conf);
+            while (gkyl_range_iter_next(&iter)) {
+              long cell = gkyl_range_idx(&conf_ext, iter.idx);
+              const double *first = gkyl_array_cfetch(first_ho, cell);
+              const double *second = gkyl_array_cfetch(out_ho, cell);
+              for (unsigned k = 0; k < out->ncomp; ++k) {
+                TEST_CHECK(first[k] == second[k]);
+              }
+            }
+            gkyl_array_release(first_ho);
+          }
+#endif
+
           gkyl_array_copy(out_ho, out);
           gkyl_range_iter_init(&iter, &conf_ext);
           while (gkyl_range_iter_next(&iter)) {

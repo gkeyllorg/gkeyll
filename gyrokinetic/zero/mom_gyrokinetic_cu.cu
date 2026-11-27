@@ -6,6 +6,9 @@ extern "C" {
 #include <gkyl_array_ops.h>
 #include <float.h>
 }
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <cub/block/block_reduce.cuh>
+#endif
 
 // Constrain the indirect call to this interface's registry. The runtime pointer
 // still selects the kernel; unrelated functions with the same PTX signature are
@@ -62,6 +65,7 @@ mom_gk_choose_kernel_cu(
   gkyl_cu_free(num_mom_dev);
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 __global__ static void
 gkyl_mom_gk_advance_cu_ker(
   double mass, double charge, struct gkyl_mom_gyrokinetic_kernels *kernels,
@@ -111,6 +115,56 @@ gkyl_mom_gk_advance_cu_ker(
     }
   }
 }
+#else
+enum { MOM_GK_BLOCK_SIZE = 128 };
+
+__global__ static void
+mom_gk_advance_deterministic_cu_ker(
+  double mass, double charge, struct gkyl_mom_gyrokinetic_kernels *kernels,
+  struct gkyl_rect_grid phase_grid, struct gkyl_range conf_rng, struct gkyl_range vel_rng,
+  struct gkyl_range phase_rng, const struct gkyl_array *bmag, const struct gkyl_array *vmap,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *mout, long num_vel
+)
+{
+  typedef cub::BlockReduce<double, MOM_GK_BLOCK_SIZE, cub::BLOCK_REDUCE_RAKING> BlockReduceT;
+  __shared__ typename BlockReduceT::TempStorage temp;
+  int cidx[GKYL_MAX_CDIM], pidx[GKYL_MAX_DIM], vidx[GKYL_MAX_VDIM];
+  gkyl_sub_range_inv_idx(&conf_rng, blockIdx.x, cidx);
+  for (int d = 0; d < conf_rng.ndim; ++d) {
+    pidx[d] = cidx[d];
+  }
+  long clin = gkyl_range_idx(&conf_rng, cidx);
+  const double *bmag_c = (const double *)gkyl_array_cfetch(bmag, clin);
+  const double *phi_c = phi ? (const double *)gkyl_array_cfetch(phi, clin) : NULL;
+  double local[48] = {0.0};
+  for (long v = threadIdx.x; v < num_vel; v += MOM_GK_BLOCK_SIZE) {
+    long remaining = v;
+    for (int d = conf_rng.ndim; d < phase_rng.ndim; ++d) {
+      int extent = phase_rng.upper[d] - phase_rng.lower[d] + 1;
+      pidx[d] = phase_rng.lower[d] + remaining % extent;
+      vidx[d - conf_rng.ndim] = pidx[d];
+      remaining /= extent;
+    }
+    double moment[48] = {0.0};
+    mom_gk_call(
+      kernels->wmom, phase_grid.dx,
+      (const double *)gkyl_array_cfetch(vmap, gkyl_range_idx(&vel_rng, vidx)), mass, charge, bmag_c,
+      phi_c, (const double *)gkyl_array_cfetch(fin, gkyl_range_idx(&phase_rng, pidx)), moment
+    );
+    for (unsigned k = 0; k < mout->ncomp; ++k) {
+      local[k] += moment[k];
+    }
+  }
+  double *out = (double *)gkyl_array_fetch(mout, clin);
+  for (unsigned k = 0; k < mout->ncomp; ++k) {
+    double sum = BlockReduceT(temp).Sum(local[k]);
+    if (threadIdx.x == 0) {
+      out[k] = sum;
+    }
+    __syncthreads();
+  }
+}
+#endif
 
 void
 gkyl_mom_gyrokinetic_advance_cu(
@@ -119,8 +173,6 @@ gkyl_mom_gyrokinetic_advance_cu(
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout
 )
 {
-  int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
-
   gkyl_array_clear_range(mout, 0.0, conf_rng);
 
   if (phase_rng->volume == 0 || conf_rng->volume == 0) {
@@ -132,9 +184,21 @@ gkyl_mom_gyrokinetic_advance_cu(
     phi_on_dev = phi->on_dev;
   }
 
-  gkyl_mom_gk_advance_cu_ker<<<nblocks, nthreads>>>(
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  long num_vel = 1;
+  for (int d = conf_rng->ndim; d < phase_rng->ndim; ++d) {
+    num_vel *= phase_rng->upper[d] - phase_rng->lower[d] + 1;
+  }
+  mom_gk_advance_deterministic_cu_ker<<<conf_rng->volume, MOM_GK_BLOCK_SIZE>>>(
+    up->mass, up->charge, up->kernels, up->phase_grid, *conf_rng, up->vel_map->local_vel,
+    *phase_rng, up->gk_geom->geo_corn.bmag->on_dev, up->vel_map->vmap->on_dev, phi_on_dev,
+    fin->on_dev, mout->on_dev, num_vel
+  );
+#else
+  gkyl_mom_gk_advance_cu_ker<<<phase_rng->nblocks, phase_rng->nthreads>>>(
     up->mass, up->charge, up->kernels, up->phase_grid, *conf_rng, up->vel_map->local_vel,
     *phase_rng, up->gk_geom->geo_corn.bmag->on_dev, up->vel_map->vmap->on_dev, phi_on_dev,
     fin->on_dev, mout->on_dev
   );
+#endif
 }
