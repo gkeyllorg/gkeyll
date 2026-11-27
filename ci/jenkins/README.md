@@ -1,14 +1,17 @@
 # Gkeyll Jenkins CI
 
 Gkeyll has independent Jenkins setups for machines that provide persistent or
-specialized CI capacity. Each setup owns its Jenkins job, node configuration,
-credentials, and command-line client.
+specialized CI capacity. Each setup owns its Jenkins job, node configuration
+and credentials. Slurm sites share one client and Pipeline, configured through
+editable shell profiles and separate site Slurm scripts.
 
 - [Personal computer CI](README.personal.md): manually run a selected GitHub
   pull request or candidate/baseline branch or commit on a local computer.
-- [Stellar CPU CI](README.stellar_cpu.md): manual CPU-only Slurm CI at
-  Princeton Stellar.
-- [Perlmutter GPU CI](README.perlmutter_gpu.md): manual GPU Slurm CI at NERSC.
+- [Slurm cluster CI](README.slurm_cluster.md): common setup for CPU or GPU
+  profiles, including [Stellar](README.slurm_cluster.md#stellar-cpu-example),
+  [Perlmutter](README.slurm_cluster.md#perlmutter-gpu-example), and
+  [StellarAI](README.slurm_cluster.md#stellarai-gpu-example), with instructions
+  for adding sites.
 - [Team workstation CI](README.team_workstation.md): periodically discover
   pull requests into `main` from every author, with optional selected runs.
 
@@ -150,7 +153,9 @@ CI artifact and GitHub report record that override.
 Every Jenkins controller requires a writable, agent-visible `GKEYLL_CI_ROOT`.
 A complete baseline lives at
 `$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/` and is reused
-until the resolved baseline SHA changes. A failed or incomplete baseline build
+until the resolved baseline SHA changes. Slurm profiles also require a matching
+configuration fingerprint, including the trusted CI revision; a mismatch triggers
+a rebuild once existing users finish. A failed or incomplete baseline build
 is removed after diagnostics are collected. A later candidate failure leaves
 a valid baseline intact. The latest candidate attempt, including its source,
 build, and results, stays at
@@ -160,7 +165,7 @@ its SHA is unchanged. Within each build tree, `gkeyll/` is the source checkout
 and `gkylsoft/` contains the install and regression results.
 
 At startup, `cache_manager.py` removes inactive prior candidates and, on
-Stellar and Perlmutter, inactive build-tag workspaces. It preserves trees used
+Slurm profiles, inactive build-tag workspaces. It preserves trees used
 by a running Jenkins build or surviving Slurm job. Concurrent runs can
 temporarily leave multiple candidate and baseline trees. When their cleanup
 stages finish, the candidate from the most recently started run remains,
@@ -179,19 +184,22 @@ read access when that variable is empty. Its default is the platform CLI
 credential file. Set it explicitly when the agent runs under a different Unix
 account. On cluster systems, keep the root on shared storage that supports
 cross-process `flock`, and provide enough Jenkins executors for the desired
-parallel builds. Drain old CI runs before first using this layout so the
-legacy SHA-only candidate cache can be removed safely.
-The `<platform>` directory is `personal`, `team-workstation`, `stellar-cpu`,
-or `perlmutter-gpu`, depending on the Jenkins job.
+parallel builds. For Slurm, follow the fresh setup instructions in the shared guide and use a
+new empty CI root. Personal/team cache migration behavior is unchanged.
+The `<platform>` directory is `personal`, `team-workstation`, or the Slurm
+profile's cache namespace (`stellar_cpu` and `perlmutter_gpu` for shipped
+profiles). New namespaces declare their scheduler explicitly; no shared-source
+edit is required to add a cluster. Different toolchains need distinct namespaces.
 
 It can be used with any of the machines listed above, for example:
 
 ```sh
 ./ci/jenkins/gkeyll-ci.sh personal run --pr 1128 --follow
-./ci/jenkins/gkeyll-ci.sh stellar_cpu recent
-./ci/jenkins/gkeyll-ci.sh perlmutter_gpu status --queue 42
-./ci/jenkins/gkeyll-ci.sh stellar_cpu info --build 6
-./ci/jenkins/gkeyll-ci.sh stellar_cpu artifact --build 6 --fetch --only ci-regression-summary.txt
+export GKEYLL_CI_CLUSTER=stellar_cpu  # Set to this host's CPU or GPU profile.
+./ci/jenkins/gkeyll-ci.sh slurm recent
+./ci/jenkins/gkeyll-ci.sh slurm status --queue 42
+./ci/jenkins/gkeyll-ci.sh slurm info --build 6
+./ci/jenkins/gkeyll-ci.sh slurm artifact --build 6 --fetch --only ci-serial-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh team scan
 ```
 

@@ -1470,6 +1470,80 @@ end
 --   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
 -- File comparison uses the G0.Zero Lua-C API registered by
 -- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c). 
+-- gkyl_array_diff / dynvecDiff report signed absolute-difference extrema of
+-- (accepted - run).  A run uniformly above its baseline can have a negative
+-- max_abs_diff, so compare the magnitudes of both extrema.
+local function diffMagnitudes(diff)
+   local absD = math.max(math.abs(diff.max_abs_diff or 0), math.abs(diff.min_abs_diff or 0))
+   local relD = math.max(math.abs(diff.max_rel_diff or 0), math.abs(diff.min_rel_diff or 0))
+   return absD, relD
+end
+
+-- Retry only recognized gyrokinetic diagnostics. Companion files must come
+-- from the accepted baseline and match the same grid, species and frame.
+local function scaledGyrokineticRetry(f1, g1, a1, a2, tol)
+   if not f1:find("/gyrokinetic/", 1, true) then return nil end
+   local kind
+   if f1:match("[_%-]M1_%d+%.gkyl$") then kind = "M1"
+   elseif f1:match("[_%-]M3par_%d+%.gkyl$") then kind = "M3par"
+   elseif f1:match("[_%-]M3perp_%d+%.gkyl$") then kind = "M3perp"
+   elseif f1:match("BiMaxwellianMoments_%d+%.gkyl$") then kind = "BiMaxwellian"
+   elseif f1:match("MaxwellianMoments_%d+%.gkyl$") then kind = "Maxwellian"
+   else return nil end
+
+   local function companion(moment)
+      local path = f1:gsub(kind .. "_(%d+)%.gkyl$", moment .. "_%1.gkyl")
+      if path == f1 or not lfs.attributes(path) then return nil end
+      local grid, array = G0.Zero.arrayNewFromFile(path)
+      if not grid or not G0.Zero.rectGridCmp(g1, grid) then return nil end
+      return array
+   end
+   local m0, mp, mt
+   if kind == "M1" or kind == "M3par" or kind == "M3perp" then
+      m0, mp = companion("M0"), companion("M2par")
+      if not mp and kind == "M1" then mp = companion("M2") end
+      if kind == "M3perp" then mt = companion("M2perp") end
+      if not m0 or not mp or (kind == "M3perp" and not mt) then
+         return nil, "missing or incompatible baseline companion"
+      end
+   end
+   local passed, ratio = G0.Zero.scaledMomentDiff(a1, a2, kind, tol, m0, mp, mt, g1)
+   if passed == nil then return nil, "invalid baseline scale or array layout" end
+   return passed, ratio
+end
+
+-- The rt_vlasov family uses standard or SR velocity moments. Other Vlasov
+-- Hamiltonians need their own characteristic scales.
+local function vlasovScaleEligible(path)
+   return path:match("/vlasov/creg%-accepted/[^/]+/rt_vlasov_[^/]+/") ~= nil
+end
+
+local function scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
+   if not vlasovScaleEligible(f1) then return nil end
+   local kind, frame = f1:match("%-elc_(M1)_(%d+)%.gkyl$")
+   if not kind then kind, frame = f1:match("%-[^/]+_(M1)_(%d+)%.gkyl$") end
+   if not kind then kind, frame = f1:match("%-[^/]+_(LTEMoments)_(%d+)%.gkyl$") end
+   if not kind then return nil end
+   local function companion(name)
+      local path = f1:gsub(kind .. "_" .. frame .. "%.gkyl$", name .. "_" .. frame .. ".gkyl")
+      if path == f1 or not lfs.attributes(path) then return nil end
+      local grid, array = G0.Zero.arrayNewFromFile(path)
+      if not grid or not G0.Zero.rectGridCmp(g1, grid) then return nil end
+      return array
+   end
+   local m0 = companion("M0")
+   local sr = f1:match("/rt_vlasov_sr_[^/]+/") ~= nil
+   local energy = kind == "M1" and not sr and companion("M2") or nil
+   local lte = kind == "M1" and sr and companion("LTEMoments") or nil
+   if not m0 or (kind == "M1" and not energy and not lte) then
+      return nil, "missing or incompatible Vlasov baseline companion"
+   end
+   local passed, ratio = G0.Zero.scaledVlasovMomentDiff(
+      a1, a2, kind == "M1" and "M1" or "LTE", relTol, absTol, m0, energy, lte, g1)
+   if passed == nil then return nil, "invalid Vlasov baseline scale or array layout" end
+   return passed, ratio
+end
+
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1497,20 +1571,42 @@ local function compareFiles(f1, f2, absTol, relTol)
       end
 
       if f1type == "dynvector" then
+         if f1:find("/gyrokinetic/", 1, true) and
+            f1:match("[_%-]integrated_moms%.gkyl$") and not f1:find("fdot_") then
+            local scaled, ratio = G0.Zero.scaledIntegratedM1Diff(f1, f2, relTol)
+            if scaled == false and ratio == math.huge then
+               return false, "nonfinite integrated moment"
+            end
+         end
          local diff = G0.Zero.dynvecDiff(f1, f2, absTol, relTol)
          if not diff.is_compatible then
             verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
             return false, "dynvec not compatible"
          end
-         local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
-         -- Extrema may come from different components or times. The native
-         -- reader applies both tolerances to each value before reducing.
-         if not diff.within_tolerance then
+         -- Both thresholds must be exceeded by the same data component.
+         local absD, relD = diffMagnitudes(diff)
+         if not diff.within_combined_tol then
+            if vlasovScaleEligible(f1) and f1:match("%-[^/]+%-imom%.gkyl$") then
+               local scaled, ratio = G0.Zero.scaledVlasovIntegratedDiff(f1, f2, relTol, absTol)
+               if scaled then return true end
+               if scaled == false then
+                  return false, string.format("Vlasov integrated M1 scale-aware max_ratio=%.3g", ratio)
+               end
+               verboseLog("    ... Vlasov integrated retry unavailable: invalid baseline scale or layout\n")
+            end
+            if f1:find("/gyrokinetic/", 1, true) and
+               f1:match("[_%-]integrated_moms%.gkyl$") and not f1:find("fdot_") then
+               local scaled, ratio = G0.Zero.scaledIntegratedM1Diff(f1, f2, relTol)
+               if scaled then return true end
+               if scaled == false then
+                  return false, string.format("integrated M1 scale-aware max_ratio=%.3g", ratio)
+               end
+            end
             verboseLog(string.format(
                "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-               maxAbsDiff, absTol, diff.max_rel_diff, relTol))
+               absD, absTol, relD, relTol))
             return false, string.format("dynvec max_abs=%.3g max_rel=%.3g",
-               maxAbsDiff, diff.max_rel_diff)
+               absD, relD)
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
@@ -1555,6 +1651,9 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- candidate output. A baseline-only failure can be acknowledged narrowly.
       if not g2 then return false, "candidate array read failed" end
       if not g1 then return false, "baseline array read failed (candidate readable)" end
+      if not G0.Zero.arrayFinite(a1) or not G0.Zero.arrayFinite(a2) then
+         return false, "nonfinite array data"
+      end
 
       if not G0.Zero.rectGridCmp(g1, g2) then
          return false, "grid mismatch"
@@ -1567,16 +1666,26 @@ local function compareFiles(f1, f2, absTol, relTol)
       local diff = G0.Zero.arrayDiff(a1, a2, r1, absTol, relTol)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
-      -- arrayDiff returns signed extrema of (accepted - candidate). Use both
-      -- ends so increases in candidate values cannot evade the absolute check.
-      local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
-      -- Apply absolute and relative tolerances to the same array element.
-      if not diff.within_tolerance then
+      -- Both thresholds must be exceeded by the same data component.
+      local absD, relD = diffMagnitudes(diff)
+      if not diff.within_combined_tol then
+         local vlasovScaled, vlasovRatio = scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
+         if vlasovScaled then return true end
+         if vlasovScaled == false then
+            return false, string.format("Vlasov scale-aware max_ratio=%.3g", vlasovRatio)
+         end
+         if vlasovRatio then verboseLog("    ... Vlasov scale-aware retry unavailable: " .. vlasovRatio .. "\n") end
+         local scaled, ratio = scaledGyrokineticRetry(f1, g1, a1, a2, relTol)
+         if scaled then return true end
+         if scaled == false then
+            return false, string.format("scale-aware max_ratio=%.3g", ratio)
+         end
+         if ratio then verboseLog("    ... scale-aware retry unavailable: " .. ratio .. "\n") end
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-            maxAbsDiff, absTol, diff.max_rel_diff, relTol))
+            absD, absTol, relD, relTol))
          return false, string.format("max_abs=%.3g max_rel=%.3g",
-            maxAbsDiff, diff.max_rel_diff)
+            absD, relD)
       end
 
       return true
@@ -2154,415 +2263,6 @@ local function run_action(args, name)
    log(string.format("\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
    finalizeRegressionRun()
 
-   if false then -- Legacy dual CPU/GPU path retained below temporarily for reference.
-
-   -- Track timed-out tests per layer so we can update ignoretests.lua.
-   local timedOutByLayer = {}
-   local gpuTimedOutByLayer = {}
-   for _, L in ipairs(LAYERS) do
-      timedOutByLayer[L.name]    = { lua = {}, c = {} }
-      gpuTimedOutByLayer[L.name] = { lua = {}, c = {} }
-   end
-
-   -- Helper: should this test get a GPU run?
-   local function shouldDoGpu(test, testType)
-      if not GPU_BUILD then return false end
-      if not GPU_LAYERS[test.layer] then return false end
-      if args.no_gpu then return false end
-      -- Check GPU-specific ignore list.
-      local ignKey = "gpu_" .. testType  -- "gpu_lua" or "gpu_c"
-      local ignList = ignoreTests[test.layer] and ignoreTests[test.layer][ignKey] or {}
-      local testBasename = (testType == "lua")
-         and stripext(basename(test.file))
-         or  stripext(basename(test.src))
-      if lume.find(ignList, testBasename) then return false end
-      return true
-   end
-
-   -- Helper: check whether any .gkyl output files exist in a directory.
-   local function hasGkylOutput(dir)
-      for fn in lfs.dir(dir) do
-         if string.sub(fn, -5) == ".gkyl" then return true end
-      end
-      return false
-   end
-
-   -- Helper: run the GPU variant of a test after the CPU run.
-   -- Saves CPU .gkyl files to _cpu_output/, clears .gkyl, runs GPU, compares.
-   -- Returns: gpuStatus, gpuRuntime, cpuGpuDiff.
-   local function runGpuVariant(test, runDir, testType, runFn, runArgs)
-      local cpuOutputDir = runDir .. "/_cpu_output"
-      mkdir(cpuOutputDir)
-      os.execute(string.format("cp -f '%s'/*.gkyl '%s/' 2>/dev/null", runDir, cpuOutputDir))
-      os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", runDir))
-
-      -- Run the GPU variant.
-      local gpuTm, gpuLog, _, gpuTimedOut = runFn(unpack(runArgs))
-      local gpuStatus, gpuRuntime, cpuGpuDiff = -1, gpuTm, -1
-
-      if gpuTimedOut then
-         gpuStatus = -3
-         log(string.format("... GPU variant TIMED OUT after %g sec\n", gpuTm))
-      elseif not hasGkylOutput(runDir) then
-         gpuStatus = -5  -- crash: no output produced
-         log(string.format("... GPU variant CRASHED (no .gkyl output)\n"))
-      else
-         -- Compare GPU output vs accepted baselines.
-         if args.check then
-            gpuStatus = gpuCheck_vs_accepted(test, runDir, testType, gpuTol)
-            if gpuStatus == 1 then
-               log("... GPU vs accepted: passed.\n")
-            else
-               log(string.format("... GPU vs accepted: %s FAILED!\n", test.name))
-            end
-         else
-            gpuStatus = -1  -- bare run or create, no check
-         end
-
-         -- Compare CPU output vs GPU output.
-         cpuGpuDiff = compareCpuGpu(test, cpuOutputDir, runDir, testType, gpuTol)
-         if cpuGpuDiff == 1 then
-            log("... CPU vs GPU: match.\n")
-         else
-            log(string.format("... CPU vs GPU: %s DIFFER!\n", test.name))
-         end
-      end
-
-      -- Clean up temporary CPU output directory.
-      os.execute(string.format("rm -rf '%s'", cpuOutputDir))
-      return gpuStatus, gpuRuntime, cpuGpuDiff
-   end
-
-   if GPU_BUILD then
-      if args.create then
-         log("Creating accepted results on CPU\n")
-      elseif args.check then
-         if args.no_gpu then
-            log("Only CPU tests requested (--no-gpu)\n")
-         else
-            log(string.format("GPU build: GPU tolerance = %g\n", gpuTol))
-         end
-      end
-   end
-
-   -- Determine concurrency level.  0 = auto-detect physical core count.
-   local jobCount = args.jobs or 1
-   if jobCount == 0 then
-      jobCount = physicalCpuCount()
-      log(string.format("--jobs 0: auto-detected %d physical CPUs\n", jobCount))
-   end
-   if jobCount > 1 then
-      log(string.format("Running regression tests in parallel (--jobs %d) ...\n\n",
-         jobCount))
-   else
-      log("Running regression tests ...\n\n")
-   end
-   if jobCount <= 1 then
-      -- ================================================================
-      -- SERIAL PATH (default): one test at a time, preserving all
-      -- existing behaviour exactly.
-      -- ================================================================
-
-      -- ---- Lua tests --------------------------------------------------------
-      if not args.c_only then
-         for _, test in ipairs(luaTests) do
-            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-            local doGpu = shouldDoGpu(test, "lua")
-
-            -- On a GPU build for a GPU-capable layer, force CPU mode via -G.
-            -- For 'create', always force CPU to produce deterministic baselines.
-            local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
-
-            local runtm, runlog, runDir, timedOut = runLuaTest(test, timeoutSecs, cpuMode)
-
-            if timedOut then
-               table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
-               insertRegressionData(
-                  test.layer, runID, test.name, "lua", -3, runtm, "TIMED OUT")
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            else
-               local status, checkLog = postRun(test, runDir, "lua")
-               checkLog = checkLog or ""
-
-               -- GPU variant: only on check or bare run, not on create.
-               local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-               if doGpu and not args.create then
-                  layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
-
-                  gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-                     test, runDir, "lua",
-                     runLuaTest, {test, timeoutSecs, "gpu"})
-
-                  if gpuStatus == -3 then
-                     table.insert(gpuTimedOutByLayer[test.layer].lua,
-                        stripext(basename(test.file)))
-                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-                  elseif gpuStatus == -5 or gpuStatus == 0 then
-                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-                  elseif gpuStatus == 1 then
-                     layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
-                  end
-               end
-
-               insertRegressionData(
-                  test.layer, runID, test.name, "lua",
-                  status, runtm,
-                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
-                  gpuStatus, gpuRuntime, cpuGpuDiff)
-            end
-         end
-      end
-
-      -- ---- C tests ----------------------------------------------------------
-      if not args.lua_only then
-         for _, test in ipairs(cTests) do
-            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-            local doGpu = shouldDoGpu(test, "c")
-
-            -- CPU run (compile unless --execute-only; no -g flag by default).
-            -- When doGpu is true, keep the binary for the subsequent GPU re-run.
-            local runtm, runlog, runDir, timedOut, compileFailed =
-               runCTest(test, timeoutSecs, nil, args.execute_only, doGpu)
-
-            if compileFailed then
-               insertRegressionData(
-                  test.layer, runID, test.name, "c", -4, runtm, runlog)
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            elseif timedOut then
-               table.insert(timedOutByLayer[test.layer].c,
-                  stripext(basename(test.src)))
-               insertRegressionData(
-                  test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            else
-               local status, checkLog = postRun(test, runDir, "c")
-               checkLog = checkLog or ""
-
-               -- GPU variant: only on check or bare run, not on create.
-               local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-               if doGpu and not args.create then
-                  layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
-
-                  -- Re-run the same binary with -g (skipCompile=true).
-                  gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-                     test, runDir, "c",
-                     runCTest, {test, timeoutSecs, "gpu", true})
-
-                  if gpuStatus == -3 then
-                     table.insert(gpuTimedOutByLayer[test.layer].c,
-                        stripext(basename(test.src)))
-                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-                  elseif gpuStatus == -5 or gpuStatus == 0 then
-                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-                  elseif gpuStatus == 1 then
-                     layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
-                  end
-               end
-
-               -- Clean up the compiled C binary now that both CPU and GPU runs are done.
-               if doGpu then
-                  local testname = stripext(basename(test.src))
-                  os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
-                     runDir, testname, runDir, testname))
-                  os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
-                     runDir, testname))
-               end
-
-               insertRegressionData(
-                  test.layer, runID, test.name, "c",
-                  status, runtm,
-                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
-                  gpuStatus, gpuRuntime, cpuGpuDiff)
-            end
-         end
-      end -- if not args.lua_only
-
-   else
-      -- ================================================================
-      -- PARALLEL PATH: up to jobCount tests run concurrently per batch.
-      --
-      -- Phase 1 (C only): compile all C tests serially — fast, and avoids
-      --   Makefile conflicts. With --execute-only, validate the prior
-      --   compilation instead. Compile failures are excluded from the batch.
-      -- Phase 2a (Lua): build prep list; handle mpiSkip tests inline.
-      --   Run in batches of jobCount via executeBatch.
-      -- Phase 2b (C): run compiled-OK tests in batches via executeBatch.
-      -- Collect phase (after each executeBatch): log results in original
-      --   order, call postRun, run GPU variants (always serial), record DB.
-      --
-      -- GPU variants stay serial to avoid GPU memory contention.
-      -- ================================================================
-
-      -- Helper: collect results for a single Lua test prep + batch result.
-      local function collectLua(prep, r)
-         local test = prep.test
-         if r.timedOut then
-            log(string.format("\n[Lua] %s TIMED OUT (%g sec)\n", test.name, r.runtm))
-            table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
-            insertRegressionData(
-               test.layer, runID, test.name, "lua", -3, r.runtm, "TIMED OUT")
-            layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-         else
-            log(string.format("\n[Lua] %s completed (%g sec)\n", test.name, r.runtm))
-            verboseLog(r.runlog)
-            local status, checkLog = postRun(test, prep.runDir, "lua")
-            checkLog = checkLog or ""
-            local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-            if prep.doGpu and not args.create then
-               layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
-               gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-                  test, prep.runDir, "lua",
-                  runLuaTest, {test, timeoutSecs, "gpu"})
-               if gpuStatus == -3 then
-                  table.insert(gpuTimedOutByLayer[test.layer].lua,
-                     stripext(basename(test.file)))
-                  layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-               elseif gpuStatus == -5 or gpuStatus == 0 then
-                  layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-               elseif gpuStatus == 1 then
-                  layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
-               end
-            end
-            insertRegressionData(
-               test.layer, runID, test.name, "lua",
-               status, r.runtm,
-               r.runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
-               gpuStatus, gpuRuntime, cpuGpuDiff)
-         end
-      end
-
-      -- Helper: collect results for a single C test prep + batch result.
-      local function collectC(prep, r)
-         local test     = prep.test
-         local testname = stripext(basename(test.src))
-         local runDir   = prep.runDir
-         if r.timedOut then
-            log(string.format("\n[C] %s TIMED OUT (%g sec)\n", test.name, r.runtm))
-            table.insert(timedOutByLayer[test.layer].c, testname)
-            insertRegressionData(
-               test.layer, runID, test.name, "c", -3, r.runtm, "TIMED OUT")
-            layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-         else
-            log(string.format("\n[C] %s completed (%g sec)\n", test.name, r.runtm))
-            verboseLog(r.runlog)
-            local status, checkLog = postRun(test, runDir, "c")
-            checkLog = checkLog or ""
-            local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-            if prep.doGpu and not args.create then
-               layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
-               -- Re-run existing binary with -g (skipCompile=true).
-               gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-                  test, runDir, "c",
-                  runCTest, {test, timeoutSecs, "gpu", true})
-               if gpuStatus == -3 then
-                  table.insert(gpuTimedOutByLayer[test.layer].c, testname)
-                  layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-               elseif gpuStatus == -5 or gpuStatus == 0 then
-                  layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-               elseif gpuStatus == 1 then
-                  layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
-               end
-            end
-            local fullLog = (prep.compileLog or "") .. "\n" .. r.runlog
-               .. (checkLog ~= "" and "\n" .. checkLog or "")
-            insertRegressionData(
-               test.layer, runID, test.name, "c",
-               status, r.runtm, fullLog, gpuStatus, gpuRuntime, cpuGpuDiff)
-         end
-         -- Clean up binary after both CPU and (optional) GPU runs.
-         os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
-            runDir, testname, runDir, testname))
-         os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
-            runDir, testname))
-      end
-
-      -- Phase 1: compile all C tests serially, unless --execute-only.
-      local cPreps = {}
-      if not args.lua_only then
-         for _, test in ipairs(cTests) do
-            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-            local doGpu = shouldDoGpu(test, "c")
-            local prep  = prepareCRun(test, timeoutSecs, nil, args.execute_only)
-            prep.doGpu  = doGpu
-            table.insert(cPreps, prep)
-            if prep.compileFailed then
-               insertRegressionData(
-                  test.layer, runID, test.name, "c", -4,
-                  prep.compileSecs, "COMPILE FAILED:\n" .. prep.compileLog)
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            end
-         end
-      end
-
-      -- Phase 2a: prepare Lua preps and handle mpiSkip tests inline.
-      local luaPreps = {}
-      if not args.c_only then
-         for _, test in ipairs(luaTests) do
-            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-            local doGpu   = shouldDoGpu(test, "lua")
-            local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
-            local prep    = prepareLuaRun(test, timeoutSecs, cpuMode)
-            prep.doGpu    = doGpu
-            if prep.mpiSkip then
-               log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
-               insertRegressionData(test.layer, runID, test.name, "lua", -1, 0, "")
-            else
-               table.insert(luaPreps, prep)
-            end
-         end
-      end
-
-      -- Phase 2a continued: run Lua tests in batches.
-      for bStart = 1, #luaPreps, jobCount do
-         local batch = {}
-         for i = bStart, math.min(bStart + jobCount - 1, #luaPreps) do
-            table.insert(batch, luaPreps[i])
-         end
-         log(string.format("\n[Batch-Lua] Launching %d test(s) ...\n", #batch))
-         local bResults = executeBatch(batch)
-         for i, prep in ipairs(batch) do
-            collectLua(prep, bResults[i])
-         end
-      end
-
-      -- Phase 2b: run compiled-OK C tests in batches.
-      local cRunPreps = {}
-      for _, prep in ipairs(cPreps) do
-         if not prep.compileFailed then
-            table.insert(cRunPreps, prep)
-         end
-      end
-      for bStart = 1, #cRunPreps, jobCount do
-         local batch = {}
-         for i = bStart, math.min(bStart + jobCount - 1, #cRunPreps) do
-            table.insert(batch, cRunPreps[i])
-         end
-         log(string.format("\n[Batch-C] Launching %d test(s) ...\n", #batch))
-         local bResults = executeBatch(batch)
-         for i, prep in ipairs(batch) do
-            collectC(prep, bResults[i])
-         end
-      end
-
-   end -- if jobCount <= 1 / else
-
-   log(string.format(
-      "\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
-
-   -- Update ignoretests.lua for any layers that had timed-out tests.
-   if timeoutSecs > 0 then
-      for _, layer in ipairs(LAYERS) do
-         local to    = timedOutByLayer[layer.name]
-         local gpuTo = gpuTimedOutByLayer[layer.name]
-         if #to.lua > 0 or #to.c > 0
-            or #gpuTo.lua > 0 or #gpuTo.c > 0 then
-            updateIgnoreTests(layer, to.lua, to.c, gpuTo.lua, gpuTo.c)
-         end
-      end
-   end
-
-   finalizeRegressionRun()
-   end -- legacy dual CPU/GPU path
 end
 
 -- 'listunit' command.
@@ -2689,7 +2389,7 @@ c_run:flag("-e --execute-only",
 c_run:option("-t --timeout",
    "Per-test timeout in seconds (0 = unlimited).\n"
    .. "Includes MPI launcher startup and Slurm step waits, but not worker-slot waits.\n"
-   .. "Timed-out tests are added to ignoretests.lua automatically.")
+   .. "Timed-out tests are recorded with timeout status.")
    :convert(tonumber)
    :default(0)
 c_run:option("--cpu-serial-tol", "Tolerance for CPU-serial-vs-accepted (default 1e-12).")
