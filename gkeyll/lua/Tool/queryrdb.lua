@@ -53,16 +53,9 @@ local log = Logger { logToFile = true }
 
 -- Path of the configuration file written by 'runregression configure'.
 local function computeConfFile()
-   local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
-   if gkeyllDir then
-      local f = io.open(gkeyllDir .. "/share/config.mak", "r")
-      if f then
-         for line in f:lines() do
-            local prefix = line:match("^PREFIX%s*=%s*(.+)%s*$")
-            if prefix then f:close(); return prefix .. "/gkeyll-results/runregression.config.lua" end
-         end
-         f:close()
-      end
+   local prefix = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/gkeyll/bin/?$")
+   if prefix then
+      return prefix .. "/gkeyll-results/runregression.config.lua"
    end
    return os.getenv("HOME") .. "/runregression.config.lua"
 end
@@ -87,6 +80,7 @@ local function configure(args)
       end
 
       local f = loadfile(confFile)
+      if not f then f = loadfile(os.getenv("HOME") .. "/runregression.config.lua") end
       if not f then
          print("Regression tests not configured. Run 'runregression configure' first.")
          os.exit(1)

@@ -60,7 +60,7 @@ counts and machine paths. Only set the values your profile needs to change.
 | `SLURM_CI_MKDEPS_SCRIPT` | Empty; required | Machine dependency-build script. |
 | `SLURM_CI_CONFIGURE_SCRIPT` | Empty; required | Machine configure script; selects CPU/CUDA toolchain. |
 | `SLURM_CI_BUILD_LOCATION` | `agent` | Compile on the Jenkins agent, or use `slurm` allocations. |
-| `SLURM_CI_BUILD_JOBS` | `3` | Positive make concurrency for unit compilation and installation. |
+| `SLURM_CI_BUILD_JOBS` | `3` | Positive concurrency for unit builds, installation, and C regression compilation. |
 | `SLURM_CI_SERIAL_JOBS` | `4` | Positive number of serial regression tests run concurrently. |
 | `SLURM_CI_SERIAL_TEST_TIMEOUT` | `900` | Positive timeout in seconds per serial regression test. |
 | `SLURM_CI_MPIEXEC` | `srun` | Parallel regression launcher. |

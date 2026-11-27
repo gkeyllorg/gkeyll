@@ -11,6 +11,14 @@
 # A candidate-only test is executed but not numerically compared until it is
 # present in a future baseline; it must still compile, finish, and write output.
 #
+# POA output-frame changes in PR #1188.
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1 # Changed number of output files
+
 # Remove stale lines in any later PR to keep this file tidy. Removing a line
 # never acknowledges a difference. To deliberately acknowledge a new change to
 # a test already listed by the baseline, replace its line with an updated

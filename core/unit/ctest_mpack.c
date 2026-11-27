@@ -107,4 +107,42 @@ test_msgpack_1_ho(void)
   TEST_CHECK(strcmp(elist[5].cval, "Hello, World!") == 0);
 }
 
-TEST_LIST = {{"mpack_map_1_ho", test_mpack_map_1_ho}, {"msgpack_1_ho", test_msgpack_1_ho}, {0, 0}};
+void
+test_msgpack_owned_strings(void)
+{
+  char key[] = "name", value[] = "original";
+  struct gkyl_msgpack_map_elem input[] = {GKYL_MSGPACK_MAP_ELEM(key, value)};
+  struct gkyl_msgpack_map_elem *copy = gkyl_msgpack_map_elem_clone(1, input);
+  const struct gkyl_msgpack_map_elem *lists[] = {input, copy};
+  int lengths[] = {1, 1}, count = 0;
+  struct gkyl_msgpack_map_elem *joined = gkyl_msgpack_map_elem_union(2, lengths, lists, &count);
+  TEST_CHECK(count == 2);
+
+  // Copies must own both keys and values independently of their sources.
+  key[0] = 'N';
+  value[0] = 'O';
+  TEST_CHECK(strcmp(copy[0].key, "name") == 0);
+  TEST_CHECK(strcmp(gkyl_msgpack_map_elem_get_string(1, copy, "name"), "original") == 0);
+  TEST_CHECK(gkyl_msgpack_map_elem_get_string(1, copy, "missing") == NULL);
+  gkyl_msgpack_map_elem_release(1, copy);
+  for (int i = 0; i < count; ++i) {
+    TEST_CHECK(strcmp(joined[i].key, "name") == 0);
+    TEST_CHECK(strcmp(joined[i].cval, "original") == 0);
+  }
+
+  // Reader-owned strings have a separate release path; keys remain borrowed.
+  struct gkyl_msgpack_data *packed = gkyl_msgpack_create(1, joined);
+  struct gkyl_msgpack_map_elem decoded[] = {GKYL_MSGPACK_MAP_ELEM("name", "")};
+  gkyl_msgpack_to_map_elem_list(packed, 1, decoded);
+  gkyl_msgpack_data_release(packed);
+  gkyl_msgpack_map_elem_release(count, joined);
+  TEST_CHECK(strcmp(gkyl_msgpack_map_elem_get_string(1, decoded, "name"), "original") == 0);
+  gkyl_msgpack_map_elem_release_string(1, decoded, "name");
+}
+
+TEST_LIST = {
+  {"mpack_map_1_ho", test_mpack_map_1_ho},
+  {"msgpack_1_ho", test_msgpack_1_ho},
+  {"msgpack_owned_strings", test_msgpack_owned_strings},
+  {0, 0}
+};

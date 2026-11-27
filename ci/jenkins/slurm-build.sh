@@ -29,6 +29,7 @@ case "$CI_BUILD_ACTION" in
             configure_args+=(--results-subdir parallel-c-4 --mpiexec "$SLURM_CI_MPIEXEC" --mpi-args "${SLURM_CI_MPI_ARGS:-}")
             run_args+=(--parallel)
         fi
+        run_args+=(--jobs "$SLURM_CI_BUILD_JOBS")
         "$driver" runregression configure "${configure_args[@]}"
         started="$(date +%s)"
         "$driver" runregression run "${run_args[@]}" compile

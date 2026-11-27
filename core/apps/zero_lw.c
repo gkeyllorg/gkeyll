@@ -19,10 +19,10 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include <string.h>
+#include <float.h>
 #include <math.h>
 #include <stdint.h>
-#include <float.h>
+#include <string.h>
 
 // The core is built with -ffast-math, which can optimize isfinite away.
 static bool
@@ -36,6 +36,7 @@ finite_double(double value)
 static double
 infinite_double(void)
 {
+  // Construct infinity from its bits so fast-math cannot fold it away.
   uint64_t bits = UINT64_C(0x7ff0000000000000);
   double value;
   memcpy(&value, &bits, sizeof value);
@@ -400,6 +401,7 @@ array_within_combined_tol(
   double abs_tol, double rel_tol
 )
 {
+  // Each coefficient passes if either its absolute or relative error is small.
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
@@ -426,7 +428,7 @@ array_within_combined_tol(
 
 /* -- G0.Zero.arrayDiff(a1_ud, a2_ud, range_ud, abs_tol?, rel_tol?) -> table -- */
 // Returned table has fields: is_compatible, max_abs_diff, min_abs_diff,
-//                             max_rel_diff, min_rel_diff.
+//                             max_rel_diff, min_rel_diff, within_combined_tol.
 static int
 array_diff_lw(lua_State *L)
 {
@@ -434,8 +436,11 @@ array_diff_lw(lua_State *L)
   struct array_lw **l_a2 = luaL_checkudata(L, 2, ARRAY_METATABLE_NM);
   struct range_lw **l_r = luaL_checkudata(L, 3, RANGE_METATABLE_NM);
 
+  double abs_tol = luaL_optnumber(L, 4, 1e-12);
+  double rel_tol = luaL_optnumber(L, 5, 1e-12);
+  luaL_argcheck(L, finite_double(abs_tol) && abs_tol >= 0, 4, "invalid absolute tolerance");
+  luaL_argcheck(L, finite_double(rel_tol) && rel_tol >= 0, 5, "invalid relative tolerance");
   struct gkyl_array_diff diff = gkyl_array_diff((*l_a1)->arr, (*l_a2)->arr, &(*l_r)->range);
-
   lua_newtable(L);
 
   lua_pushboolean(L, diff.is_compatible);
@@ -491,6 +496,7 @@ scaled_moment_diff_lw(lua_State *L)
     return 1;
   }
   int ncomp = b->ncomp, offset = 0, nb = ncomp;
+  // Maxwellian files pack several moments; compare only their drift block here.
   bool maxwell = strcmp(kind, "Maxwellian") == 0, bimax = strcmp(kind, "BiMaxwellian") == 0;
   if (maxwell || bimax) {
     int nmom = bimax ? 4 : 3;
@@ -507,6 +513,7 @@ scaled_moment_diff_lw(lua_State *L)
     lua_pushnil(L);
     return 1;
   }
+  // Use baseline moments over the whole file to set one physical scale.
   double n = 0, p = 0, t = 0;
   for (long i = 0; i < b->size; ++i) {
     if (maxwell || bimax) {
@@ -556,6 +563,7 @@ scaled_moment_diff_lw(lua_State *L)
     lua_pushnil(L);
     return 1;
   }
+  // Check the mean coefficient and the combined higher-mode error separately.
   double worst = 0;
   bool passed = true;
   for (long i = 0; i < b->size; ++i) {
@@ -634,6 +642,7 @@ scaled_vlasov_moment_diff_lw(lua_State *L)
     lua_pushnil(L);
     return 1;
   }
+  // Extract a global density and thermal scale from baseline diagnostics.
   double n = 0, p = 0, t = 0;
   for (long i = 0; i < b->size; ++i) {
     double n0 = *(const double *)gkyl_array_cfetch(m0, i);
@@ -666,6 +675,7 @@ scaled_vlasov_moment_diff_lw(lua_State *L)
     lua_pushnil(L);
     return 1;
   }
+  // LTE stores density and temperature around its drift-velocity blocks.
   bool passed = true;
   double worst = 0;
   for (long i = 0; i < b->size; ++i) {
@@ -719,6 +729,7 @@ scaled_vlasov_moment_diff_lw(lua_State *L)
   return 2;
 }
 
+// Reject nonfinite coefficients before a tolerance or scale-aware comparison.
 static int
 array_finite_lw(lua_State *L)
 {
@@ -774,6 +785,10 @@ dynvec_diff_lw(lua_State *L)
 {
   const char *f1 = luaL_checkstring(L, 1);
   const char *f2 = luaL_checkstring(L, 2);
+  double abs_tol = luaL_optnumber(L, 3, 1e-12);
+  double rel_tol = luaL_optnumber(L, 4, 1e-12);
+  luaL_argcheck(L, finite_double(abs_tol) && abs_tol >= 0, 3, "invalid absolute tolerance");
+  luaL_argcheck(L, finite_double(rel_tol) && rel_tol >= 0, 4, "invalid relative tolerance");
 
   // Read metadata (fast: header only, no data allocation).
   struct gkyl_dynvec_etype_ncomp enc1 = gkyl_dynvec_read_ncomp(f1);
@@ -938,6 +953,7 @@ scaled_integrated_m1_diff_lw(lua_State *L)
     lua_pushnumber(L, 0);
     return 2;
   }
+  // Convert records to arrays so each time sample has the same layout.
   struct gkyl_array *ba = gkyl_array_new(GKYL_DOUBLE, 4, count);
   struct gkyl_array *ca = gkyl_array_new(GKYL_DOUBLE, 4, count);
   struct gkyl_array *bt = gkyl_array_new(GKYL_DOUBLE, 1, count);
@@ -958,6 +974,7 @@ scaled_integrated_m1_diff_lw(lua_State *L)
     if (!passed) {
       break;
     }
+    // M0 and M2 set the physical scale for the near-zero M1 component.
     double scale = bv[0] > 0 && bv[2] > 0 ? sqrt(bv[0]) * sqrt(bv[2]) : 0;
     if (!(scale > 0) || !finite_double(scale)) {
       valid = false;
@@ -1018,6 +1035,7 @@ scaled_vlasov_integrated_diff_lw(lua_State *L)
     return 1;
   }
   size_t count = gkyl_dynvec_size(b);
+  // Empty vectors use one allocated slot, but have no records to compare.
   struct gkyl_array *ba = gkyl_array_new(GKYL_DOUBLE, nc, count ? count : 1);
   struct gkyl_array *ca = gkyl_array_new(GKYL_DOUBLE, nc, count ? count : 1);
   struct gkyl_array *bt = gkyl_array_new(GKYL_DOUBLE, 1, count ? count : 1);
@@ -1034,6 +1052,7 @@ scaled_vlasov_integrated_diff_lw(lua_State *L)
       valid = false;
       break;
     }
+    // Baseline density and energy normalize every momentum component.
     double scale = sqrt(bv[0]) * sqrt(bv[nc - 1]);
     if (!(scale > 0) || !finite_double(scale)) {
       valid = false;

@@ -769,7 +769,7 @@ gkyl_array_diff(
     .min_rel_diff = DBL_MAX,
   };
 
-  if ((arr1->type != GKYL_DOUBLE) && (arr2->type != GKYL_DOUBLE)) {
+  if ((arr1->type != GKYL_DOUBLE) || (arr2->type != GKYL_DOUBLE)) {
     return incompat;
   }
 
