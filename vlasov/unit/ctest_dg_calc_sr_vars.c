@@ -387,10 +387,186 @@ test_sr_vars(int vdim, int poly_order, bool use_tensor, bool use_nonuniform, boo
   gkyl_vlasov_velocity_map_release(vvm);
 }
 
+// Exercise every supported dispatch row on a small grid, including nonzero
+// matrix offsets, configuration ghosts, p3, and tensor-p1 hybrid pressure.
+static void
+check_sr_dispatch(int cdim, int vdim, int order, bool tensor, bool use_gpu)
+{
+  int pdim = cdim + vdim, cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM] = {0};
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  for (int d = 0; d < pdim; ++d) {
+    cells[d] = 2;
+    ghost[d] = d < cdim ? 1 : 0;
+    lower[d] = d < cdim ? 0.0 : -1.0;
+    upper[d] = 1.0 + 0.1 * d;
+  }
+  struct gkyl_rect_grid grid, cgrid, vgrid;
+  gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
+  gkyl_rect_grid_init(&cgrid, cdim, lower, upper, cells);
+  gkyl_rect_grid_init(&vgrid, vdim, lower + cdim, upper + cdim, cells + cdim);
+  struct gkyl_range phase, phase_ext, conf, conf_ext, vel, vel_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &phase_ext, &phase);
+  gkyl_create_grid_ranges(&cgrid, ghost, &conf_ext, &conf);
+  gkyl_create_grid_ranges(&vgrid, ghost + cdim, &vel_ext, &vel);
+  struct gkyl_basis cbasis, pbasis, vbasis;
+  if (tensor) {
+    gkyl_cart_modal_tensor(&cbasis, cdim, order);
+    if (order == 1) {
+      gkyl_cart_modal_hybrid(&pbasis, cdim, vdim);
+      gkyl_cart_modal_tensor(&vbasis, vdim, 2);
+    } else {
+      gkyl_cart_modal_tensor(&pbasis, pdim, order);
+      gkyl_cart_modal_tensor(&vbasis, vdim, order);
+    }
+  } else {
+    gkyl_cart_modal_serendip(&cbasis, cdim, order);
+    gkyl_cart_modal_serendip(&pbasis, pdim, order);
+    gkyl_cart_modal_serendip(&vbasis, vdim, order);
+  }
+  struct gkyl_vlasov_velocity_map_inp map_in[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < vdim; ++d) {
+    map_in[d].eval_vmap = eval_quad_vmap;
+  }
+  struct gkyl_vlasov_velocity_map *map =
+    gkyl_vlasov_velocity_map_new(&vgrid, &vel, &vbasis, map_in, false, use_gpu);
+  struct gkyl_vlasov_velocity_map *map_ho =
+    gkyl_vlasov_velocity_map_new(&vgrid, &vel, &vbasis, map_in, false, false);
+  struct gkyl_dg_calc_sr_vars *up =
+    gkyl_dg_calc_sr_vars_new(&grid, &vgrid, &cbasis, &vbasis, &conf, &vel, map, use_gpu);
+  struct gkyl_dg_calc_sr_vars *ref =
+    gkyl_dg_calc_sr_vars_new(&grid, &vgrid, &cbasis, &vbasis, &conf, &vel, map_ho, false);
+
+  // Inputs: M0, M1i, u_i, gamma, gamma_inv, f. Distinct modal data exercise
+  // every pressure argument; constant flows give analytic n and GammaV.
+  int nc = cbasis.num_basis;
+  int comps[] = {nc, vdim * nc, vdim * nc, vbasis.num_basis, vbasis.num_basis, pbasis.num_basis};
+  long sizes[] = {conf_ext.volume, conf_ext.volume, conf_ext.volume,
+                  vel.volume,      vel.volume,      phase_ext.volume};
+  struct gkyl_array *input[6], *input_ho[6];
+  double norm = pow(sqrt(2.0), cdim);
+  for (int field = 0; field < 6; ++field) {
+    input_ho[field] = mkarr(false, comps[field], sizes[field]);
+    input[field] = mkarr(use_gpu, comps[field], sizes[field]);
+    for (long cell = 0; cell < sizes[field]; ++cell) {
+      double *coeff = gkyl_array_fetch(input_ho[field], cell);
+      if (field == 0) {
+        coeff[0] = norm * (2.0 + 0.001 * cell);
+      } else if (field < 3) {
+        for (int d = 0; d < vdim; ++d) {
+          coeff[d * nc] =
+            norm * (0.1 / (d + 1) + 0.0001 * cell) * (field == 1 ? 2.0 + 0.001 * cell : 1.0);
+        }
+      } else {
+        coeff[0] = field == 3 ? 2.5 : (field == 4 ? 0.7 : 1.3);
+        for (int k = 1; k < comps[field]; ++k) {
+          coeff[k] = 0.001 * (field + 1) / (k + 1 + cell);
+        }
+      }
+    }
+    gkyl_array_copy(input[field], input_ho[field]);
+  }
+  struct gkyl_array *out[5], *want[5];
+  for (int field = 0; field < 5; ++field) {
+    out[field] = mkarr(use_gpu, field == 1 ? vdim * nc : nc, conf_ext.volume);
+    want[field] = mkarr(false, out[field]->ncomp, conf_ext.volume);
+    gkyl_array_clear(want[field], 0.625);
+    gkyl_array_copy(out[field], want[field]);
+  }
+  gkyl_dg_calc_sr_vars_n(up, input[0], input[1], out[0]);
+  gkyl_dg_calc_sr_vars_n(ref, input_ho[0], input_ho[1], want[0]);
+  gkyl_dg_calc_sr_vars_GammaV(up, &conf, input[2], out[1], out[2], out[3]);
+  gkyl_dg_calc_sr_vars_GammaV(ref, &conf, input_ho[2], want[1], want[2], want[3]);
+  gkyl_dg_calc_sr_vars_pressure(
+    up, &conf, &phase, input[3], input[4], input[2], out[1], out[2], out[3], input[5], out[4]
+  );
+  gkyl_dg_calc_sr_vars_pressure(
+    ref, &conf, &phase, input_ho[3], input_ho[4], input_ho[2], want[1], want[2], want[3],
+    input_ho[5], want[4]
+  );
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &conf);
+  while (gkyl_range_iter_next(&iter)) {
+    long cell = gkyl_range_idx(&conf, iter.idx);
+    double speed_sq = 0.0;
+    for (int d = 0; d < vdim; ++d) {
+      speed_sq += pow(0.1 / (d + 1) + 0.0001 * cell, 2);
+    }
+    const double *density = gkyl_array_cfetch(want[0], cell);
+    const double *lorentz = gkyl_array_cfetch(want[2], cell);
+    TEST_CHECK(
+      gkyl_compare_double(density[0], norm * (2.0 + 0.001 * cell) * sqrt(1.0 - speed_sq), 1e-12)
+    );
+    TEST_CHECK(gkyl_compare_double(lorentz[0], norm * sqrt(1.0 + speed_sq), 1e-12));
+  }
+  for (int field = 0; field < 5; ++field) {
+    struct gkyl_array *got = mkarr(false, out[field]->ncomp, out[field]->size);
+    gkyl_array_copy(got, out[field]);
+    for (long cell = 0; cell < conf_ext.volume; ++cell) {
+      const double *expected = gkyl_array_cfetch(want[field], cell);
+      const double *actual = gkyl_array_cfetch(got, cell);
+      double scale = 1.0;
+      for (int k = 0; k < got->ncomp; ++k) {
+        scale = fmax(scale, fabs(expected[k]));
+      }
+      for (int k = 0; k < got->ncomp; ++k) {
+        TEST_CHECK(fabs(actual[k] - expected[k]) <= 1e-12 * scale);
+        TEST_MSG(
+          "%dx%dv p%d tensor=%d GPU=%d field=%d cell=%ld mode=%d: %.17g != %.17g", cdim, vdim,
+          order, tensor, use_gpu, field, cell, k, actual[k], expected[k]
+        );
+      }
+    }
+    gkyl_array_release(got);
+    gkyl_array_release(out[field]);
+    gkyl_array_release(want[field]);
+  }
+  for (int field = 0; field < 6; ++field) {
+    gkyl_array_release(input[field]);
+    gkyl_array_release(input_ho[field]);
+  }
+  gkyl_dg_calc_sr_vars_release(up);
+  gkyl_dg_calc_sr_vars_release(ref);
+  gkyl_vlasov_velocity_map_release(map);
+  gkyl_vlasov_velocity_map_release(map_ho);
+}
+
+static void
+test_sr_dispatch(bool use_gpu)
+{
+  const int shapes[][3] = {{1, 1, 3}, {1, 2, 2}, {1, 3, 2}, {2, 1, 3},
+                           {2, 2, 2}, {2, 3, 2}, {3, 3, 1}};
+  for (int shape = 0; shape < 7; ++shape) {
+    for (int tensor = 0; tensor < 2; ++tensor) {
+      for (int order = 1; order <= shapes[shape][2]; ++order) {
+#ifndef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+        if (tensor && shapes[shape][0] == 2 && shapes[shape][1] == 3 && order == 2) {
+          continue;
+        }
+#endif
+        check_sr_dispatch(shapes[shape][0], shapes[shape][1], order, tensor, use_gpu);
+      }
+    }
+  }
+}
+
+static void
+t_sr_dispatch_ho(void)
+{
+  test_sr_dispatch(false);
+}
+#ifdef GKYL_HAVE_CUDA
+static void
+t_sr_dispatch_dev(void)
+{
+  test_sr_dispatch(true);
+}
+#endif
+
 // Full scan: {1v,2v,3v} x {ser p1, ser p2, tensor p2} x {uniform, nonuniform}
-// x {CPU, GPU}. Tensor p1 is identical to ser p1; uniform 3v is skipped (it
-// needs 64^3 velocity cells to resolve the Maxwell-Juttner that the quadratic
-// map handles at 32^3).
+// x {CPU, GPU}. Tensor p1 is covered above with hybrid phase-space data.
+// Uniform 3v is skipped: it needs 64^3 velocity cells to resolve the
+// Maxwell-Juttner that the quadratic map handles at 32^3.
 static void
 t_sr_1x1v_ser_p1_uni(void)
 {
@@ -545,6 +721,10 @@ t_sr_1x3v_ten_p2_non_gpu(void)
 #endif
 
 TEST_LIST = {
+  {"sr_vars_dispatch_all", t_sr_dispatch_ho},
+#ifdef GKYL_HAVE_CUDA
+  {"sr_vars_dispatch_all_gpu", t_sr_dispatch_dev},
+#endif
   {"sr_vars_1x1v_ser_p1_uniform", t_sr_1x1v_ser_p1_uni},
   {"sr_vars_1x1v_ser_p1_nonuniform", t_sr_1x1v_ser_p1_non},
   {"sr_vars_1x1v_ser_p2_uniform", t_sr_1x1v_ser_p2_uni},

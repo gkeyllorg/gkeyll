@@ -27,6 +27,9 @@ description: Apply Gkeyll naming conventions when creating, editing, or reviewin
 - Private functions (defined in private header files) or static (and not defined
   in private headers) in files in zero/ folders should have a name that starts
   with an abbreviated version of the name of the file that contains it.
+- Names of functions ran as unit tests, the public name of that test, should
+  contain the name of the module tested or a meaningful abbreviation (e.g. for a
+  mom_gyrokinetic test one could use test_mom_gyrokinetic_ or test_mom_gk_).
 
 ### Variables
 

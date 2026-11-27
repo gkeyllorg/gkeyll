@@ -30,7 +30,7 @@ class CacheManagerTests(unittest.TestCase):
         self.states = {}
         self.slurm = []
         self.current = "jenkins-test-2"
-        self.platform = "stellar-cpu"
+        self.platform = "stellar_cpu"
         self.fake_api = patch("cache_manager.urllib.request.urlopen", side_effect=self.api)
         self.fake_queue = patch("cache_manager.subprocess.run", side_effect=self.command)
         self.fake_api.start()
@@ -41,7 +41,7 @@ class CacheManagerTests(unittest.TestCase):
     def args(self, tag=None, number="2"):
         return types.SimpleNamespace(root=str(self.root), platform=self.platform,
             tag=tag or self.current, job="test", number=number,
-            url=f"http://jenkins.invalid/job/test/{number}/", controller_url="", auth_file="")
+            url=f"http://jenkins.invalid/job/test/{number}/", controller_url="", auth_file="", scheduler="slurm")
 
     def manager(self, tag=None, number="2"):
         return cache_manager.CacheManager(self.args(tag, number))
@@ -276,6 +276,74 @@ class CacheManagerTests(unittest.TestCase):
         new.finish()
         old.finish()
         self.assertFalse(old_candidate.exists())
+
+    def test_new_namespace_requires_explicit_scheduler(self):
+        for platform in ("new-gpu", "stellar-cpu", "perlmutter-gpu"):
+            self.platform = platform
+            args = self.args()
+            args.scheduler = ""
+            with self.assertRaisesRegex(RuntimeError, "require --scheduler"):
+                cache_manager.CacheManager(args)
+        self.platform = "new-gpu"
+        args = self.args()
+        args.scheduler = "slurm"
+        manager = cache_manager.CacheManager(args)
+        manager.begin()
+        record = manager.read_record(manager.tag)
+        self.assertEqual(record["scheduler"], "slurm")
+        self.assertEqual(manager.active_slurm_directories(), set())
+
+    def test_personal_and_team_keep_local_scheduler_default(self):
+        for platform in ("personal", "team-workstation"):
+            args = self.args()
+            args.platform, args.scheduler = platform, ""
+            manager = cache_manager.CacheManager(args)
+            self.assertEqual(manager.scheduler, "none")
+            self.assertEqual(manager.active_slurm_directories(), set())
+
+    def test_scheduler_failure_preserves_new_cluster_cache(self):
+        args = self.args()
+        args.platform = self.platform = "new-cpu"
+        args.scheduler = "slurm"
+        previous = "jenkins-test-1"
+        self.register(previous, "1")
+        path = self.candidate(previous)
+        manager = cache_manager.CacheManager(args)
+        with patch("cache_manager.subprocess.run", return_value=subprocess.CompletedProcess([], 1, "", "offline")):
+            with self.assertRaisesRegex(RuntimeError, "cannot query Slurm"):
+                manager.begin()
+        self.assertTrue(path.exists())
+
+    def test_config_mismatch_waits_for_existing_baseline_user(self):
+        sha = "f" * 40
+        old = self.manager("jenkins-test-1", "1")
+        old.begin()
+        baseline = self.root / "baseline-cache" / self.platform / sha
+        self.assertEqual(old.claim_baseline(sha), "build")
+        # Simulate a published baseline still being read by the first build.
+        (baseline / "cache-owner.txt").unlink()
+        (baseline / "keep").write_text("active binaries")
+        self.states["1"] = "building"
+        new = self.manager()
+        new.begin()
+        self.assertEqual(new.claim_baseline(sha), "wait")
+        self.assertTrue((baseline / "keep").exists())
+        self.states["1"] = "done"
+        fresh = self.manager()
+        self.assertEqual(fresh.claim_baseline(sha), "build")
+        self.assertFalse((baseline / "keep").exists())
+
+    def test_fingerprint_validated_before_accepting_baseline(self):
+        args = self.args()
+        args.config_hash = "a" * 64
+        manager = cache_manager.CacheManager(args)
+        sha = "b" * 40
+        path = self.root / "baseline-cache" / self.platform / sha
+        path.mkdir(parents=True)
+        manifest = "format_version=1\nplatform=" + self.platform + "\nbaseline_commit=" + sha + "\n"
+        (path / "cache-manifest.txt").write_text(manifest + "config_hash=" + "c" * 64 + "\n")
+        self.assertFalse(manager.baseline_valid(path, sha))
+
 
 
 if __name__ == "__main__":

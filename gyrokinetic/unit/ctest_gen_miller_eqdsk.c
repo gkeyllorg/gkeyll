@@ -371,22 +371,25 @@ reference_arc(struct gkyl_gen_miller_eqdsk_inp *inp, double theta)
 static void
 test_coordinates(void)
 {
+  // Callback contexts must outlive each generator, including the shifted case.
+  double kappa = 1, delta = 0, a_shift = 0;
   struct gkyl_gen_miller_eqdsk_inp inp = {
     .Rmajor_axis = 2,
     .bmag_axis = 1.5,
     .Rmajor_LCFS = 2.5,
     .kappa = miller_shape_constant,
-    .kappa_ctx = &(double){1},
+    .kappa_ctx = &kappa,
+    .delta = miller_shape_constant,
+    .delta_ctx = &delta,
+    .a_shift = miller_shape_constant,
+    .a_shift_ctx = &a_shift,
     .qsafety = constant_q,
   };
   for (int shape = 0; shape < 2; ++shape) {
     if (shape) {
-      inp.kappa = miller_shape_constant;
-      inp.kappa_ctx = &(double){1.4};
-      inp.delta = miller_shape_constant;
-      inp.delta_ctx = &(double){-0.38};
-      inp.a_shift = miller_shape_constant;
-      inp.a_shift_ctx = &(double){0.5};
+      kappa = 1.4;
+      delta = -0.38;
+      a_shift = 0.5;
     }
     gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
     TEST_ASSERT(up != NULL);
@@ -394,10 +397,20 @@ test_coordinates(void)
     for (int j = 0; j <= 10; ++j) {
       double radius = info->rminor_guard * j / 10;
       double psi = gkyl_gen_miller_eqdsk_psi_at_r(up, radius);
-      TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_r_at_psi(up, psi) - radius) < 1e-9);
+      double recovered_radius = gkyl_gen_miller_eqdsk_r_at_psi(up, psi);
+      TEST_CHECK(fabs(recovered_radius - radius) < 1e-9);
+      TEST_MSG(
+        "shape=%d, j=%d, psi=%.17g, radius=%.17g, recovered radius=%.17g, residual=%.17g", shape, j,
+        psi, radius, recovered_radius, recovered_radius - radius
+      );
       double rz[2];
       gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, radius, 0, rz);
-      TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_psi_at_R_omp(up, rz[0]) - psi) < 1e-12);
+      double recovered_psi = gkyl_gen_miller_eqdsk_psi_at_R_omp(up, rz[0]);
+      TEST_CHECK(fabs(recovered_psi - psi) < 1e-12);
+      TEST_MSG(
+        "shape=%d, j=%d, radius=%.17g, R_omp=%.17g, psi=%.17g, recovered psi=%.17g, residual=%.17g",
+        shape, j, radius, rz[0], psi, recovered_psi, recovered_psi - psi
+      );
     }
     double half_arc = reference_arc(&inp, M_PI);
     for (int j = -10; j <= 10; ++j) {

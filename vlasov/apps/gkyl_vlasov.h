@@ -314,6 +314,8 @@ struct gkyl_vlasov_fluid_species {
   void *can_pb_n0_ctx; // context for background density function in canonical PB fluid systems
   // pointer to background density function in canonical PB fluid systems
   void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
+  // Use SuperLU-managed CPU work memory for canonical PB fluid solves.
+  bool use_superlu_system_memory;
 
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function

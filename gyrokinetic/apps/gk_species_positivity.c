@@ -262,10 +262,14 @@ gk_species_positivity_init(
 
     if (pos->write_diagnostics) {
       // Allocate data for diagnostic moments.
-      gk_species_moment_init(app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+      gk_species_moment_init(
+        app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_WEIGHT_NONE, false
+      );
 
       // Integrated moments of delta f.
-      gk_species_moment_init(app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+      gk_species_moment_init(
+        app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_WEIGHT_NONE, true
+      );
 
       pos->red_integ_diag =
         gkyl_calloc_hodev(app->use_gpu, pos->integ_moms.num_mom, sizeof(double));

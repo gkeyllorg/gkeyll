@@ -642,22 +642,28 @@ gk_species_bflux_init(
     // Create a moments app for each mom needed.
     bflux->moms_op = gkyl_malloc(sizeof(struct gk_species_moment[bflux->num_calc_moms]));
     bflux->is_hamiltonian_mom = gkyl_malloc(sizeof(bool[bflux->num_calc_moms]));
-    bool need_m2perp = false;
+    bool need_bmag = false;
     bflux->a_hamiltonian_mom = false;
     for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], calc_mom_types[m], false);
+      gk_species_moment_init(
+        app, gk_s, &bflux->moms_op[m], calc_mom_types[m], GKYL_F_MOMENT_WEIGHT_NONE, false
+      );
 
-      need_m2perp = need_m2perp || ((calc_mom_types[m] == GKYL_F_MOMENT_M2PERP) ||
-                                    (calc_mom_types[m] == GKYL_F_MOMENT_M2) ||
-                                    (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2) ||
-                                    (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP) ||
-                                    (calc_mom_types[m] == GKYL_F_MOMENT_HAMILTONIAN));
+      need_bmag =
+        need_bmag ||
+        ((calc_mom_types[m] == GKYL_F_MOMENT_M2PERP) || (calc_mom_types[m] == GKYL_F_MOMENT_M2) ||
+         (calc_mom_types[m] == GKYL_F_MOMENT_M3PERP) || (calc_mom_types[m] == GKYL_F_MOMENT_M3) ||
+         (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2M3) ||
+         (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2PARM2PERPM3PARM3PERP) ||
+         (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2) ||
+         (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP) ||
+         (calc_mom_types[m] == GKYL_F_MOMENT_HAMILTONIAN));
       bflux->is_hamiltonian_mom[m] = calc_mom_types[m] == GKYL_F_MOMENT_HAMILTONIAN;
       bflux->a_hamiltonian_mom = bflux->a_hamiltonian_mom || bflux->is_hamiltonian_mom[m];
     }
 
-    if (need_m2perp) {
-      // For moments that contain M2perp=2*mu*B/m we must fill the ghost cell of B. Use the option
+    if (need_bmag) {
+      // Moments containing perpendicular energy need B in ghost cells. Use the option
       // in bc_basic that fills the ghost cell by evaluating the skin cell at the boundary.
       long buff_sz = 1;
       for (int b = 0; b < bflux->num_boundaries; ++b) {

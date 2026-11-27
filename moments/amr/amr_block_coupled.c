@@ -1232,19 +1232,19 @@ five_moment_update_block_job_func_source(void *ctx)
   double dt = ub_ctx->dt;
   int nstrang = ub_ctx->nstrang;
 
-  struct gkyl_array *fluids[2];
+  struct gkyl_array *fluids[GKYL_MAX_SPECIES] = {0};
   fluids[0] = bdata->f_elc[nstrang];
   fluids[1] = bdata->f_ion[nstrang];
 
-  const struct gkyl_array *app_accel[2];
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES] = {0};
   app_accel[0] = bdata->app_accel_elc;
   app_accel[1] = bdata->app_accel_ion;
 
-  const struct gkyl_array *rhs_source[2];
+  const struct gkyl_array *rhs_source[GKYL_MAX_SPECIES] = {0};
   rhs_source[0] = bdata->rhs_source_elc;
   rhs_source[1] = bdata->rhs_source_ion;
 
-  const struct gkyl_array *nT_source[2];
+  const struct gkyl_array *nT_source[GKYL_MAX_SPECIES] = {0};
   nT_source[0] = bdata->nT_source_elc;
   nT_source[1] = bdata->nT_source_ion;
 

@@ -3,6 +3,7 @@
 #include <gkyl_superlu_ops.h>
 
 #include <stdbool.h>
+#include <stdio.h>
 
 struct gkyl_superlu_prob {
   SuperMatrix **A, **B; // matrices in A_j x_j = B_j problems.
@@ -33,7 +34,9 @@ struct gkyl_superlu_prob {
   double *ferr, *berr;
   void **work;
   int_t *lwork;
+  bool use_system_memory;
   bool LU_in_work;
+  bool has_factors;
 };
 
 gkyl_superlu_prob *
@@ -115,15 +118,24 @@ gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs)
     ABORT("superlu_ops: Malloc fails for berr[].");
   }
 
-  prob->LU_in_work = false;
   prob->work = gkyl_malloc(prob->nprob * sizeof(void *));
-  prob->lwork = gkyl_malloc(prob->nprob * sizeof(int));
+  prob->lwork = gkyl_malloc(prob->nprob * sizeof(int_t));
   for (size_t k = 0; k < prob->nprob; k++) {
-    prob->work[k] = 0;
+    prob->work[k] = NULL;
     prob->lwork[k] = 0;
   }
+  prob->use_system_memory = false;
+  prob->LU_in_work = false;
+  prob->has_factors = false;
 
   return prob;
+}
+
+void
+gkyl_superlu_prob_set_use_system_memory(struct gkyl_superlu_prob *prob)
+{
+  assert(!prob->has_factors);
+  prob->use_system_memory = true;
 }
 
 void
@@ -223,6 +235,10 @@ gkyl_superlu_ludecomp(struct gkyl_superlu_prob *prob)
     &prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[0],
     prob->L[0], prob->U[0], &prob->Glu[0], &prob->stat, &prob->info
   );
+  if (prob->info != 0) {
+    fprintf(stderr, "superlu_ops: dgstrf failed for problem 0 (info=%d).\n", prob->info);
+    ABORT("superlu_ops: factorization failed.");
+  }
 
   prob->options.Fact = prob->nprob == 1 ? FACTORED : SamePattern; // LU decomp done.
 
@@ -231,7 +247,13 @@ gkyl_superlu_ludecomp(struct gkyl_superlu_prob *prob)
       &prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[k],
       prob->L[k], prob->U[k], &prob->Glu[k], &prob->stat, &prob->info
     );
+    if (prob->info != 0) {
+      fprintf(stderr, "superlu_ops: dgstrf failed for problem %zu (info=%d).\n", k, prob->info);
+      ABORT("superlu_ops: factorization failed.");
+    }
   }
+
+  prob->has_factors = true;
 
   SUPERLU_FREE(etree);
   Destroy_CompCol_Permuted(&AC);
@@ -274,8 +296,8 @@ superlu_alloc_work_if_needed(struct gkyl_superlu_prob *prob, int k)
   // I also tried calling dgssvx with lwork=-1 to get the right size, but that also produced estimates lower
   // than neeed, and even if I increase them by 8X, it is not valgrind clean.
 
-  if (prob->lwork[k] > 0) {
-    return; // Already allocated.
+  if (prob->use_system_memory || prob->lwork[k] > 0) {
+    return; // Already allocated, or SuperLU will manage its memory.
   }
 
   // Compute work buffer size matching what dLUMemInit + dLUWorkInit need.
@@ -316,38 +338,55 @@ gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
         prob->trans, prob->L[k], prob->U[k], prob->perm_c, prob->perm_r[k], prob->B[k], &prob->stat,
         &prob->info
       );
+      if (prob->info != 0) {
+        fprintf(stderr, "superlu_ops: dgstrs failed for problem %zu (info=%d).\n", k, prob->info);
+        ABORT("superlu_ops: triangular solve failed.");
+      }
     }
   } else {
-    if (prob->options.Fact == SamePattern) {
+    if (prob->has_factors) {
       for (size_t k = 0; k < prob->nprob; k++) {
-        Destroy_SuperMatrix_Store(prob->L[k]);
-        Destroy_SuperMatrix_Store(prob->U[k]);
+        if (prob->LU_in_work) {
+          Destroy_SuperMatrix_Store(prob->L[k]);
+          Destroy_SuperMatrix_Store(prob->U[k]);
+        } else {
+          Destroy_SuperNode_Matrix(prob->L[k]);
+          Destroy_CompCol_Matrix(prob->U[k]);
+        }
       }
+      prob->has_factors = false;
     }
 
     superlu_alloc_work_if_needed(prob, 0);
-
     dgssvx(
       &prob->options, prob->A[0], prob->perm_c, prob->perm_r[0], prob->etree, &prob->equed, prob->R,
       prob->C, prob->L[0], prob->U[0], prob->work[0], prob->lwork[0], prob->B[0], prob->B[0],
       &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[0], &prob->mem_usage,
       &prob->stat, &prob->info
     );
+    if (prob->info != 0 && prob->info != prob->ncol + 1) {
+      fprintf(stderr, "superlu_ops: dgssvx failed for problem 0 (info=%d).\n", prob->info);
+      ABORT("superlu_ops: factorization or solve failed.");
+    }
 
     prob->options.Fact = prob->nprob == 1 ? FACTORED : SamePattern; // LU decomp done.
 
     for (size_t k = 1; k < prob->nprob; k++) {
       superlu_alloc_work_if_needed(prob, k);
-
       dgssvx(
         &prob->options, prob->A[k], prob->perm_c, prob->perm_r[k], prob->etree, &prob->equed,
         prob->R, prob->C, prob->L[k], prob->U[k], prob->work[k], prob->lwork[k], prob->B[k],
         prob->B[k], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[k],
         &prob->mem_usage, &prob->stat, &prob->info
       );
+      if (prob->info != 0 && prob->info != prob->ncol + 1) {
+        fprintf(stderr, "superlu_ops: dgssvx failed for problem %zu (info=%d).\n", k, prob->info);
+        ABORT("superlu_ops: factorization or solve failed.");
+      }
     }
 
-    prob->LU_in_work = true;
+    prob->LU_in_work = !prob->use_system_memory;
+    prob->has_factors = true;
     prob->options.Fact = FACTORED; // LU decomp done.
   }
 }
@@ -418,7 +457,7 @@ gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
     gkyl_free(prob->A[k]);
     gkyl_free(prob->B[k]);
 
-    if (prob->options.Fact == FACTORED) {
+    if (prob->has_factors) {
       if (prob->LU_in_work) {
         Destroy_SuperMatrix_Store(prob->L[k]);
         Destroy_SuperMatrix_Store(prob->U[k]);

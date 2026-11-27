@@ -8,6 +8,22 @@
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_util.h>
 #include <time.h>
+#include <string.h>
+
+/**
+ * Allocate a double array on the selected backend.
+ *
+ * @param use_gpu Whether to allocate on the GPU.
+ * @param ncomp Number of components per cell.
+ * @param size Number of cells.
+ * @return New array; the caller must release it.
+ */
+static struct gkyl_array *
+mkarr(bool use_gpu, int ncomp, long size)
+{
+  return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, size) :
+                   gkyl_array_new(GKYL_DOUBLE, ncomp, size);
+}
 
 void
 test_array_reduce_dummy_ho()
@@ -106,6 +122,273 @@ test_sum_reduce_range_ho()
 
   gkyl_array_release(arr);
 }
+
+static const enum gkyl_array_op extended_ops[] = {GKYL_MIN,     GKYL_MAX,    GKYL_SUM,
+                                                  GKYL_ABS_MAX, GKYL_SQ_SUM, GKYL_CELL_MEAN_SQ_SUM};
+
+/**
+ * Check supported reductions against expected results, repeating GPU calls to expose races.
+ *
+ * @param use_gpu Whether to run on the GPU.
+ * @param arr_ho Host input fixture with three components per cell.
+ * @param wgt_ho Host weight fixture matching arr_ho.
+ * @param range Selected cells, or NULL for the whole array.
+ * @param expected Results indexed by extended_ops and component.
+ * @param weighted Whether to use the weighted reduction API.
+ * @param pinned Whether GPU results use pinned host storage instead of device storage.
+ */
+static void
+check_reductions(
+  bool use_gpu, const struct gkyl_array *arr_ho, const struct gkyl_array *wgt_ho,
+  const struct gkyl_range *range, const double expected[6][3], bool weighted, bool pinned
+)
+{
+  struct gkyl_array *arr = mkarr(use_gpu, 3, arr_ho->size);
+  struct gkyl_array *wgt = mkarr(use_gpu, 3, wgt_ho->size);
+
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_array_copy(wgt, wgt_ho);
+
+  double result_ho[3];
+  double *result = use_gpu ? (pinned ? gkyl_cu_malloc_host(sizeof(result_ho)) :
+                                       gkyl_cu_malloc(sizeof(result_ho))) :
+                             result_ho;
+
+  int repeats = use_gpu ? 5 : 1;
+  for (int rep = 0; rep < repeats; ++rep) {
+    for (int operation = 0; operation < (weighted ? 6 : 5); ++operation) {
+      enum gkyl_array_op op = extended_ops[operation];
+      if (weighted) {
+        if (range) {
+          gkyl_array_reduce_weighted_range(result, arr, wgt, op, range);
+        } else {
+          gkyl_array_reduce_weighted(result, arr, wgt, op);
+        }
+      } else {
+        if (range) {
+          gkyl_array_reduce_range(result, arr, op, range);
+        } else {
+          gkyl_array_reduce(result, arr, op);
+        }
+      }
+
+      if (use_gpu) {
+        if (pinned) {
+          memcpy(result_ho, result, sizeof(result_ho));
+        } else {
+          gkyl_cu_memcpy(result_ho, result, sizeof(result_ho), GKYL_CU_MEMCPY_D2H);
+        }
+      }
+
+      for (int comp = 0; comp < 3; ++comp) {
+        // Parallel sum ordering can differ, but extrema/empty identities are exact.
+        double target = expected[operation][comp];
+        if (operation == 0 || operation == 1 || operation == 3) {
+          TEST_CHECK(result_ho[comp] == target);
+        } else {
+          TEST_CHECK(fabs(result_ho[comp] - target) <= 2e-12 * fmax(1.0, fabs(target)));
+        }
+        TEST_MSG(
+          "weighted=%d op=%d comp=%d rep=%d: %.17g != %.17g", weighted, op, comp, rep,
+          result_ho[comp], target
+        );
+      }
+    }
+  }
+
+  if (use_gpu) {
+    if (pinned) {
+      gkyl_cu_free_host(result);
+    } else {
+      gkyl_cu_free(result);
+    }
+  }
+  gkyl_array_release(arr);
+  gkyl_array_release(wgt);
+}
+
+static void
+array_reduce_extended_test(bool use_gpu)
+{
+  // Test reduction formulas, block-boundary sizes, subrange exclusion, and empty identities.
+
+  // Hand-calculated results distinguish wx^2 from (wx)^2, and mean square from RMS.
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, 2);
+  struct gkyl_array *wgt = gkyl_array_new(GKYL_DOUBLE, 3, 2);
+
+  const double values[] = {1, -2, 3, -4, 5, -6};
+  const double weights[] = {2, -3, 0.5, -1, 4, 2};
+  memcpy(arr->data, values, sizeof(values));
+  memcpy(wgt->data, weights, sizeof(weights));
+
+  const double plain[6][3] = {{-4, -2, -6}, {1, 5, 3}, {-3, 3, -3}, {4, 5, 6}, {17, 29, 45}, {0}};
+  const double weighted[6][3] = {{2, 6, -12},     {4, 20, 1.5},
+                                 {6, 26, -10.5},  {4, 20, 12},
+                                 {-14, 88, 76.5}, {-49.0 / 3.0, 266.0 / 3.0, 161.0 / 3.0}};
+
+  struct gkyl_range full;
+  gkyl_range_init(&full, 1, (int[]){1}, (int[]){2});
+
+  for (int region = 0; region < 2; ++region) {
+    check_reductions(use_gpu, arr, wgt, region ? &full : NULL, plain, false, false);
+    check_reductions(use_gpu, arr, wgt, region ? &full : NULL, weighted, true, false);
+  }
+
+  if (use_gpu) {
+    check_reductions(true, arr, wgt, NULL, plain, false, true);
+    check_reductions(true, arr, wgt, &full, weighted, true, true);
+  }
+
+  gkyl_array_release(arr);
+  gkyl_array_release(wgt);
+
+  const int block_size = 256; // Match the default CUDA block size in CPU tests too.
+  const int counts[] = {1, block_size - 1, block_size, block_size + 1, 5 * block_size + 13};
+  for (int shape = 0; shape < 7; ++shape) {
+    struct gkyl_range parent, selection;
+    if (shape < 5) {
+      gkyl_range_init(&parent, 1, (int[]){-2}, (int[]){counts[shape] - 3});
+      selection = parent;
+    } else {
+      gkyl_range_init(&parent, 3, (int[]){-2, 1, 4}, (int[]){2, 5, 8});
+      gkyl_sub_range_init(
+        &selection, &parent, (int[]){-1, 2, 5}, shape == 5 ? (int[]){1, 4, 7} : (int[]){-2, 4, 7}
+      );
+    }
+
+    struct gkyl_array *input = gkyl_array_new(GKYL_DOUBLE, 3, parent.volume);
+    struct gkyl_array *weight = gkyl_array_new(GKYL_DOUBLE, 3, parent.volume);
+
+    double expected[2][6][3] = {0};
+    for (int kind = 0; kind < 2; ++kind) {
+      for (int comp = 0; comp < 3; ++comp) {
+        expected[kind][0][comp] = DBL_MAX;
+        expected[kind][1][comp] = -DBL_MAX;
+      }
+    }
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &parent);
+    while (gkyl_range_iter_next(&iter)) {
+      long cell = gkyl_range_idx(&parent, iter.idx);
+      bool selected = selection.volume > 0 && gkyl_range_contains_idx(&selection, iter.idx);
+
+      double *data = gkyl_array_fetch(input, cell);
+      double *wdata = gkyl_array_fetch(weight, cell);
+
+      double sum_sq = 0.0;
+      for (int comp = 0; comp < 3; ++comp) {
+        data[comp] = (cell % 2 ? -1.0 : 1.0) * (1.0 + (cell % 19) / 8.0 + comp / 4.0);
+        // Extrema in different CUDA blocks, plus large excluded-cell sentinels.
+        if (cell == 0 && comp == 0) {
+          data[comp] = -8192;
+        }
+        if (cell == parent.volume - 1 && comp == 1) {
+          data[comp] = 16384;
+        }
+        if (!selected) {
+          data[comp] = 1e8;
+        }
+        wdata[comp] = (comp == 1 ? -1.0 : 1.0) * (0.25 + (cell % 7) / 16.0 + comp / 8.0);
+        sum_sq += data[comp] * data[comp];
+      }
+
+      if (selected) {
+        for (int kind = 0; kind < 2; ++kind) {
+          for (int comp = 0; comp < 3; ++comp) {
+            double factor = kind ? wdata[comp] : 1.0;
+            double product = factor * data[comp];
+            expected[kind][0][comp] = fmin(expected[kind][0][comp], product);
+            expected[kind][1][comp] = fmax(expected[kind][1][comp], product);
+            expected[kind][2][comp] += product;
+            expected[kind][3][comp] = fmax(expected[kind][3][comp], fabs(product));
+            expected[kind][4][comp] += factor * data[comp] * data[comp];
+            expected[kind][5][comp] += factor * (sum_sq / 3.0);
+          }
+        }
+      }
+    }
+
+    check_reductions(use_gpu, input, weight, &selection, expected[0], false, false);
+    check_reductions(use_gpu, input, weight, &selection, expected[1], true, false);
+
+    if (shape < 5) {
+      check_reductions(use_gpu, input, weight, NULL, expected[0], false, false);
+      check_reductions(use_gpu, input, weight, NULL, expected[1], true, false);
+    }
+
+    gkyl_array_release(input);
+    gkyl_array_release(weight);
+  }
+}
+
+static void
+test_array_reduce_extended_ho(void)
+{
+  array_reduce_extended_test(false);
+}
+
+// Fast-math permits reassociation, so evaluation-order checks require a strict build.
+#ifndef __FAST_MATH__
+/**
+ * Check weighted squared sums whose unweighted squares overflow or underflow.
+ *
+ * @param use_gpu Whether to run on the GPU.
+ */
+static void
+array_reduce_weighted_sq_sum_extreme_test(bool use_gpu)
+{
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, 2, 3);
+  struct gkyl_array *wgt_ho = gkyl_array_new(GKYL_DOUBLE, 2, 3);
+  const double values[] = {0, 0, -1e200, 1e-200, 0, 0};
+  const double weights[] = {1, 1, 1e-200, -1e200, 1, 1};
+  const double expected[] = {1e200, -1e-200};
+  memcpy(arr_ho->data, values, sizeof(values));
+  memcpy(wgt_ho->data, weights, sizeof(weights));
+
+  struct gkyl_array *arr = mkarr(use_gpu, 2, 3);
+  struct gkyl_array *wgt = mkarr(use_gpu, 2, 3);
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_array_copy(wgt, wgt_ho);
+  struct gkyl_range parent, selection;
+  gkyl_range_init(&parent, 1, (int[]){-1}, (int[]){1});
+  gkyl_sub_range_init(&selection, &parent, (int[]){0}, (int[]){0});
+
+  double result_ho[2];
+  double *result = use_gpu ? gkyl_cu_malloc(sizeof(result_ho)) : result_ho;
+  for (int region = 0; region < 2; ++region) {
+    if (region) {
+      gkyl_array_reduce_weighted_range(result, arr, wgt, GKYL_SQ_SUM, &selection);
+    } else {
+      gkyl_array_reduce_weighted(result, arr, wgt, GKYL_SQ_SUM);
+    }
+    if (use_gpu) {
+      gkyl_cu_memcpy(result_ho, result, sizeof(result_ho), GKYL_CU_MEMCPY_D2H);
+    }
+    for (int comp = 0; comp < 2; ++comp) {
+      // A purely relative check must reject zero for the tiny nonzero result.
+      TEST_CHECK(fabs((result_ho[comp] - expected[comp]) / expected[comp]) < 1e-14);
+      TEST_MSG("region=%d comp=%d: %.17g != %.17g", region, comp, result_ho[comp], expected[comp]);
+    }
+  }
+  if (use_gpu) {
+    gkyl_cu_free(result);
+  }
+  gkyl_array_release(arr);
+  gkyl_array_release(wgt);
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(wgt_ho);
+}
+
+/**
+ * Run the extreme weighted squared-sum checks on the CPU in strict builds.
+ */
+static void
+test_array_reduce_weighted_sq_sum_extreme_ho(void)
+{
+  array_reduce_weighted_sq_sum_extreme_test(false);
+}
+#endif
 
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
@@ -378,6 +661,21 @@ test_array_reduce_range_max_timer_32x32x32x32_dev()
   test_cu_array_reduce_range_max_timer(32, 32, 32, 32);
 }
 
+static void
+test_array_reduce_extended_dev(void)
+{
+  array_reduce_extended_test(true);
+}
+#ifndef __FAST_MATH__
+/**
+ * Run the extreme weighted squared-sum checks on the GPU in strict builds.
+ */
+static void
+test_array_reduce_weighted_sq_sum_extreme_dev(void)
+{
+  array_reduce_weighted_sq_sum_extreme_test(true);
+}
+#endif
 #endif
 
 TEST_LIST = {
@@ -385,6 +683,10 @@ TEST_LIST = {
   {"array_reduce_ho", test_reduce_ho},
   {"array_reduce_range_ho", test_reduce_range_ho},
   {"array_reduce_sum_range_ho", test_sum_reduce_range_ho},
+  {"array_reduce_extended_ho", test_array_reduce_extended_ho},
+#ifndef __FAST_MATH__
+  {"array_reduce_weighted_sq_sum_extreme_ho", test_array_reduce_weighted_sq_sum_extreme_ho},
+#endif
 #ifdef GKYL_HAVE_CUDA
   {"array_reduce_max_dev", test_array_reduce_max_dev},
   {"array_reduce_max_big_dev", test_array_reduce_max_big_dev},
@@ -394,6 +696,10 @@ TEST_LIST = {
   },
   {"array_reduce_range_max_timer_32x32x32x32_dev", test_array_reduce_range_max_timer_32x32x32x32_dev
   },
+  {"array_reduce_extended_dev", test_array_reduce_extended_dev},
+#ifndef __FAST_MATH__
+  {"array_reduce_weighted_sq_sum_extreme_dev", test_array_reduce_weighted_sq_sum_extreme_dev},
+#endif
 #endif
   {NULL, NULL}
 };
