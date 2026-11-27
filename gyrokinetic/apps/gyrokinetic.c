@@ -562,6 +562,45 @@ gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib)
     assert(is_comm_valid);
   }
 
+  // Create line communicators: global in dir, local in all other directions.
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    int num_ranks_line = 0;
+    int ranks_line[app->decomp->ndecomp];
+    for (int r = 0; r < app->decomp->ndecomp; ++r) {
+      const struct gkyl_range *range = &app->decomp->ranges[r];
+      bool same_line = true;
+      for (int d = 0; d < app->cdim; ++d) {
+        if (d != dir) {
+          same_line = same_line && range->lower[d] == app->local.lower[d] &&
+                      range->upper[d] == app->local.upper[d];
+        }
+      }
+      if (same_line) {
+        ranks_line[num_ranks_line++] = r;
+      }
+    }
+
+    int lower_line[GKYL_MAX_CDIM], upper_line[GKYL_MAX_CDIM], cuts_line[GKYL_MAX_CDIM];
+    for (int d = 0; d < app->cdim; ++d) {
+      lower_line[d] = app->local.lower[d];
+      upper_line[d] = app->local.upper[d];
+      cuts_line[d] = 1;
+    }
+    lower_line[dir] = app->global.lower[dir];
+    upper_line[dir] = app->global.upper[dir];
+    cuts_line[dir] = num_ranks_line;
+    struct gkyl_range range_line;
+    gkyl_range_init(&range_line, app->cdim, lower_line, upper_line);
+    app->decomp_line[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_line, &range_line);
+
+    // Parent rank order matches the subdomain order along this line.
+    bool is_comm_valid;
+    app->comm_line[dir] = gkyl_comm_create_comm_from_ranks(
+      app->comm, num_ranks_line, ranks_line, app->decomp_line[dir], &is_comm_valid
+    );
+    assert(is_comm_valid);
+  }
+
   // Skin and ghost ranges for configuration space fields.
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
@@ -1093,23 +1132,21 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
 static void
 gyrokinetic_calc_field_enabled(
-  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[]
 )
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
-  gk_field_accumulate_rho_c(app, app->field, fin, bflux);
+  gk_field_accumulate_rho_c(app, app->field, fin);
 
   // Solve the field equation.
-  gk_field_rhs(app, app->field);
+  gk_field_rhs(app, app->field, tcurr, fin);
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
 }
 
 static void
 gyrokinetic_calc_field_disabled(
-  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[]
 )
 {
   // Do nothing.
@@ -1130,7 +1167,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
   app->omegaH_gf = 1.0 / DBL_MAX;
 
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
+  if (!(gk_field_is_boltzmann(app->field->gkfield_id) || app->field->has_adiabatic_species)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(
@@ -1343,6 +1380,10 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
   }
 
+  if (gk_field_is_boltzmann(app->field->gkfield_id)) {
+    gk_field_boltzmann_init(app, app->field);
+  }
+
   // Initialize each species cross-collisions terms.
   for (int i = 0; i < ns; ++i) {
     struct gk_species *gk_s = &app->species[i];
@@ -1450,17 +1491,14 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 }
 
 void
-gyrokinetic_calc_field(
-  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
-)
+gyrokinetic_calc_field(gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[])
 {
-  app->calc_field_func(app, tcurr, fin, bflux);
+  app->calc_field_func(app, tcurr, fin);
 }
 
 void
 gyrokinetic_calc_field_and_apply_bc(
-  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array **bflux[],
+  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[],
   struct gkyl_array *distf_neut[]
 )
 {
@@ -1469,7 +1507,7 @@ gyrokinetic_calc_field_and_apply_bc(
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **)distf, bflux);
+  gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **)distf);
 
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
@@ -1559,31 +1597,17 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
   struct gkyl_array *distf_neut[app->num_neut_species];
   for (int i = 0; i < app->num_species; ++i) {
     distf[i] = app->species[i].f;
-    bflux[i] = app->species[i].step_moms.f;
+    bflux[i] = app->species[i].step_moms.rate;
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
   }
   if (app->field->calc_init_field) {
-    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-      for (int i = 0; i < app->num_species; ++i) {
-        struct gk_species *gks = &app->species[i];
-
-        // Compute the collisionless flux so we can compute the initial boundary flux.
-        gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
-
-        // Compute and store (in the ghost cell of f1) the boundary fluxes.
-        gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
-        // Compute moments of the boundary fluxes.
-        gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
-      }
-    }
-
     if (app->field->info.init_from_file.type == 0 && app->field->info.init_field_profile == 0) {
       // Compute the field.
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
-      gyrokinetic_calc_field_enabled(app, t0, (const struct gkyl_array **)distf, bflux);
+      gyrokinetic_calc_field_enabled(app, t0, (const struct gkyl_array **)distf);
     } else {
       if (app->field->info.init_field_profile == 0) {
         // Read the field.
@@ -4916,30 +4940,16 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     struct gkyl_array *distf_neut[app->num_neut_species];
     for (int i = 0; i < app->num_species; ++i) {
       distf[i] = app->species[i].f;
-      bflux[i] = app->species[i].step_moms.f;
+      bflux[i] = app->species[i].step_moms.rate;
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
     }
     if (app->field->update_field) {
-      if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-        for (int i = 0; i < app->num_species; ++i) {
-          struct gk_species *gks = &app->species[i];
-
-          // Compute the collisionless flux so we can compute the initial boundary flux.
-          gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
-
-          // Compute and store (in the ghost cell of f1) the boundary fluxes.
-          gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
-          // Compute moments of the boundary fluxes.
-          gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
-        }
-      }
-
       // Compute the field.
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
-      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **)distf, bflux);
+      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **)distf);
     } else {
       // Read the t=0 field.
       gkyl_gyrokinetic_app_from_frame_field(app, 0);
@@ -5004,6 +5014,8 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
   for (int dir = 0; dir < app->cdim; ++dir) {
     gkyl_rect_decomp_release(app->decomp_plane[dir]);
     gkyl_comm_release(app->comm_plane[dir]);
+    gkyl_rect_decomp_release(app->decomp_line[dir]);
+    gkyl_comm_release(app->comm_line[dir]);
   }
   gkyl_comm_release(app->comm);
   gkyl_rect_decomp_release(app->decomp);
@@ -5047,6 +5059,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   for (int dir = 0; dir < app->cdim; ++dir) {
     gkyl_rect_decomp_release(app->decomp_plane[dir]);
     gkyl_comm_release(app->comm_plane[dir]);
+    gkyl_rect_decomp_release(app->decomp_line[dir]);
+    gkyl_comm_release(app->comm_line[dir]);
   }
   gkyl_comm_release(app->comm);
   gkyl_rect_decomp_release(app->decomp);

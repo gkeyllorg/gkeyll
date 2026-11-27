@@ -127,38 +127,35 @@ struct gk_multib_field {
   // Functions to advance MB field
   // Pointer to function to calculate the potential.
   void (*rhs_func)(
-    gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[],
-    struct gkyl_array **bflux[]
+    gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[]
   );
 };
 
 /** Time stepping API */
 
 /**
- * Compute the gyrokinetic fields.
+ * Compute app-owned fields via elliptic/field equations.
  *
  * @param app Multiblock gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param fin Array of distribution functions (one for each species) .
- * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  */
 void gyrokinetic_multib_calc_field(
-  struct gkyl_gyrokinetic_multib_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  struct gkyl_gyrokinetic_multib_app *app, double tcurr, const struct gkyl_array *fin[]
 );
 
 /**
- * Compute the gyrokinetic fields and apply boundary conditions.
+ * Compute app-owned fields via elliptic/field equations and applied BCs to
+ * the supplied multiblock state (only ghost cells are changed).
  *
- * @param app Gyrokinetic app.
- * @param tcurr Current simulation time.
- * @param distf Array of distribution functions (for each charged species).
- * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
- * @param distf_neut Array of distribution functions (for each neutral species).
+ * @param app Multiblock gyrokinetic app.
+ * @param tcurr Time at which boundary data will be used.
+ * @param distf Charged states indexed by local block and species, with writable ghosts.
+ * @param distf_neut Neutral states indexed by local block and species; NULL if there are none.
  */
 void gyrokinetic_multib_calc_field_and_apply_bc(
   struct gkyl_gyrokinetic_multib_app *app, double tcurr, struct gkyl_array *distf[],
-  struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]
+  struct gkyl_array *distf_neut[]
 );
 
 /**
@@ -188,11 +185,9 @@ struct gk_multib_field *gk_multib_field_new(
  * @param mbapp Gyrokinetic multib app.
  * @param mbf Multib field object.
  * @param fin Distribution function (for all local blocks).
- * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
 */
 void gk_multib_field_rhs(
-  gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[]
 );
 
 /** Releas the resources for the multib field object

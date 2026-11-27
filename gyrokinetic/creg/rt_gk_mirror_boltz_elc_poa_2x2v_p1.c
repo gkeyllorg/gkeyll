@@ -605,7 +605,7 @@ run_phase(
       {.type = pparams->fdot_mult_type, .cellwise_const = true, .write_diagnostics = true},
   };
   struct gkyl_gyrokinetic_field field_inp = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR,
     .electron_mass = ctx->me,
     .electron_charge = ctx->qe,
     .electron_temp = ctx->Te0,
@@ -801,7 +801,7 @@ main(int argc, char **argv)
       },
   };
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,

@@ -41,6 +41,15 @@ void gk_field_ts_fem_perpproj_release(struct gk_field *field);
 void gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /**
+ * Get the Boltzmann reference density and potential, stored as two blocks of
+ * configuration-space modal coefficients in the local lower parallel ghost slab.
+ *
+ * @param field Initialized Boltzmann field object (not NULL).
+ * @return Read-only array owned by the field and valid until its release.
+ */
+const struct gkyl_array *gk_field_boltzmann_nphi_ref(const struct gk_field *field);
+
+/**
  * Initialize the FEM object for 1D (1x) field solves.
  * Used for simulations with one configuration space dimension.
  *
@@ -97,11 +106,9 @@ void gk_field_fem_projection_par(
  * @param app Gyrokinetic application object.
  * @param field Field object for storing charge density.
  * @param gks Species object providing density moments.
- * @param bflux Boundary flux array (for boundary contributions).
  */
 void gk_field_accumulate_rho_c_poisson(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
-  struct gkyl_array **bflux
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks
 );
 
 /**

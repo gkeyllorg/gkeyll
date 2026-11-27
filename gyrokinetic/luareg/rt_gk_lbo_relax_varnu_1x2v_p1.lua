@@ -192,7 +192,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   
   -- Field.
   field = Gyrokinetic.Field.new {
-    fieldID = G0.GKField.Boltzmann,
+    fieldID = G0.GKField.BoltzmannAmbipolar,
 
     electronMass = mass,
     electronCharge = charge,

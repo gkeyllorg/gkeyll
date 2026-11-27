@@ -305,7 +305,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR,
 
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,

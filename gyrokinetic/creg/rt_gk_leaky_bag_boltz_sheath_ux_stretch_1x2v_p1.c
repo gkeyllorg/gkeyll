@@ -118,9 +118,11 @@ create_ctx(void)
   return ctx;
 }
 
-void
+static int
 compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 {
+  // Check the initial sheath potential against the Maxwellian flux balance.
+  // Return 1 if the comparison passes, 0 otherwise.
   struct boundary_ctx *app = ctx;
   char filename[256];
   sprintf(filename, "%s-field_0.gkyl", app_inp->name);
@@ -132,9 +134,10 @@ compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 
   double sheath_val = field_comp[0] / sqrt(2.) - field_comp[1] * sqrt(3. / 2.);
 
+  // Equal outward Maxwellian fluxes give phi_s = (Te/e)*log(vte/vti) at zero wall bias.
   double analytical_sheath =
-    app_inp->field.electron_temp / app_inp->field.electron_charge *
-    log(2 * sqrt(app_inp->field.electron_temp / app_inp->field.electron_mass) / (app->vti));
+    -app_inp->field.electron_temp / app_inp->field.electron_charge *
+    log(sqrt(app_inp->field.electron_temp / app_inp->field.electron_mass) / (app->vti));
 
   int check = gkyl_compare_double(sheath_val, analytical_sheath, 1e-3);
   if (check != 1) {
@@ -147,6 +150,7 @@ compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
     printf("Sheath value and analytical sheath value match!\n");
   }
   gkyl_array_release(field);
+  return check;
 }
 
 void
@@ -264,7 +268,7 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR,
     .electron_mass = ctx.mass_ion,
     .electron_charge = -ctx.charge_ion,
     .electron_temp = ctx.Ti,
@@ -326,7 +330,7 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
-  compareToAnalytics(&app_inp, &ctx);
+  int check = compareToAnalytics(&app_inp, &ctx);
 
   gkyl_gyrokinetic_comms_release(comm);
 
@@ -336,5 +340,5 @@ main(int argc, char **argv)
   }
 #endif
 
-  return 0;
+  return check ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -683,11 +683,6 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.qe,
     .mass = ctx.me,
-    .vdim = ctx.vdim,
-    .lower = {-ctx.vpar_max_elc, 0.0},
-    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-    .cells = {cells_v[0], cells_v[1]},
-
     .polarization_density = ctx.n0,
 
     .projection =
@@ -725,10 +720,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-    .electron_mass = ctx.me,
-    .electron_charge = ctx.qe,
-    .electron_temp = ctx.Te0,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN_AMBIPOLAR,
     .polarization_bmag = ctx.B_p,
   };
 

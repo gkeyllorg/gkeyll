@@ -22,6 +22,8 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   struct gkyl_array ***smom_out = fdot_args->smom_out;
   struct gkyl_array ***smom_out_neut = fdot_args->smom_out_neut;
 
+  struct gkyl_array **rates[ns];
+
   // Fetch input and output arrays.
   for (int i = 0; i < ns; ++i) {
     struct gk_species *gks = &app->species[i];
@@ -29,6 +31,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
     fout[i] = gks->f1;
     smom_in[i] = gks->step_moms.f;
     smom_out[i] = gks->step_moms.f;
+    rates[i] = gks->step_moms.rate;
   }
   for (int i = 0; i < neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
@@ -41,15 +44,15 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   // Compute df/dt from implicit terms.
   gyrokinetic_rhs_implicit(app, tcurr, dt, fdot_args, &st);
 
-  // Apply boundary conditions and copy solution.
-  gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+  // Prepare boundary data at the end of the split step, then copy the solution.
+  gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt, fout, fout_neut);
 
   for (int i = 0; i < ns; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_copy_range(gks, gks->f, fout[i], &gks->local_ext);
 
     // Rescale species (e.g. fixed fraction, adiabatic).
-    gk_species_scaling_apply(app, gks, &gks->sca, gks->f, smom_out);
+    gk_species_scaling_apply(app, gks, &gks->sca, gks->f, rates);
   }
   for (int i = 0; i < neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];

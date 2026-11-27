@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gk_field_priv.h>
 #include <gkyl_gk_fluid_moments.h>
 
 // The target density includes J. Scale all conserved fields by the density ratio.
@@ -61,8 +62,8 @@ gk_species_scaling_apply_fixed_fraction_fluid(
 
 static void
 copy_lower_z_ghost_to_all_z_conf(
-  gkyl_gyrokinetic_app *app, struct gkyl_array *arr_out, struct gkyl_array *arr_in, int comp_in,
-  struct gkyl_array *buff
+  gkyl_gyrokinetic_app *app, struct gkyl_array *arr_out, const struct gkyl_array *arr_in,
+  int comp_in, struct gkyl_array *buff
 )
 {
   // Copy the component 'comp_in' of the lower ghost cell of 'arr_in' into the
@@ -92,58 +93,39 @@ copy_lower_z_ghost_to_all_z_conf(
 
 static void
 gk_species_scaling_boltzmann_density(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
-  struct gkyl_array **bflux[]
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca
 )
 {
-  struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
-
-  // Compute density and temperature.
-  gk_species_moment_calc(app, &gks->lte.moms, gks->local, app->local, fin);
-  gkyl_dg_div_op_range(
-    gks->lte.moms.mem_geo, &app->basis, 0, gks->lte.moms.marr, 0, gks->lte.moms.marr, 0,
-    app->gk_geom->geo_int.jacobgeo, &app->local
-  );
-
-  // Boltzmann density = n_sheath * exp(-q * (phi-phi_sheath)/T ).
-  // Copy the sheath potential from the lower ghost cell to the interior cells.
-  int idx_par = app->cdim - 1;
-  int off = 2 * idx_par;
+  // Use the field's prescribed temperature, independent of the species' measured moments.
+  const struct gkyl_array *nphi_ref = gk_field_boltzmann_nphi_ref(app->field);
   copy_lower_z_ghost_to_all_z_conf(
-    app, sca->sheath_val, app->field->sheath_vals[off], 1 * app->basis.num_basis, sca->buffer_conf
+    app, sca->sheath_val, nphi_ref, app->basis.num_basis, sca->buffer_conf
   );
-
-  // Compute ( phi-phi_sheath)/(T/m) ).
   gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
-  gkyl_dg_div_op_range(
-    gks->lte.moms.mem_geo, &app->basis, 0, sca->buffer_conf, 0, sca->buffer_conf, 2,
-    gks->lte.moms.marr, &app->local
+
+  // Keep input and output separate for the CUDA exponential projector.
+  double Te_eV_inv = -app->field->info.electron_charge / app->field->info.electron_temp;
+  struct gkyl_array *exp_phi = gks->m0.marr;
+  gkyl_proj_exp_on_basis_advance(
+    sca->proj_exp, &app->local, 1.0, Te_eV_inv, sca->buffer_conf, exp_phi
   );
 
-  // Compute exp(-q * (phi-phi_sheath)/T ).
-  double qDm = gks->info.charge / gks->info.mass;
-  struct gkyl_array *m0_boltz = gks->m0.marr;
-  gkyl_proj_exp_on_basis_advance(sca->proj_exp, &app->local, 1.0, -qDm, sca->buffer_conf, m0_boltz);
-
-  // Copy the sheath density from the lower ghost cell to the interior cells.
-  copy_lower_z_ghost_to_all_z_conf(
-    app, sca->sheath_val, app->field->sheath_vals[off], 0 * app->basis.num_basis, sca->buffer_conf
-  );
-
-  // Compute n_sheath * exp(-q * (phi-phi_sheath)/T ).
+  // Copy n_ref without overwriting the exponential, then form the physical density.
+  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, nphi_ref, 0, sca->buffer_conf);
   gkyl_dg_mul_op_range(
-    &app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz, &app->local
+    &app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, exp_phi, &app->local
   );
 }
 
 static void
-gk_species_scaling_apply_boltzmann_fluid(
+gk_species_scaling_apply_boltzmann(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
   struct gkyl_array **bflux[]
 )
 {
-  gk_species_scaling_boltzmann_density(app, gks, sca, fin, bflux);
+  gk_species_scaling_boltzmann_density(app, gks, sca);
+  // Both storage types accept a Jacobian-weighted target density.
   gkyl_dg_mul_op_range(
     &app->basis, 0, sca->buffer_conf, 0, sca->buffer_conf, 0, app->gk_geom->geo_int.jacobgeo,
     &app->local
@@ -174,28 +156,6 @@ gk_species_scaling_apply_fixed_fraction_kinetic(
   // Multiply this species by ratio of densities times fixed_fraction.
   gkyl_array_scale_range(m0ratio, sca->fixed_fraction, &app->local);
 
-  gkyl_dg_mul_conf_phase_op_range(
-    &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local
-  );
-}
-
-static void
-gk_species_scaling_apply_boltzmann_kinetic(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
-  struct gkyl_array **bflux[]
-)
-{
-  gk_species_scaling_boltzmann_density(app, gks, sca, fin, bflux);
-
-  // Reciprocal of the density.
-  struct gkyl_array *m0_inv = gks->m0.marr;
-  gkyl_dg_inv_op_range(&app->basis, 0, m0_inv, 0, gks->lte.moms.marr, &app->local);
-
-  // Ratio of the densities.
-  struct gkyl_array *m0ratio = gks->m0.marr;
-  gkyl_dg_mul_op_range(&app->basis, 0, m0ratio, 0, m0_inv, 0, sca->buffer_conf, &app->local);
-
-  // Multiply this species by ratio of densities times fixed_fraction.
   gkyl_dg_mul_conf_phase_op_range(
     &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local
   );
@@ -301,8 +261,7 @@ gk_species_scaling_init(
     sca->proj_exp =
       gkyl_proj_exp_on_basis_new(&app->basis, app->basis.poly_order + 1, app->use_gpu);
 
-    sca->apply_func = gks->is_fluid ? gk_species_scaling_apply_boltzmann_fluid :
-                                      gk_species_scaling_apply_boltzmann_kinetic;
+    sca->apply_func = gk_species_scaling_apply_boltzmann;
     if (sca->write_diagnostics) {
       sca->write_func = gk_species_scaling_write_enabled;
     } else {

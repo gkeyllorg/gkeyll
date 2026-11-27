@@ -16,7 +16,7 @@ gk_species_kinetic_omegaH_dt(
   // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
   // the polarization weight in our field equation.
 
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
+  if (!(gk_field_is_boltzmann(app->field->gkfield_id) || app->field->has_adiabatic_species)) {
     // Obtain the maximum density (using cell centers).
     gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
     gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
@@ -1408,9 +1408,6 @@ gk_species_kinetic_init(
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
-  // Check if using Boltzmann elc.
-  bool ion_in_boltz_elc_field = (gks->info.charge > 0.0) && app->field->update_field &&
-                                (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN);
   // Check if sources are adaptive.
   bool adaptive_sources = gk_species_kinetic_do_I_adapt_src(app, gks);
   // Check if other species use the recycle_react_scale operation.
@@ -1429,14 +1426,14 @@ gk_species_kinetic_init(
     if (recycling_bcs) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
-    if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
+    if (adaptive_sources || recycle_react_scale) {
       // This is within an if-statement instead of an else if because it
       // superseeds (and is a superset) of GK_SPECIES_BFLUX_CALC_FLUX.
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
     }
   }
   int *nmom_extra = &add_bflux_moms_inp.num_diag_moments;
-  if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
+  if (adaptive_sources || recycle_react_scale) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M0;
   }
   if (adaptive_sources) {

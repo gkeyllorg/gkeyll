@@ -373,7 +373,7 @@ gk_species_source_bgk_calc_integrated_diags_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Volume integral of the source term averaged over the last time step.
-  gk_integ_moms_reduce_append(app, &src->integ_moms, src->step_moms.f, tm);
+  gk_integ_moms_reduce_append(app, &src->integ_moms, src->step_moms.rate, tm);
 
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;

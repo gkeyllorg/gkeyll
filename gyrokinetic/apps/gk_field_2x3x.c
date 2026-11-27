@@ -472,7 +472,10 @@ gk_field_2x3x_add_IWL_updaters(
 }
 
 static void
-gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs_poisson_perp_2x3x(
+  struct gkyl_gyrokinetic_app *app, struct gk_field *field, double tcurr,
+  const struct gkyl_array *fin[]
+)
 {
   // Smooth the charge density along z.
   field->fem_projection_par_rho_func(app, field, field->rho_c, field->rho_c);

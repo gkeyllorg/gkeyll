@@ -5,7 +5,11 @@
 /**
  * State pointers used by gyrokinetic RHS evaluation and time stepping.
  * The app owns the top-level pointer arrays; their entries borrow arrays
- * owned by other modules.
+ * owned by other modules. RHS evaluation writes instantaneous moment rates to
+ * smom_out. Time stepping advances moment integrals with the same arithmetic as
+ * distributions; smom_in holds the input integral state. Each step (and retry)
+ * starts with zero smom. Accepted smoms remain in step_moms.f; separate
+ * step_moms.rate arrays hold their averages over the accepted dt for consumers.
  */
 struct gkyl_gyrokinetic_fdot_args {
   int num_species; // Number of charged species (per block for multiblock).

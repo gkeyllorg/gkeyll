@@ -199,7 +199,7 @@ gk_species_bflux_calc_integrated_mom_enabled(
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
       gkyl_array_integrate_advance(
-        bflux->integ_op[m], bflux->step_moms.f[b * bflux->num_calc_moms + mom_idx], 1.0, 0,
+        bflux->integ_op[m], bflux->step_moms.rate[b * bflux->num_calc_moms + mom_idx], 1.0, 0,
         bflux->boundaries_conf_ghost[b], 0, bflux->integ_moms_local
       );
 
@@ -357,7 +357,7 @@ gk_species_bflux_write_mom_enabled(
       for (int m = 0; m < num_diag_mom; ++m) {
         struct timespec wst = gkyl_wall_clock();
         int mom_idx = bflux->diag_mom_idx[m];
-        struct gkyl_array *mom_arr = bflux->step_moms.f[b * bflux->num_calc_moms + mom_idx];
+        struct gkyl_array *mom_arr = bflux->step_moms.rate[b * bflux->num_calc_moms + mom_idx];
 
         // For now copy the moment to the skin ghost and write it out.
         gkyl_array_copy_range_to_range(

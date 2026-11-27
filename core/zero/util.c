@@ -108,15 +108,6 @@ gkyl_compare_double(double a, double b, double eps)
   return diff / fmin(absa + absb, DBL_MAX) < eps;
 }
 
-bool
-gkyl_is_dfinite(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
-  return exponent != UINT64_C(0x7ff0000000000000);
-}
-
 double
 gkyl_round_to_e16_9(double value)
 {
