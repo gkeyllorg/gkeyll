@@ -94,6 +94,15 @@ struct vm_geom {
   struct gkyl_surf_and_vol_node_arrays *vierb_con_init; // Contravariant vierbein components
 };
 
+// Species whose densities couple explicitly to a field, and the square of the rate each sets per
+// unit density: omega^2 is the sum over them of the weight times the cell average of the physical
+// density (see vlasov_species_accumulate_omega_sq), and the time-step resolves it.
+struct vlasov_rate_list {
+  int num; // number of species
+  int idx[GKYL_MAX_SPECIES]; // their indices in app->species
+  double weight[GKYL_MAX_SPECIES]; // per unit number density (kinetic) or mass density (fluid)
+};
+
 // Implicit fluid-EM coupling data: the fluid-bearing species, gathered in
 // declaration order at construction.
 struct vm_fluid_em_coupling {
@@ -134,15 +143,22 @@ struct vm_fluid_em_coupling {
     struct gkyl_array *fluids[GKYL_MAX_SPECIES]
   );
 
-  // Kinetic species of a hybrid run: their current at the start of a source step is a known
-  // current of the step (a leapfrog with the transport step, which moves them with the E of the
-  // source step), so the step has to resolve their plasma frequency.
+  // Kinetic species of a hybrid run: with the Maxwell field their current at the start of a
+  // source step is a known current of the step (a leapfrog with the transport step, which moves
+  // them with the E of the source step).
   int num_kinetic; // number of kinetic species
   struct vlasov_species *kinetic[GKYL_MAX_SPECIES]; // kinetic species, in declaration order
-  struct gkyl_array *omega_p_sq; // per cell: sum over the kinetic species of q^2 n / (eps0 m)
-  struct gkyl_array *m0_avg; // per cell: average density of a kinetic species (scratch)
-  double *omega_p_sq_max; // maximum of omega_p_sq over the local range
-  // Largest step of the leapfrog of the kinetic currents (DBL_MAX without kinetic species).
+
+  // Step bound of the densities that couple explicitly to the field, omega dt <= cfl_frac with
+  // omega^2 the largest over the cells. Maxwell: the charged kinetic species with q^2/(epsilon0 m),
+  // the plasma frequency (the fluids are implicit in the source step; a static field takes no
+  // current, so none). Poisson: every species with a nonzero rate_sq_weight of the potentials, the
+  // plasma frequency and the Jeans rate (see fluid_em_coupling_dt_rate).
+  struct vlasov_rate_list rates;
+  struct gkyl_array *omega_sq; // per cell: the sum of the squares of the rates
+  struct gkyl_array *dens_avg; // per cell: the average density of a species (buffer)
+  double *omega_sq_max; // maximum of omega_sq over the local range
+  // Largest step of the explicit coupling (DBL_MAX without such species).
   double (*src_dt_func)(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
 
   // The source step and the field part of the staggered state, by field type. Maxwell: the solve
@@ -156,14 +172,8 @@ struct vm_fluid_em_coupling {
   void (*restore_field_func)(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
 
   // Poisson field: the acceleration of each fluid aspect in the kick (the gravitational
-  // acceleration of the field, or accel_zero without self-gravity), and the step bound of the
-  // explicit coupling of all species to the potentials, omega dt <= cfl_frac with omega^2 the
-  // largest sum over the species of rate_sq_weight times the cell-average number density: the
-  // kinetic species and fluid aspects with a nonzero weight, and their weights.
+  // acceleration of the field, or accel_zero without self-gravity).
   const struct gkyl_array *accel_kick[GKYL_MAX_SPECIES];
-  int num_rate_kinetic, num_rate_fluid;
-  struct vlasov_species *rate_kinetic[GKYL_MAX_SPECIES], *rate_fluid[GKYL_MAX_SPECIES];
-  double rate_sq_kinetic[GKYL_MAX_SPECIES], rate_sq_fluid[GKYL_MAX_SPECIES];
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -247,10 +257,11 @@ struct gkyl_vlasov_app {
   );
   struct gkyl_array *src_omega_p_sq; // per cell: sum over the species of q^2 n / (eps0 m)
   struct gkyl_array *src_omega_p_sq_kin; // its part of the kinetic species, from the first stage
-  struct gkyl_array *src_rho_avg; // per cell: average density of a species (scratch)
+  struct gkyl_array *src_rho_avg; // per cell: average density of a species (buffer)
   double *src_omega_p_sq_max; // maximum of src_omega_p_sq over the local range
-  int src_num_kinetic; // number of charged kinetic species
-  int src_kinetic[GKYL_MAX_SPECIES]; // indices of the charged kinetic species
+  // the charged kinetic species (weight q^2/(eps0 m)) and charged momentum-carrying fluid aspects
+  // (weight (q/m)^2/eps0 per unit mass density)
+  struct vlasov_rate_list src_rate_kinetic, src_rate_fluid;
 
   // Held backgrounds (captured in gkyl_vlasov_app_apply_ic).
   bool has_background; // some species is held about a background

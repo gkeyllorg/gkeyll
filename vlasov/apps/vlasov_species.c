@@ -93,6 +93,19 @@ fluid_accumulate_poisson_sources(
   vm_fluid_species_accumulate_poisson_sources(app, sp->fluid, fluidin);
 }
 
+// The square of a rate set by the density of a fluid species: weight times the cell average of
+// its mass density (a DG fluid state carries no position-map Jacobian).
+static void
+fluid_accumulate_omega_sq(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, double weight, struct gkyl_array *buffer,
+  struct gkyl_array *omega_sq
+)
+{
+  gkyl_dg_calc_average_range(&app->basis, 0, buffer, 0, fluidin, app->local);
+  gkyl_array_accumulate_range(omega_sq, weight, buffer, &app->local);
+}
+
 static void
 kinetic_calc_self_moms(
   gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, struct gkyl_array *fin,
@@ -179,6 +192,23 @@ kinetic_accumulate_poisson_sources(
     double weight = pot->src_weight(pot, sp->charge, sp->mass);
     gkyl_array_accumulate_range(pot->rho, weight, s->m0.marr, &app->local);
   }
+}
+
+// The square of a rate set by the density of a kinetic species: weight times the cell average of
+// its physical number density (M0 of the stored distribution carries the conf Jacobian of a
+// position map, divided out here; s->m0 is recomputed).
+static void
+kinetic_accumulate_omega_sq(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, double weight, struct gkyl_array *buffer,
+  struct gkyl_array *omega_sq
+)
+{
+  struct vm_species *s = sp->kinetic;
+  vm_species_moment_calc(&s->m0, s->local, app->local, fin);
+  vm_species_moment_divide_Jx(app, s, &s->m0, s->m0.marr);
+  gkyl_dg_calc_average_range(&app->basis, 0, buffer, 0, s->m0.marr, app->local);
+  gkyl_array_accumulate_range(omega_sq, weight, buffer, &app->local);
 }
 
 // Integrated diagnostic moments of the aspect of a kinetic or of a fluid species.
@@ -347,6 +377,7 @@ vlasov_kinetic_species_init(
           kinetic_accumulate_current;
       break;
   }
+  sp->accumulate_omega_sq_func = kinetic_accumulate_omega_sq;
 }
 
 void
@@ -391,6 +422,7 @@ vlasov_fluid_species_init(
   sp->accumulate_field_coupling_func = has_explicit_current ? fluid_accumulate_current :
                                        has_poisson_source   ? fluid_accumulate_poisson_sources :
                                                               species_no_field_coupling;
+  sp->accumulate_omega_sq_func = fluid_accumulate_omega_sq;
 }
 
 // --- Wrappers over the constructor-assigned methods --------------------------
@@ -428,6 +460,16 @@ vlasov_species_accumulate_field_coupling(
 )
 {
   sp->accumulate_field_coupling_func(app, sp, fin, fluidin, target);
+}
+
+void
+vlasov_species_accumulate_omega_sq(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, double weight, struct gkyl_array *buffer,
+  struct gkyl_array *omega_sq
+)
+{
+  sp->accumulate_omega_sq_func(app, sp, fin, fluidin, weight, buffer, omega_sq);
 }
 
 // --- Per-aspect operations ---------------------------------------------------

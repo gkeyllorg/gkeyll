@@ -25,67 +25,55 @@ fluid_em_coupling_dt_none(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupli
   return DBL_MAX;
 }
 
+// The step bound of the densities that couple explicitly to the field, cfl / omega with omega^2
+// the largest sum over the rate list of the weight times the cell average of the physical
+// density at the start of the update. Maxwell split: the current of a kinetic species at the
+// start of a source step is a known current of the step, so the step resolves its plasma
+// frequency. Poisson field: every species couples explicitly to the potentials (a fluid aspect
+// through the kick, a kinetic species in the stages of the transport step), a leapfrog stable
+// for omega dt < 2 at a fixed step (derived for the plasma oscillation of a cold plasma at every
+// angle to B and every Omega dt; the Jeans rate of self-gravity is resolved for accuracy).
 static double
-fluid_em_coupling_dt_kinetic(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
+fluid_em_coupling_dt_rate(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
 {
-  gkyl_array_clear(fl_em->omega_p_sq, 0.0);
-  for (int i = 0; i < fl_em->num_kinetic; ++i) {
-    struct vm_species *vms = fl_em->kinetic[i]->kinetic;
-    vm_species_accumulate_omega_p_sq(app, vms, vms->f, fl_em->m0_avg, fl_em->omega_p_sq);
-  }
-  gkyl_array_reduce_range(fl_em->omega_p_sq_max, fl_em->omega_p_sq, GKYL_MAX, &app->local);
-
-  double omega_p_sq_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omega_p_sq_ho, fl_em->omega_p_sq_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  } else {
-    omega_p_sq_ho[0] = fl_em->omega_p_sq_max[0];
-  }
-  double omega_p_sq_local = omega_p_sq_ho[0], omega_p_sq_global;
-  gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_p_sq_local, &omega_p_sq_global
-  );
-  return omega_p_sq_global > 0.0 ? app->cfl / sqrt(omega_p_sq_global) : DBL_MAX;
-}
-
-// Poisson field: every species couples explicitly to the potentials (a fluid aspect through the
-// kick, a kinetic species in the stages of the transport step), a leapfrog stable for omega dt < 2
-// at a fixed step (derived for the plasma oscillation of a cold plasma at every angle to B and
-// every Omega dt; the Jeans rate of self-gravity is resolved for accuracy). omega^2 is the largest
-// sum over the species of the square of the rate of their density, q^2 n/(eps0 m) for the
-// electrostatic potential and alpha_g m n for the gravitational one, at the start of the update.
-static double
-fluid_em_coupling_dt_poisson(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
-{
-  gkyl_array_clear(fl_em->omega_p_sq, 0.0);
-  for (int i = 0; i < fl_em->num_rate_kinetic; ++i) {
-    struct vm_species *vms = fl_em->rate_kinetic[i]->kinetic;
-    vm_species_accumulate_m0_avg(
-      app, vms, vms->f, fl_em->rate_sq_kinetic[i], fl_em->m0_avg, fl_em->omega_p_sq
+  gkyl_array_clear(fl_em->omega_sq, 0.0);
+  const struct vlasov_rate_list *rl = &fl_em->rates;
+  for (int k = 0; k < rl->num; ++k) {
+    struct vlasov_species *sp = &app->species[rl->idx[k]];
+    const struct gkyl_array *fin = sp->kinetic ? sp->kinetic->f : 0;
+    const struct gkyl_array *fluidin = sp->fluid ? sp->fluid->fluid : 0;
+    vlasov_species_accumulate_omega_sq(
+      app, sp, fin, fluidin, rl->weight[k], fl_em->dens_avg, fl_em->omega_sq
     );
   }
-  for (int i = 0; i < fl_em->num_rate_fluid; ++i) {
-    const struct gkyl_array *fluid = fl_em->rate_fluid[i]->fluid->fluid;
-    gkyl_dg_calc_average_range(&app->basis, 0, fl_em->m0_avg, 0, fluid, app->local);
-    // the physical density (the state of a PKPM species carries the position-map Jacobian)
-    gkyl_vlasov_position_map_divide_jacobpos_conf(
-      app->pos_map, &app->local, 1, fl_em->m0_avg, fl_em->m0_avg
-    );
-    gkyl_array_accumulate_range(
-      fl_em->omega_p_sq, fl_em->rate_sq_fluid[i], fl_em->m0_avg, &app->local
-    );
-  }
-  gkyl_array_reduce_range(fl_em->omega_p_sq_max, fl_em->omega_p_sq, GKYL_MAX, &app->local);
+  gkyl_array_reduce_range(fl_em->omega_sq_max, fl_em->omega_sq, GKYL_MAX, &app->local);
 
   double omega_sq_ho[1];
   if (app->use_gpu) {
-    gkyl_cu_memcpy(omega_sq_ho, fl_em->omega_p_sq_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(omega_sq_ho, fl_em->omega_sq_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else {
-    omega_sq_ho[0] = fl_em->omega_p_sq_max[0];
+    omega_sq_ho[0] = fl_em->omega_sq_max[0];
   }
   double omega_sq_local = omega_sq_ho[0], omega_sq_global;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_sq_local, &omega_sq_global);
   return omega_sq_global > 0.0 ? app->cfl / sqrt(omega_sq_global) : DBL_MAX;
+}
+
+// The arrays of the step bound and its function, once the rate lists are set.
+static void
+fluid_em_coupling_rate_init(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
+{
+  fl_em->omega_sq = 0;
+  fl_em->dens_avg = 0;
+  fl_em->omega_sq_max = 0;
+  fl_em->src_dt_func = fluid_em_coupling_dt_none;
+  if (fl_em->rates.num > 0) {
+    fl_em->omega_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    fl_em->dens_avg = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    fl_em->omega_sq_max = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) :
+                                         gkyl_malloc(sizeof(double));
+    fl_em->src_dt_func = fluid_em_coupling_dt_rate;
+  }
 }
 
 // The solve of a source step. It advances the momentum of the fluids and the electric field (with
@@ -392,9 +380,9 @@ fluid_em_coupling_init_poisson(
   fl_em->advance_func = 0;
   fl_em->em_ghost = 0;
 
-  // The species whose density sets a rate of the potentials.
-  fl_em->num_rate_kinetic = 0;
-  fl_em->num_rate_fluid = 0;
+  // The species whose density sets a rate of the potentials, in declaration order.
+  struct vlasov_rate_list *rl = &fl_em->rates;
+  rl->num = 0;
   for (int i = 0; i < app->num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
     double rate_sq = 0.0;
@@ -406,27 +394,16 @@ fluid_em_coupling_init_poisson(
       continue;
     }
     if (sp->type == GKYL_SPECIES_VLASOV) {
-      fl_em->rate_kinetic[fl_em->num_rate_kinetic] = sp;
-      fl_em->rate_sq_kinetic[fl_em->num_rate_kinetic] = rate_sq;
-      fl_em->num_rate_kinetic += 1;
+      rl->idx[rl->num] = i;
+      rl->weight[rl->num] = rate_sq;
+      rl->num += 1;
     } else if (vm_fluid_em_coupling_supported(sp)) {
-      // per unit mass density
-      fl_em->rate_fluid[fl_em->num_rate_fluid] = sp;
-      fl_em->rate_sq_fluid[fl_em->num_rate_fluid] = rate_sq / sp->mass;
-      fl_em->num_rate_fluid += 1;
+      rl->idx[rl->num] = i;
+      rl->weight[rl->num] = rate_sq / sp->mass; // per unit mass density
+      rl->num += 1;
     }
   }
-  fl_em->omega_p_sq = 0;
-  fl_em->m0_avg = 0;
-  fl_em->omega_p_sq_max = 0;
-  fl_em->src_dt_func = fluid_em_coupling_dt_none;
-  if (fl_em->num_rate_kinetic + fl_em->num_rate_fluid > 0) {
-    fl_em->omega_p_sq = mkarr(app->use_gpu, 1, num_cells);
-    fl_em->m0_avg = mkarr(app->use_gpu, 1, num_cells);
-    fl_em->omega_p_sq_max = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) :
-                                           gkyl_malloc(sizeof(double));
-    fl_em->src_dt_func = fluid_em_coupling_dt_poisson;
-  }
+  fluid_em_coupling_rate_init(app, fl_em);
 
   fl_em->update_func = fluid_em_coupling_update_poisson;
   fl_em->save_field_func = fluid_em_coupling_field_none;
@@ -499,18 +476,19 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
     fl_em->em_ghost = mkarr(app->use_gpu, app->field->em->ncomp, app->field->em->size);
   }
 
-  // A static field takes no current, so its kinetic species set no step.
-  fl_em->omega_p_sq = 0;
-  fl_em->m0_avg = 0;
-  fl_em->omega_p_sq_max = 0;
-  fl_em->src_dt_func = fluid_em_coupling_dt_none;
-  if (fl_em->num_kinetic > 0 && !app->field->info.is_static) {
-    fl_em->omega_p_sq = mkarr(app->use_gpu, 1, num_cells);
-    fl_em->m0_avg = mkarr(app->use_gpu, 1, num_cells);
-    fl_em->omega_p_sq_max = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) :
-                                           gkyl_malloc(sizeof(double));
-    fl_em->src_dt_func = fluid_em_coupling_dt_kinetic;
+  // The plasma frequency of the charged kinetic species sets the step (the fluids are implicit in
+  // the source step); a static field takes no current, so they set none.
+  struct vlasov_rate_list *rl = &fl_em->rates;
+  rl->num = 0;
+  for (int i = 0; i < app->num_species && !app->field->info.is_static; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (sp->type == GKYL_SPECIES_VLASOV && sp->charge != 0.0) {
+      rl->idx[rl->num] = i;
+      rl->weight[rl->num] = sp->charge * sp->charge / (app->field->info.epsilon0 * sp->mass);
+      rl->num += 1;
+    }
   }
+  fluid_em_coupling_rate_init(app, fl_em);
 
   fl_em->update_func = fluid_em_coupling_update_maxwell;
   fl_em->save_field_func = fluid_em_coupling_save_field_maxwell;
@@ -583,13 +561,13 @@ vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
     }
     gkyl_array_release(fl_em->em_ghost);
   }
-  if (fl_em->omega_p_sq) {
-    gkyl_array_release(fl_em->omega_p_sq);
-    gkyl_array_release(fl_em->m0_avg);
+  if (fl_em->omega_sq) {
+    gkyl_array_release(fl_em->omega_sq);
+    gkyl_array_release(fl_em->dens_avg);
     if (app->use_gpu) {
-      gkyl_cu_free(fl_em->omega_p_sq_max);
+      gkyl_cu_free(fl_em->omega_sq_max);
     } else {
-      gkyl_free(fl_em->omega_p_sq_max);
+      gkyl_free(fl_em->omega_sq_max);
     }
   }
   gkyl_free(fl_em);

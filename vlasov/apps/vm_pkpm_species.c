@@ -205,6 +205,21 @@ vm_pkpm_species_accumulate_poisson_sources(
   vm_fluid_species_accumulate_poisson_sources(app, sp->fluid, fluidin);
 }
 
+// The square of a rate set by the density of the species: weight times the cell average of the
+// mass density of its fluid aspect, whose state carries the position-map Jacobian (divided out
+// here: it is constant in a cell).
+static void
+vm_pkpm_species_accumulate_omega_sq(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, double weight, struct gkyl_array *buffer,
+  struct gkyl_array *omega_sq
+)
+{
+  gkyl_dg_calc_average_range(&app->basis, 0, buffer, 0, fluidin, app->local);
+  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, 1, buffer, buffer);
+  gkyl_array_accumulate_range(omega_sq, weight, buffer, &app->local);
+}
+
 // Current of the fluid aspect coupled explicitly to the Maxwell field ('target' is emout): the
 // fluid array is [rho, rho ux, rho uy, rho uz, E], and its momentum block over the mass is the
 // number flux.
@@ -316,6 +331,7 @@ vlasov_pkpm_species_init(
     app->field->field_id == GKYL_FIELD_PHI ? vm_pkpm_species_accumulate_poisson_sources :
     app->use_explicit_sources              ? vm_pkpm_species_accumulate_current :
                                              vm_pkpm_species_no_field_coupling;
+  sp->accumulate_omega_sq_func = vm_pkpm_species_accumulate_omega_sq;
   sp->wall_loss_rate_func = vm_pkpm_species_wall_loss_rate;
   sp->release_func = vm_pkpm_species_release;
 }

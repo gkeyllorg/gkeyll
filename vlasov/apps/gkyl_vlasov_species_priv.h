@@ -1432,6 +1432,13 @@ struct vlasov_species {
     gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
     const struct gkyl_array *fluidin, struct gkyl_array *target
   );
+  // Accumulate weight times the cell average of the physical density of the species (see
+  // vlasov_species_accumulate_omega_sq).
+  void (*accumulate_omega_sq_func)(
+    gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+    const struct gkyl_array *fluidin, double weight, struct gkyl_array *buffer,
+    struct gkyl_array *omega_sq
+  );
   // Completion of a time step, once its last stage has been accepted (empty for
   // kinetic and fluid species).
   void (*complete_step_func)(gkyl_vlasov_app *app, struct vlasov_species *sp);
@@ -1562,6 +1569,29 @@ void vlasov_species_calc_coupled_vars(
 void vlasov_species_accumulate_field_coupling(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, struct gkyl_array *target
+);
+
+/**
+ * Accumulate the square of a rate of a field set by the density of the species in each cell of
+ * the local range: weight times the cell average of its physical density, the number density of
+ * a kinetic species (from its distribution function) or the mass density of a fluid aspect (the
+ * first component of its state). The position-map Jacobian a state carries is divided out. With
+ * weight q^2/(epsilon0 m) per unit number density it is the plasma frequency squared, with
+ * alpha_g m the Jeans rate squared. It bounds the time-step of a density that couples explicitly
+ * to a field.
+ *
+ * @param app Vlasov app object
+ * @param sp Species container
+ * @param fin Input distribution function (NULL if no kinetic aspect)
+ * @param fluidin Input fluid state (NULL if no fluid aspect)
+ * @param weight Square of the rate per unit number density (kinetic) or mass density (fluid)
+ * @param buffer Buffer (one component per cell)
+ * @param omega_sq Square of the rate (one component per cell), incremented
+ */
+void vlasov_species_accumulate_omega_sq(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, double weight, struct gkyl_array *buffer,
+  struct gkyl_array *omega_sq
 );
 
 /**
@@ -2059,37 +2089,6 @@ void vm_species_moment_calc(
 void vm_species_moment_divide_Jx(
   const struct gkyl_vlasov_app *app, const struct vm_species *s, const struct vm_species_moment *sm,
   struct gkyl_array *mom
-);
-
-/**
- * Accumulate the plasma frequency squared of a kinetic species in each cell of the local range,
- * q^2 n / (epsilon0 m) with the cell average of its physical density (s->m0 is recomputed).
- *
- * @param app Vlasov app object
- * @param s Species object
- * @param fin Input distribution function array
- * @param m0_avg Scratch array (one component per cell)
- * @param omega_p_sq Plasma frequency squared (one component per cell), incremented
- */
-void vm_species_accumulate_omega_p_sq(
-  struct gkyl_vlasov_app *app, struct vm_species *s, const struct gkyl_array *fin,
-  struct gkyl_array *m0_avg, struct gkyl_array *omega_p_sq
-);
-
-/**
- * Accumulate weight times the cell average of the physical number density of a kinetic species
- * in each cell of the local range (s->m0 is recomputed).
- *
- * @param app Vlasov app object
- * @param s Species object
- * @param fin Input distribution function array
- * @param weight Factor of the density
- * @param m0_avg Buffer (one component per cell)
- * @param out Output (one component per cell), incremented
- */
-void vm_species_accumulate_m0_avg(
-  struct gkyl_vlasov_app *app, struct vm_species *s, const struct gkyl_array *fin, double weight,
-  struct gkyl_array *m0_avg, struct gkyl_array *out
 );
 
 /**

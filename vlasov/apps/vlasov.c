@@ -571,11 +571,24 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       app->src_rho_avg = mkarr(app->use_gpu, 1, app->local_ext.volume);
       app->src_omega_p_sq_max = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) :
                                                gkyl_malloc(sizeof(double));
-      app->src_num_kinetic = 0;
+      app->src_rate_kinetic.num = 0;
+      app->src_rate_fluid.num = 0;
       for (int i = 0; i < ntot; ++i) {
-        if (app->species[i].type == GKYL_SPECIES_VLASOV && app->species[i].charge != 0.0) {
-          app->src_kinetic[app->src_num_kinetic] = i;
-          app->src_num_kinetic += 1;
+        struct vlasov_species *sp = &app->species[i];
+        if (sp->charge == 0.0) {
+          continue;
+        }
+        if (sp->type == GKYL_SPECIES_VLASOV) {
+          struct vlasov_rate_list *rl = &app->src_rate_kinetic;
+          rl->idx[rl->num] = i;
+          rl->weight[rl->num] = sp->charge * sp->charge / (app->field->info.epsilon0 * sp->mass);
+          rl->num += 1;
+        } else if (vm_fluid_em_coupling_supported(sp)) {
+          double qbym = sp->charge / sp->mass;
+          struct vlasov_rate_list *rl = &app->src_rate_fluid;
+          rl->idx[rl->num] = i;
+          rl->weight[rl->num] = qbym * qbym / app->field->info.epsilon0;
+          rl->num += 1;
         }
       }
     }

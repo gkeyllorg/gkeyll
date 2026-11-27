@@ -15,31 +15,25 @@ vlasov_src_dt_explicit(
   const struct gkyl_array *fluidin[]
 )
 {
-  double eps0 = app->field->info.epsilon0;
   // Kinetic species: the densities at the start of the step.
   if (stage == 1) {
     gkyl_array_clear(app->src_omega_p_sq_kin, 0.0);
-    for (int i = 0; i < app->src_num_kinetic; ++i) {
-      int idx = app->src_kinetic[i];
-      vm_species_accumulate_omega_p_sq(
-        app, app->species[idx].kinetic, fin[idx], app->src_rho_avg, app->src_omega_p_sq_kin
+    const struct vlasov_rate_list *rl = &app->src_rate_kinetic;
+    for (int k = 0; k < rl->num; ++k) {
+      int i = rl->idx[k];
+      vlasov_species_accumulate_omega_sq(
+        app, &app->species[i], fin[i], 0, rl->weight[k], app->src_rho_avg, app->src_omega_p_sq_kin
       );
     }
   }
+  // Fluid and PKPM species: the densities of the stage.
   gkyl_array_set(app->src_omega_p_sq, 1.0, app->src_omega_p_sq_kin);
-  for (int i = 0; i < app->num_species; ++i) {
-    struct vm_fluid_species *fs = app->species[i].fluid;
-    if (fs && fs->qmem) {
-      double qbym = fs->charge / fs->mass;
-      // the physical density of the stage (the state of a PKPM species carries the position-map
-      // Jacobian)
-      const struct gkyl_array *fluid =
-        app->species[i].type == GKYL_SPECIES_PKPM ? fs->pkpm.fluid_no_J : fluidin[i];
-      gkyl_dg_calc_average_range(&app->basis, 0, app->src_rho_avg, 0, fluid, app->local);
-      gkyl_array_accumulate_range(
-        app->src_omega_p_sq, qbym * qbym / eps0, app->src_rho_avg, &app->local
-      );
-    }
+  const struct vlasov_rate_list *rl = &app->src_rate_fluid;
+  for (int k = 0; k < rl->num; ++k) {
+    int i = rl->idx[k];
+    vlasov_species_accumulate_omega_sq(
+      app, &app->species[i], 0, fluidin[i], rl->weight[k], app->src_rho_avg, app->src_omega_p_sq
+    );
   }
 
   gkyl_array_reduce_range(app->src_omega_p_sq_max, app->src_omega_p_sq, GKYL_MAX, &app->local);
