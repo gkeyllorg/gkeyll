@@ -38,14 +38,14 @@ GKYL_CU_DH void fluid_vars_pressure_1x_ser_p1(double param, const double *fluid,
 GKYL_CU_DH void fluid_vars_ke_1x_ser_p1(const double *fluid, const double *u, double* GKYL_RESTRICT ke); 
 GKYL_CU_DH int fluid_vars_u_set_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid); 
 GKYL_CU_DH void fluid_vars_u_copy_1x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf); 
-GKYL_CU_DH double euler_vol_1x_ser_p1(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double euler_vol_1x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfx_1x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfx_1x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxx_1x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfx_1x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfx_1x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_integrated_1x_ser_p1(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 
@@ -57,14 +57,14 @@ GKYL_CU_DH void fluid_vars_pressure_1x_ser_p2(double param, const double *fluid,
 GKYL_CU_DH void fluid_vars_ke_1x_ser_p2(const double *fluid, const double *u, double* GKYL_RESTRICT ke); 
 GKYL_CU_DH int fluid_vars_u_set_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid); 
 GKYL_CU_DH void fluid_vars_u_copy_1x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf); 
-GKYL_CU_DH double euler_vol_1x_ser_p2(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double euler_vol_1x_ser_p2(const double *w, const double *dxv, const double *jacob_pos, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfx_1x_ser_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfx_1x_ser_p2(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxx_1x_ser_p2(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfx_1x_ser_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfx_1x_ser_p2(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_integrated_1x_ser_p2(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 
@@ -75,14 +75,14 @@ GKYL_CU_DH void fluid_vars_pressure_1x_ser_p3(double param, const double *fluid,
 GKYL_CU_DH void fluid_vars_ke_1x_ser_p3(const double *fluid, const double *u, double* GKYL_RESTRICT ke); 
 GKYL_CU_DH int fluid_vars_u_set_1x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid); 
 GKYL_CU_DH void fluid_vars_u_copy_1x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf); 
-GKYL_CU_DH double euler_vol_1x_ser_p3(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double euler_vol_1x_ser_p3(const double *w, const double *dxv, const double *jacob_pos, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p3(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfx_1x_ser_p3(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfx_1x_ser_p3(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxx_1x_ser_p3(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfx_1x_ser_p3(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfx_1x_ser_p3(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_integrated_1x_ser_p3(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 
@@ -93,23 +93,23 @@ GKYL_CU_DH void fluid_vars_pressure_2x_ser_p1(double param, const double *fluid,
 GKYL_CU_DH void fluid_vars_ke_2x_ser_p1(const double *fluid, const double *u, double* GKYL_RESTRICT ke); 
 GKYL_CU_DH int fluid_vars_u_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid); 
 GKYL_CU_DH void fluid_vars_u_copy_2x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf); 
-GKYL_CU_DH double euler_vol_2x_ser_p1(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double euler_vol_2x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfx_2x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfx_2x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxx_2x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfx_2x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfx_2x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limitery_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfy_2x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfy_2x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxy_2x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfy_2x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfy_2x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_integrated_2x_ser_p1(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 
@@ -121,32 +121,32 @@ GKYL_CU_DH void fluid_vars_pressure_3x_ser_p1(double param, const double *fluid,
 GKYL_CU_DH void fluid_vars_ke_3x_ser_p1(const double *fluid, const double *u, double* GKYL_RESTRICT ke); 
 GKYL_CU_DH int fluid_vars_u_set_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid); 
 GKYL_CU_DH void fluid_vars_u_copy_3x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf); 
-GKYL_CU_DH double euler_vol_3x_ser_p1(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double euler_vol_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterx_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfx_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfx_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxx_3x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfx_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfx_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limitery_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfy_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfy_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxy_3x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfy_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfy_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterz_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfz_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfz_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxz_3x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfz_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfz_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_integrated_3x_ser_p1(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 
@@ -158,23 +158,23 @@ GKYL_CU_DH void fluid_vars_pressure_2x_tensor_p2(double param, const double *flu
 GKYL_CU_DH void fluid_vars_ke_2x_tensor_p2(const double *fluid, const double *u, double* GKYL_RESTRICT ke); 
 GKYL_CU_DH int fluid_vars_u_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid); 
 GKYL_CU_DH void fluid_vars_u_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf); 
-GKYL_CU_DH double euler_vol_2x_tensor_p2(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double euler_vol_2x_tensor_p2(const double *w, const double *dxv, const double *jacob_pos, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limiterx_2x_tensor_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfx_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfx_2x_tensor_p2(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxx_2x_tensor_p2(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfx_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfx_2x_tensor_p2(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_limitery_2x_tensor_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
-GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void euler_wall_fluxy_2x_tensor_p2(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
     const int edge, const double *fluid_skin, double* GKYL_RESTRICT flux_wall); 
-GKYL_CU_DH double euler_boundary_surfy_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH double euler_boundary_surfy_2x_tensor_p2(const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge, 
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void fluid_vars_integrated_2x_tensor_p2(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 

@@ -1,10 +1,13 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH double euler_boundary_surfx_1x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
+GKYL_CU_DH double euler_boundary_surfx_1x_ser_p1(const double *w, const double *dxv, const double *jacob_pos,
+    const struct gkyl_wv_eqn *wv_eqn,
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge,
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:    Cell-center coordinates.
-  // dxv[NDIM]:  Cell spacing.
+  // dxv[NDIM]:  Cell spacing (computational).
+  // jacob_pos:  Position-map Jacobian per configuration direction of the boundary cell (cdim
+  //             blocks of 2 equal entries): its physical size in direction d is J_d dxv[d].
   // wv_eqn:     Wave equation: the Riemann solver for the flux at the interior face.
   // geom_l:     Geometry of the lower face of the boundary cell.
   // geom_r:     Geometry of the upper face of the boundary cell.
@@ -13,7 +16,7 @@ GKYL_CU_DH double euler_boundary_surfx_1x_ser_p1(const double *w, const double *
   // fluid_edge/skin: [rho, rho ux, rho uy, rho uz, energy], Fluid state of the interior neighbor/the boundary cell.
   // out:        Incremented output of the boundary cell.
 
-  const double dx1 = 2.0/dxv[0]; 
+  const double dx1 = 2.0/(dxv[0]*jacob_pos[0]); 
   const double gas_gamma = container_of(wv_eqn, struct wv_euler, eqn)->gas_gamma; 
 
   const double *rho_edge = &fluid_edge[0]; 

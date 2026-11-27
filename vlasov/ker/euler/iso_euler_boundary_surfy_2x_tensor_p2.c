@@ -2,12 +2,15 @@
 #include <gkyl_wv_iso_euler_priv.h> 
 #include <gkyl_basis_tensor_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_tensor_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH double iso_euler_boundary_surfy_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
+GKYL_CU_DH double iso_euler_boundary_surfy_2x_tensor_p2(const double *w, const double *dxv, const double *jacob_pos,
+    const struct gkyl_wv_eqn *wv_eqn,
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, const int edge,
     const double *flux_wall, const double *fluid_edge, const double *fluid_skin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:    Cell-center coordinates.
-  // dxv[NDIM]:  Cell spacing.
+  // dxv[NDIM]:  Cell spacing (computational).
+  // jacob_pos:  Position-map Jacobian per configuration direction of the boundary cell (cdim
+  //             blocks of 3 equal entries): its physical size in direction d is J_d dxv[d].
   // wv_eqn:     Wave equation: the Riemann solver for the flux at the interior face.
   // geom_l:     Geometry of the lower face of the boundary cell.
   // geom_r:     Geometry of the upper face of the boundary cell.
@@ -16,7 +19,7 @@ GKYL_CU_DH double iso_euler_boundary_surfy_2x_tensor_p2(const double *w, const d
   // fluid_edge/skin: [rho, rho ux, rho uy, rho uz], Fluid state of the interior neighbor/the boundary cell.
   // out:        Incremented output of the boundary cell.
 
-  const double dx1 = 2.0/dxv[1]; 
+  const double dx1 = 2.0/(dxv[1]*jacob_pos[3]); 
   const double vt = container_of(wv_eqn, struct wv_iso_euler, eqn)->vt; 
 
   const double *rho_edge = &fluid_edge[0]; 

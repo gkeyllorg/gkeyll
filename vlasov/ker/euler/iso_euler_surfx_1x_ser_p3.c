@@ -1,19 +1,22 @@
 #include <gkyl_iso_euler_kernels.h> 
 #include <gkyl_wv_iso_euler_priv.h> 
-GKYL_CU_DH double iso_euler_surfx_1x_ser_p3(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
+GKYL_CU_DH double iso_euler_surfx_1x_ser_p3(const double *w, const double *dxv, const double *jacob_pos,
+    const struct gkyl_wv_eqn *wv_eqn,
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r,
     const double *fluid_l, const double *fluid_c, const double *fluid_r,
     double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:      Cell-center coordinates.
-  // dxv[NDIM]:    Cell spacing.
+  // dxv[NDIM]:    Cell spacing (computational).
+  // jacob_pos:    Position-map Jacobian per configuration direction of the cell (cdim blocks of
+  //               4 equal entries): its physical size in direction d is J_d dxv[d].
   // wv_eqn:       Wave equation: the Riemann solver for the flux at the interfaces.
   // geom_l:       Geometry for the left surface update.
   // geom_r:       Geometry for the right surface update.
   // fluid_l/c/r:  [rho, rho ux, rho uy, rho uz], Fluid input state vector in left/center/right cells.
   // out:          Incremented output.
 
-  const double dx1 = 2.0/dxv[0]; 
+  const double dx1 = 2.0/(dxv[0]*jacob_pos[0]); 
   const double vt = container_of(wv_eqn, struct wv_iso_euler, eqn)->vt; 
 
   const double *rho_l = &fluid_l[0]; 

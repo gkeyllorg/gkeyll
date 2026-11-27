@@ -8,8 +8,8 @@
 //                      the wall face and F(q) in through the interior face.
 //   wall_integral_2x : the wall flux integrated over the wall face of each boundary cell, with
 //                      the physical face length on a position map.
-//   mapped_terms_1x  : on a position map the volume and surface terms are those of the cell with
-//                      its physical size J dx.
+//   mapped_terms_1x  : on a position map the volume, surface and boundary surface terms are those
+//                      of the cell with its physical size J dx.
 #include <acutest.h>
 
 #include <math.h>
@@ -299,9 +299,10 @@ test_mapped_terms_1x()
   struct wall_test wm = wall_test_new(1, (int[]){8}, pmap);
   struct wall_test wu = wall_test_new(1, (int[]){8}, 0);
   int nb = wm.basis.num_basis;
-  // the mapped and the uniform terms (static functions of the library: compared to each other)
-  TEST_CHECK(wm.eqn->vol_term != wu.eqn->vol_term);
-  TEST_CHECK(wm.eqn->surf_term != wu.eqn->surf_term);
+  // one set of terms for both meshes: the kernels take the Jacobian of the cell
+  TEST_CHECK(wm.eqn->vol_term == wu.eqn->vol_term);
+  TEST_CHECK(wm.eqn->surf_term == wu.eqn->surf_term);
+  TEST_CHECK(wm.eqn->boundary_surf_term == wu.eqn->boundary_surf_term);
 
   // a state with slopes, its u and p (any values: the terms are linear in the kernels' dx factor)
   double fl[10], fc[10], fr[10];
@@ -341,6 +342,19 @@ test_mapped_terms_1x()
   );
   for (int k = 0; k < 10; ++k) {
     TEST_CHECK(gkyl_compare(out_m[k], out_u[k] / 3.0, 1e-13));
+  }
+  // the boundary cell of the upper wall (its interior neighbor 7)
+  int idxe[1] = {7}, idxs[1] = {8};
+  double outb_m[10] = {0.0}, outb_u[10] = {0.0};
+  wm.eqn->boundary_surf_term(
+    wm.eqn, 0, xc, xc, wm.grid.dx, wm.grid.dx, idxe, idxs, 1, fl, fc, outb_m
+  );
+  wu.eqn->boundary_surf_term(
+    wu.eqn, 0, xc, xc, wu.grid.dx, wu.grid.dx, idxe, idxs, 1, fl, fc, outb_u
+  );
+  for (int k = 0; k < 10; ++k) {
+    TEST_CHECK(outb_u[k] != 0.0);
+    TEST_CHECK(gkyl_compare(outb_m[k], outb_u[k] / 3.0, 1e-13));
   }
   wall_test_release(&wm);
   wall_test_release(&wu);

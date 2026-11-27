@@ -344,20 +344,20 @@ test_lax_flux_1x()
     fluid_l[m * nb] = ql[m] * c0;
     fluid_r[m * nb] = qr[m] * c0;
   }
-  double xc[1] = {0.5}, dx[1] = {0.25};
+  double xc[1] = {0.5}, dx[1] = {0.25}, jac[2] = {1.0, 1.0};
   const struct gkyl_wave_cell_geom *cgeom = gkyl_wave_geom_get(ft.geom, (int[]){2});
 
   // A uniform state: no rate of the cell averages.
   double out[10] = {0.0};
-  euler_surfx_1x_ser_p1(xc, dx, ft.wv_eqn, cgeom, cgeom, fluid_l, fluid_l, fluid_l, out);
+  euler_surfx_1x_ser_p1(xc, dx, jac, ft.wv_eqn, cgeom, cgeom, fluid_l, fluid_l, fluid_l, out);
   for (int m = 0; m < 5; ++m) {
     TEST_CHECK(gkyl_compare(out[m * nb], 0.0, 1e-13));
   }
 
   // States l | l | r and l | r | r: the interface between the two middle cells.
   double out_l[10] = {0.0}, out_r[10] = {0.0};
-  euler_surfx_1x_ser_p1(xc, dx, ft.wv_eqn, cgeom, cgeom, fluid_l, fluid_l, fluid_r, out_l);
-  euler_surfx_1x_ser_p1(xc, dx, ft.wv_eqn, cgeom, cgeom, fluid_l, fluid_r, fluid_r, out_r);
+  euler_surfx_1x_ser_p1(xc, dx, jac, ft.wv_eqn, cgeom, cgeom, fluid_l, fluid_l, fluid_r, out_l);
+  euler_surfx_1x_ser_p1(xc, dx, jac, ft.wv_eqn, cgeom, cgeom, fluid_l, fluid_r, fluid_r, out_r);
 
   // Lax-Friedrichs flux (F(ql) + F(qr))/2 - max(|u| + c_s) (qr - ql)/2.
   double flux_l[5], flux_r[5], amax = 0.0;

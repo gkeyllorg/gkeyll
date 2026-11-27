@@ -109,16 +109,15 @@ gkyl_dg_euler_inew(const struct gkyl_dg_euler_inp *inp)
   euler->cdim = cdim;
   euler->num_surf = cdim == 1 ? 1 : cbasis->num_basis / (poly_order + 1);
 
-  // The position map: on a non-identity map each cell has its physical size.
+  // The position map: the kernels take the Jacobian of each cell (1 on an identity map).
   assert(inp->pos_map);
   euler->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   euler->jacob_pos = inp->pos_map->jacob_pos; // Borrowed; kept alive by the acquired pos_map.
   euler->jacob_stride = poly_order + 1;
-  bool is_mapped = !inp->pos_map->is_identity;
 
-  euler->eqn.vol_term = is_mapped ? vol_mapped : vol;
-  euler->eqn.surf_term = is_mapped ? surf_mapped : surf;
-  euler->eqn.boundary_surf_term = is_mapped ? boundary_surf_mapped : boundary_surf;
+  euler->eqn.vol_term = vol;
+  euler->eqn.surf_term = surf;
+  euler->eqn.boundary_surf_term = boundary_surf;
 
   euler->vol = CK(vol_kernels, cdim, poly_order);
   assert(euler->vol);

@@ -17,7 +17,7 @@ extern "C" {
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
 __global__ void static dg_euler_set_cu_dev_ptrs(
-  struct dg_euler *euler, enum gkyl_basis_type b_type, int cdim, int poly_order, bool is_mapped
+  struct dg_euler *euler, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
@@ -64,9 +64,9 @@ __global__ void static dg_euler_set_cu_dev_ptrs(
       break;
   }
 
-  euler->eqn.vol_term = is_mapped ? vol_mapped : vol;
-  euler->eqn.surf_term = is_mapped ? surf_mapped : surf;
-  euler->eqn.boundary_surf_term = is_mapped ? boundary_surf_mapped : boundary_surf;
+  euler->eqn.vol_term = vol;
+  euler->eqn.surf_term = surf;
+  euler->eqn.boundary_surf_term = boundary_surf;
 
   euler->vol = CK(vol_kernels, cdim, poly_order);
   for (int d = 0; d < cdim; ++d) {
@@ -115,7 +115,6 @@ gkyl_dg_euler_cu_dev_inew(const struct gkyl_dg_euler_inp *inp)
   euler->pos_map = 0; // Host pointer set after the device memcpy below.
   euler->jacob_pos = inp->pos_map->jacob_pos->on_dev;
   euler->jacob_stride = poly_order + 1;
-  bool is_mapped = !inp->pos_map->is_identity;
 
   euler->conf_range = *inp->conf_range;
 
@@ -126,7 +125,7 @@ gkyl_dg_euler_cu_dev_inew(const struct gkyl_dg_euler_inp *inp)
   // copy the host struct to device struct
   struct dg_euler *euler_cu = (struct dg_euler *)gkyl_cu_malloc(sizeof(struct dg_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct dg_euler), GKYL_CU_MEMCPY_H2D);
-  dg_euler_set_cu_dev_ptrs<<<1, 1>>>(euler_cu, inp->cbasis->b_type, cdim, poly_order, is_mapped);
+  dg_euler_set_cu_dev_ptrs<<<1, 1>>>(euler_cu, inp->cbasis->b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   euler->eqn.on_dev = &euler_cu->eqn;

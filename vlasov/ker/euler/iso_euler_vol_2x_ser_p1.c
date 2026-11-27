@@ -1,17 +1,19 @@
 #include <gkyl_iso_euler_kernels.h> 
-GKYL_CU_DH double iso_euler_vol_2x_ser_p1(const double *w, const double *dxv, double vt, 
+GKYL_CU_DH double iso_euler_vol_2x_ser_p1(const double *w, const double *dxv, const double *jacob_pos, double vt, 
     const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
-  // dxv[NDIM]: Cell spacing.
+  // dxv[NDIM]: Cell spacing (computational).
+  // jacob_pos: Position-map Jacobian per configuration direction (cdim blocks of 2 equal
+  //            entries): the physical size of the cell in direction d is J_d dxv[d].
   // vt:        Thermal velocity.
   // u:         Input flow velocity [ux, uy, uz].
   // p:         Input pressure (vt^2 rho).
   // fluid:     [rho, rho ux, rho uy, rho uz], Fluid input state vector.
   // out:       Incremented output.
 
-  double dx10 = 2./dxv[0]; 
-  double dx11 = 2./dxv[1]; 
+  double dx10 = 2.0/(dxv[0]*jacob_pos[0]); 
+  double dx11 = 2.0/(dxv[1]*jacob_pos[2]); 
 
   const double *rho = &fluid[0]; 
   const double *rhoux = &fluid[4]; 

@@ -18,12 +18,12 @@
 
 // Types for various kernels
 typedef double (*euler_vol_t)(
-  const double *w, const double *dxv, double param, const double *u, const double *p,
-  const double *fluid, double *GKYL_RESTRICT out
+  const double *w, const double *dxv, const double *jacob_pos, double param, const double *u,
+  const double *p, const double *fluid, double *GKYL_RESTRICT out
 );
 
 typedef double (*euler_surf_t)(
-  const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
+  const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r,
   const double *fluid_l, const double *fluid_c, const double *fluid_r, double *GKYL_RESTRICT out
 );
@@ -34,7 +34,7 @@ typedef void (*euler_wall_flux_t)(
 );
 
 typedef double (*euler_boundary_surf_t)(
-  const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
+  const double *w, const double *dxv, const double *jacob_pos, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r,
   const int edge, const double *flux_wall, const double *fluid_edge, const double *fluid_skin,
   double *GKYL_RESTRICT out
@@ -70,8 +70,9 @@ struct dg_euler {
   struct gkyl_range conf_range; // configuration space range
   const struct gkyl_array *u; // flow velocity [ux, uy, uz]
   const struct gkyl_array *p; // pressure
-  // Position map (host pointer; acquired) and its Jacobian per direction at the 1D quadrature
-  // points (borrowed), constant in each cell: the stride of a direction is poly_order + 1.
+  // Position map (acquired; host pointer, 0 on the device copy) and its Jacobian per direction at
+  // the 1D quadrature points (borrowed; device pointer on device), constant in each cell: the
+  // stride of a direction is poly_order + 1.
   struct gkyl_vlasov_position_map *pos_map;
   const struct gkyl_array *jacob_pos;
   int jacob_stride;
@@ -371,17 +372,8 @@ GKYL_CU_D static const gkyl_dg_euler_boundary_surf_kern_list ten_iso_boundary_su
  */
 void gkyl_dg_euler_free(const struct gkyl_ref_count *ref);
 
-// Physical size of the cell cidx on the position map: J_d dx_d (J_d constant in the cell).
-GKYL_CU_DH static inline void
-dg_euler_phys_dx(const struct dg_euler *euler, long cidx, const double *dx, double *dxp)
-{
-  const double *jac = (const double *)gkyl_array_cfetch(euler->jacob_pos, cidx);
-  for (int d = 0; d < euler->cdim; ++d) {
-    dxp[d] = jac[d * euler->jacob_stride] * dx[d];
-  }
-}
-
-// Volume term on uniform cells.
+// Volume term. The kernels take the position-map Jacobian of the cell: its physical size in
+// direction d is J_d dx_d.
 GKYL_CU_DH static double
 vol(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
@@ -391,29 +383,15 @@ vol(
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   long cidx = gkyl_range_idx(&euler->conf_range, idx);
   return euler->vol(
-    xc, dx, euler->vol_param, (const double *)gkyl_array_cfetch(euler->u, cidx),
+    xc, dx, (const double *)gkyl_array_cfetch(euler->jacob_pos, cidx), euler->vol_param,
+    (const double *)gkyl_array_cfetch(euler->u, cidx),
     (const double *)gkyl_array_cfetch(euler->p, cidx), qIn, qRhsOut
   );
 }
 
-// Volume term on the cells of a position map (their physical size).
-GKYL_CU_DH static double
-vol_mapped(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  long cidx = gkyl_range_idx(&euler->conf_range, idx);
-  double dxp[GKYL_MAX_CDIM];
-  dg_euler_phys_dx(euler, cidx, dx, dxp);
-  return euler->vol(
-    xc, dxp, euler->vol_param, (const double *)gkyl_array_cfetch(euler->u, cidx),
-    (const double *)gkyl_array_cfetch(euler->p, cidx), qIn, qRhsOut
-  );
-}
-
-// Surface term on uniform cells. The wave geometry of a cell is that of its lower face.
+// Surface term. The wave geometry of a cell is that of its lower face. The flux of a face is the
+// same for its two cells (J/J_d is the same on both sides of a face of the separable map), and
+// each cell divides it by its physical size.
 GKYL_CU_D static double
 surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
@@ -425,52 +403,16 @@ surf(
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler->geom, idxC);
   const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler->geom, idxR);
-  return euler->surf[dir](xcC, dxC, euler->wv_eqn, geom_l, geom_r, qInL, qInC, qInR, qRhsOut);
-}
-
-// Surface term on the cells of a position map: the flux of a face is the same for its two cells
-// (J/J_d is the same on both sides of a face of the separable map), and each cell divides it by
-// its physical size.
-GKYL_CU_D static double
-surf_mapped(
-  const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
-  const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
-  const int *idxR, const double *qInL, const double *qInC, const double *qInR,
-  double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler->geom, idxC);
-  const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler->geom, idxR);
-  double dxp[GKYL_MAX_CDIM];
-  dg_euler_phys_dx(euler, gkyl_range_idx(&euler->conf_range, idxC), dxC, dxp);
-  return euler->surf[dir](xcC, dxp, euler->wv_eqn, geom_l, geom_r, qInL, qInC, qInR, qRhsOut);
+  const double *jacob_pos =
+    (const double *)gkyl_array_cfetch(euler->jacob_pos, gkyl_range_idx(&euler->conf_range, idxC));
+  return euler->surf[dir](
+    xcC, dxC, jacob_pos, euler->wv_eqn, geom_l, geom_r, qInL, qInC, qInR, qRhsOut
+  );
 }
 
 // Absorbing wall: the wall flux of the boundary cell on its wall face and the Riemann flux with
 // its interior neighbor on the other face. geom_l and geom_r are the geometries of the lower and
 // upper faces of the boundary cell.
-GKYL_CU_D static inline double
-boundary_surf_dx(
-  const struct dg_euler *euler, int dir, const double *xcSkin, const double *dxp,
-  const int *idxSkin, const int edge, const double *qInEdge, const double *qInSkin,
-  double *GKYL_RESTRICT qRhsOut
-)
-{
-  int idx_up[GKYL_MAX_DIM];
-  for (int d = 0; d < euler->cdim; ++d) {
-    idx_up[d] = idxSkin[d];
-  }
-  idx_up[dir] += 1;
-  const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler->geom, idxSkin);
-  const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler->geom, idx_up);
-  double flux_wall[DG_EULER_MAX_FLUX_WALL];
-  euler->wall_flux[dir](euler->wv_eqn, edge == -1 ? geom_l : geom_r, edge, qInSkin, flux_wall);
-  return euler->boundary_surf[dir](
-    xcSkin, dxp, euler->wv_eqn, geom_l, geom_r, edge, flux_wall, qInEdge, qInSkin, qRhsOut
-  );
-}
-
 GKYL_CU_D static double
 boundary_surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
@@ -479,20 +421,22 @@ boundary_surf(
 )
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  return boundary_surf_dx(euler, dir, xcSkin, dxSkin, idxSkin, edge, qInEdge, qInSkin, qRhsOut);
-}
-
-GKYL_CU_D static double
-boundary_surf_mapped(
-  const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
-  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
-  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  double dxp[GKYL_MAX_CDIM];
-  dg_euler_phys_dx(euler, gkyl_range_idx(&euler->conf_range, idxSkin), dxSkin, dxp);
-  return boundary_surf_dx(euler, dir, xcSkin, dxp, idxSkin, edge, qInEdge, qInSkin, qRhsOut);
+  int idx_up[GKYL_MAX_DIM];
+  for (int d = 0; d < euler->cdim; ++d) {
+    idx_up[d] = idxSkin[d];
+  }
+  idx_up[dir] += 1;
+  const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler->geom, idxSkin);
+  const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler->geom, idx_up);
+  const double *jacob_pos = (const double *)gkyl_array_cfetch(
+    euler->jacob_pos, gkyl_range_idx(&euler->conf_range, idxSkin)
+  );
+  double flux_wall[DG_EULER_MAX_FLUX_WALL];
+  euler->wall_flux[dir](euler->wv_eqn, edge == -1 ? geom_l : geom_r, edge, qInSkin, flux_wall);
+  return euler->boundary_surf[dir](
+    xcSkin, dxSkin, jacob_pos, euler->wv_eqn, geom_l, geom_r, edge, flux_wall, qInEdge, qInSkin,
+    qRhsOut
+  );
 }
 
 // The wall flux of one boundary cell integrated over its wall face (physical area): mode 0 of

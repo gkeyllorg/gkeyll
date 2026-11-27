@@ -1,20 +1,23 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_3x_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double euler_surfz_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
+GKYL_CU_DH double euler_surfz_3x_ser_p1(const double *w, const double *dxv, const double *jacob_pos,
+    const struct gkyl_wv_eqn *wv_eqn,
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r,
     const double *fluid_l, const double *fluid_c, const double *fluid_r,
     double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:      Cell-center coordinates.
-  // dxv[NDIM]:    Cell spacing.
+  // dxv[NDIM]:    Cell spacing (computational).
+  // jacob_pos:    Position-map Jacobian per configuration direction of the cell (cdim blocks of
+  //               2 equal entries): its physical size in direction d is J_d dxv[d].
   // wv_eqn:       Wave equation: the Riemann solver for the flux at the interfaces.
   // geom_l:       Geometry for the left surface update.
   // geom_r:       Geometry for the right surface update.
   // fluid_l/c/r:  [rho, rho ux, rho uy, rho uz, energy], Fluid input state vector in left/center/right cells.
   // out:          Incremented output.
 
-  const double dx1 = 2.0/dxv[2]; 
+  const double dx1 = 2.0/(dxv[2]*jacob_pos[4]); 
   const double gas_gamma = container_of(wv_eqn, struct wv_euler, eqn)->gas_gamma; 
 
   const double *rho_l = &fluid_l[0]; 
