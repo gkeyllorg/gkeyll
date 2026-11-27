@@ -102,9 +102,39 @@ rfunc_3(double x, void *ctx)
   return x * exp(x) - 10;
 }
 
+// Concave on [r4_xl, r4_xr] with its root within rounding of r4_xl (bracket
+// and end values from a TCV arc-length solve).
+static const double r4_xl = -0.43429531917551045, r4_xr = -0.43016129743122128;
+static const double r4_fl = 7.2164496600635175e-16, r4_fr = -0.09410018320745378;
+
+double
+rfunc_4(double x, void *ctx)
+{
+  double s = (x - r4_xl) / (r4_xr - r4_xl);
+  return r4_fl + (r4_fr - r4_fl) * s * (2.0 - s);
+}
+
 void
 test_math_ridders_ho(void)
 {
+  do {
+    double x1 = 1.0, x2 = 2.0;
+    double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2, 100, 1e-12);
+    TEST_CHECK(res.status == 0);
+    TEST_CHECK(res.nevals == 0);
+    TEST_CHECK(res.res == x1);
+  } while (0);
+
+  do {
+    double x1 = 0.5, x2 = 1.0;
+    double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2, 100, 1e-12);
+    TEST_CHECK(res.status == 0);
+    TEST_CHECK(res.nevals == 0);
+    TEST_CHECK(res.res == x2);
+  } while (0);
+
   do {
     double x1 = 0.5, x2 = 2.0;
     double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
@@ -135,6 +165,14 @@ test_math_ridders_ho(void)
     struct gkyl_qr_res res = gkyl_ridders(rfunc_3, 0, x1, x2, f1, f2, 100, 1e-12);
     //    show_qr_res(res, "rfunc_3");
     TEST_CHECK(gkyl_compare(res.res, 1.745528002740699, 1e-10));
+  } while (0);
+
+  do {
+    // The first update lands an ulp outside the bracket.
+    double f1 = rfunc_4(r4_xl, 0), f2 = rfunc_4(r4_xr, 0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_4, 0, r4_xl, r4_xr, f1, f2, 100, 1e-12);
+    TEST_CHECK(res.status == 0);
+    TEST_CHECK(gkyl_compare(res.res, r4_xl, 1e-12));
   } while (0);
 }
 

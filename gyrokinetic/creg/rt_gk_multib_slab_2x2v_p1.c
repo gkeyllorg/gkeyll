@@ -749,6 +749,7 @@ main(int argc, char **argv)
   app_inp->diagnostics.balance_diags[1] = GKYL_GK_BALANCE_ENERGY;
 
   app_inp->num_species = 2;
+  app_inp->num_neut_species = 0;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
   app_inp->field = field;

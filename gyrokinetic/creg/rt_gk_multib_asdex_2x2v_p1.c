@@ -450,6 +450,11 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 1.1,
               .rright = 1.7,
               .rmin = 1.1,
@@ -495,6 +500,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rclose = 2.5,
               .rleft = 0.8,
               .rright = 2.5,
@@ -539,6 +545,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rclose = 2.5,
               .rleft = 0.8,
               .rright = 2.5,
@@ -583,6 +590,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rclose = 2.5,
               .rleft = 0.8,
               .rright = 2.5,
@@ -627,6 +635,11 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 1.1,
               .rright = 1.7,
               .rmin = 1.1,
@@ -672,6 +685,11 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 2.0,
               .rleft = 0.8,
               .rright = 2.5,
@@ -947,7 +965,7 @@ create_ctx(void)
   // Copy eqdsk file into efit_inp.
   memcpy(efit_inp.filepath, geqdsk_file, sizeof(geqdsk_file));
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psi_sep = efit->psisep;
+  double psi_sep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   double Rxpt = efit->Rxpt[0], Zxpt = efit->Zxpt[0];
   gkyl_efit_release(efit);
   // Here rho = sqrt((psi-psi_axis) / (psi_sep - psi_axis)).
@@ -1467,6 +1485,7 @@ main(int argc, char **argv)
   app_inp->diagnostics.balance_diags[1] = GKYL_GK_BALANCE_ENERGY;
 
   app_inp->num_species = 2;
+  app_inp->num_neut_species = 0;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
   app_inp->field = field;

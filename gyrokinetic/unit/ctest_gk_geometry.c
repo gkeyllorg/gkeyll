@@ -7,6 +7,8 @@
 #include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_efit.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -510,9 +512,49 @@ test_metadata_growth(void)
   gkyl_gk_geometry_release(geo);
 }
 
+/**
+ * Check that equilibrium output preserves distinct radial and vertical metadata.
+ */
+static void
+test_efit_metadata(void)
+{
+  struct gkyl_gk_geometry_inp inp = {
+    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+    .efit_info =
+      {.filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk", .rz_poly_order = 2, .flux_poly_order = 1},
+  };
+  struct gkyl_efit *efit = gkyl_efit_new(&inp.efit_info);
+  TEST_ASSERT(fabs(efit->rcentr - efit->zmaxis) > 1.0);
+
+  char path[] = "gkyl_geometry_efit_metadata_XXXXXX";
+  int fd = mkstemp(path);
+  TEST_ASSERT(fd >= 0);
+  close(fd);
+  gkyl_gk_geometry_write_efit(&inp, NULL, 0, path);
+
+  struct gkyl_rect_grid grid;
+  struct gkyl_array_header_info hdr = {0};
+  TEST_ASSERT(gkyl_grid_sub_array_header_read(&grid, &hdr, path) == GKYL_ARRAY_RIO_SUCCESS);
+  struct gkyl_msgpack_data metadata = {.meta_sz = hdr.meta_size, .meta = hdr.meta};
+  struct gkyl_msgpack_map_elem values[] = {
+    {.key = "rcentr", .elem_type = GKYL_MP_DOUBLE},
+    {.key = "zmaxis", .elem_type = GKYL_MP_DOUBLE},
+    {.key = "eqdsk_cocos_index", .elem_type = GKYL_MP_UNSIGNED_INT},
+  };
+  gkyl_msgpack_to_map_elem_list(&metadata, 3, values);
+  TEST_CHECK(gkyl_compare(values[0].dval, efit->rcentr, 1e-14));
+  TEST_CHECK(gkyl_compare(values[1].dval, efit->zmaxis, 1e-14));
+  TEST_CHECK(values[2].uval == 3);
+
+  gkyl_array_header_info_release(&hdr);
+  gkyl_efit_release(efit);
+  TEST_CHECK(unlink(path) == 0);
+}
+
 TEST_LIST = {
   {"gk_geo_world_slice", test_world_slice},
   {"gk_geo_metadata_growth", test_metadata_growth},
+  {"gk_geo_efit_metadata", test_efit_metadata},
   {"gk_geo_modal_queries", test_modal_queries},
   {"gk_geo_coordinate_queries", test_coordinate_queries},
   {"gk_geo_query_traces", test_query_traces},

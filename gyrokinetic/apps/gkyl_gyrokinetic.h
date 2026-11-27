@@ -312,6 +312,8 @@ struct gkyl_gyrokinetic_geometry {
   // so they can use it or store it in their context.
   void (*set_gk_geometry)(const struct gk_geometry *geo, void *ctx);
   void *set_gk_geometry_ctx;
+
+  bool is_verbose; // Print geometry construction diagnostics (default: errors and warnings only).
 };
 
 // Parameters for species radiation.
