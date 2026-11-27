@@ -1437,17 +1437,16 @@ struct gk_species {
   struct gkyl_range local_upper_skin_par_sol, local_upper_ghost_par_sol;
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
-  // Objects used in IWL simulations and TS BCs.
-  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
-  struct gkyl_range bc_ts_local_ext, bc_ts_local; // Higher resolution ranges for TS BC.
-  struct gkyl_range bc_ts_local_lower_skin_par,
-    bc_ts_local_upper_skin_par; // Parallel skin for TS BC.
-  struct gkyl_range bc_ts_local_lower_ghost_par,
-    bc_ts_local_upper_ghost_par; // Parallel ghost for TS BC.
-  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
-  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
-  struct gkyl_range bc_ts_local_par_ext; // Range extended in parallel direction for TS BC.
-  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
+  // Objects used for TS BCs.
+  struct gkyl_bc_twistshift *bc_ts[2]; // Twist-shift operators (lower and upper).
+  struct gkyl_range *bc_ts_skin[2], *bc_ts_ghost[2]; // Twist-shift skin and ghost ranges.
+  int bc_ts_num_edge, bc_ts_edge[2]; // Twist-shift boundaries this MPI rank is on.
+  struct gkyl_boundary_flux *bc_ts_flux_slvr[2]; // Fluxes leaving through the boundaries.
+  bool has_bc_ts; // Whether there are twist-shift BCs.
+  void (*bc_ts_flux_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+    struct gkyl_array *rhs
+  );
 
   struct gk_proj proj_init; // Projector for initial conditions.
 
@@ -1882,15 +1881,6 @@ struct gk_field {
   );
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
-  struct gkyl_range bc_ts_global_ext, bc_ts_global; // Higher resolution ranges for TS BC.
-  struct gkyl_range bc_ts_global_lower_skin_par,
-    bc_ts_global_upper_skin_par; // Parallel skin for TS BC.
-  struct gkyl_range bc_ts_global_lower_ghost_par,
-    bc_ts_global_upper_ghost_par; // Parallel ghost for TS BC.
-  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
-  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
-  struct gkyl_range bc_ts_global_par_ext; // Range extended in parallel direction for TS BC.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up; // Fills z-ghosts with TS BC.
   struct gkyl_bc_basic_gyrokinetic
     *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.

@@ -68,6 +68,8 @@ gk_species_collisionless_rhs_enabled(
 
   gkcls->flux_func(app, species, gkcls, fin);
 
+  species->bc_ts_flux_func(app, species, fin, rhs);
+
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, fin, species->cflrate, rhs);
 
   gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
@@ -116,6 +118,8 @@ gk_species_collisionless_passive_rhs(
   struct timespec wst = gkyl_wall_clock();
 
   gkcls->flux_func(app, species, gkcls, fin);
+
+  species->bc_ts_flux_func(app, species, fin, rhs);
 
   gkyl_dg_updater_gyrokinetic_passive_advance(
     gkcls->passive_slvr, &species->local, fin, species->cflrate, rhs
