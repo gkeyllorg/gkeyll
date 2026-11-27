@@ -66,6 +66,9 @@ struct vp_potential {
   struct gkyl_array
     *epsilon; // Permittivity in the Poisson equation (constant, or metric tensor on a mapped mesh).
   struct gkyl_array *rho, *rho_global; // Local and global source density.
+  // Source of the held backgrounds (zero without one), subtracted from the source in every solve:
+  // the potential is that of the departure of the species from their held backgrounds.
+  struct gkyl_array *rho_bg;
   struct gkyl_array *phi, *phi_global; // Local and global potential.
   struct gkyl_array *phi_host; // Host copy of the potential for I/O.
   struct gkyl_array *
@@ -190,6 +193,11 @@ struct vm_field {
       // potential when alpha_g > 0 and some species has mass.
       int num_pots; // Number of potentials solved for (0 to VP_MAX_POTENTIALS).
       struct vp_potential pots[VP_MAX_POTENTIALS];
+      // Solve of one potential from its accumulated source: the Poisson solve, or zero while the
+      // held backgrounds are captured (vp_field_background_begin).
+      void (*pot_solve_func)(
+        struct gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot
+      );
 
       struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
         // for solving subset of Poisson solves with parallelization in z
@@ -396,6 +404,43 @@ void vlasov_field_calc_app_current(gkyl_vlasov_app *app, double tm);
  * @param tm Time at which to evaluate the potentials
  */
 void vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm);
+
+// What vlasov_field_background_begin sets aside for vlasov_field_background_end.
+struct vlasov_field_background_capture {
+  bool ext_em_evolve; // the external fields are time dependent
+  bool ext_pot_evolve; // the external potentials are time dependent
+};
+
+/**
+ * Start the capture of the held backgrounds (gkyl_vlasov_app_apply_ic): until
+ * vlasov_field_background_end no field exerts an electric force. The evolved Maxwell field is
+ * set aside (in em1) and zeroed, the potentials of the Poisson field are zero
+ * (vp_field_background_begin), and so are the electric part of the external field and the
+ * external scalar potential, which the stages do not evaluate again meanwhile. The external
+ * magnetic field and vector potential stay. A kinetic species has the electric forces in its
+ * stages and a fluid aspect under the operator split has them in the source step, which the
+ * capture does not evaluate: a hold derived with them would differ by type of species, and it
+ * would cancel an external electric force on a kinetic species for good.
+ *
+ * @param app Vlasov app object
+ * @param cap What is set aside for vlasov_field_background_end
+ */
+void vlasov_field_background_begin(
+  gkyl_vlasov_app *app, struct vlasov_field_background_capture *cap
+);
+
+/**
+ * End the capture of the held backgrounds, with the held species on their backgrounds: store
+ * their source of the potentials (vp_field_background_end), put the evolved Maxwell field back,
+ * and evaluate the external fields and potentials again.
+ *
+ * @param app Vlasov app object
+ * @param cap What vlasov_field_background_begin set aside
+ * @param t0 Time of the initial conditions
+ */
+void vlasov_field_background_end(
+  gkyl_vlasov_app *app, const struct vlasov_field_background_capture *cap, double t0
+);
 
 /**
  * Compute the field energy diagnostic. Vlasov-Poisson solves for the potential
@@ -858,6 +903,29 @@ void vp_field_solve(
   gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[]
 );
+
+/**
+ * Start the capture of the held backgrounds (gkyl_vlasov_app_apply_ic): until
+ * vp_field_background_end every solve returns zero potentials, so that the right-hand sides the
+ * hold is derived from carry no force of the potentials for any type of species (as the capture
+ * zeroes the evolved Maxwell field), and the forces of the kick are formed again without them.
+ *
+ * @param app Vlasov app object.
+ * @param field Pointer to field.
+ */
+void vp_field_background_begin(gkyl_vlasov_app *app, struct vm_field *field);
+
+/**
+ * End the capture of the held backgrounds, with the held species on their backgrounds: store
+ * the source of each potential from the held species alone (their charge and mass density),
+ * which every later solve subtracts, and solve the Poisson equations again from then on. The
+ * potentials are then those of the departure of the species from their held backgrounds, for
+ * kinetic, fluid and PKPM species alike; species without a background enter in full.
+ *
+ * @param app Vlasov app object.
+ * @param field Pointer to field.
+ */
+void vp_field_background_end(gkyl_vlasov_app *app, struct vm_field *field);
 
 /**
  * Switch the field to the staggered operator split (see vlasov_update_op_split), in which the

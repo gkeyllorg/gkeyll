@@ -80,9 +80,11 @@ thermal_energy(int cdim, int nc, const double *fluid_d, double *eps)
   }
 }
 
+// energy_fac: thermal energy per unit of rho vtsq (0: the default of a PKPM species, 3/2).
 static void
-test_temp_source(int cdim, bool implicit)
+test_temp_source(int cdim, bool implicit, double energy_fac)
 {
+  double energy_fac_used = energy_fac > 0.0 ? energy_fac : 1.5;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, cdim, 1);
   int nc = cbasis.num_basis;
@@ -121,6 +123,7 @@ test_temp_source(int cdim, bool implicit)
 
   struct gkyl_pkpm_temp_source *up = gkyl_pkpm_temp_source_inew(&(struct gkyl_pkpm_temp_source_inp){
     .conf_basis = &cbasis,
+    .energy_fac = energy_fac,
     .use_gpu = false,
   });
   if (implicit) {
@@ -146,7 +149,8 @@ test_temp_source(int cdim, bool implicit)
       double eps_new[MAX_NODES];
       thermal_energy(cdim, nc, fluid_d, eps_new);
       for (int q = 0; q < nc; ++q) {
-        double nu_dt = cell->rate[q] * dt, eps_target = 1.5 * cell->rho[q] * cell->vtsq[q];
+        double nu_dt = cell->rate[q] * dt;
+        double eps_target = energy_fac_used * cell->rho[q] * cell->vtsq[q];
         double expected = (cell->eps[q] + nu_dt * eps_target) / (1.0 + nu_dt);
         TEST_CHECK(gkyl_compare_double(eps_new[q], expected, 1.0e-13));
         // the thermal energy stays between its old value and the target
@@ -172,7 +176,7 @@ test_temp_source(int cdim, bool implicit)
       double rhs_energy[MAX_NODES], rate_max = 0.0;
       conf_to_nodal[cdim - 1](&rhs_d[4 * nc], rhs_energy);
       for (int q = 0; q < nc; ++q) {
-        double eps_target = 1.5 * cell->rho[q] * cell->vtsq[q];
+        double eps_target = energy_fac_used * cell->rho[q] * cell->vtsq[q];
         // absolute tolerance: the two energies may nearly cancel
         double expected = cell->rate[q] * (eps_target - cell->eps[q]);
         TEST_CHECK(
@@ -283,32 +287,43 @@ test_inadmissible(bool implicit)
 void
 test_explicit_1x(void)
 {
-  test_temp_source(1, false);
+  test_temp_source(1, false, 0.0);
 }
 void
 test_explicit_2x(void)
 {
-  test_temp_source(2, false);
+  test_temp_source(2, false, 0.0);
 }
 void
 test_explicit_3x(void)
 {
-  test_temp_source(3, false);
+  test_temp_source(3, false, 0.0);
 }
 void
 test_implicit_1x(void)
 {
-  test_temp_source(1, true);
+  test_temp_source(1, true, 0.0);
 }
 void
 test_implicit_2x(void)
 {
-  test_temp_source(2, true);
+  test_temp_source(2, true, 0.0);
 }
 void
 test_implicit_3x(void)
 {
-  test_temp_source(3, true);
+  test_temp_source(3, true, 0.0);
+}
+// An Euler fluid with gas_gamma = 1.4: thermal energy 2.5 rho vtsq.
+void
+test_explicit_gas_gamma(void)
+{
+  test_temp_source(2, false, 2.5);
+}
+void
+test_implicit_gas_gamma(void)
+{
+  test_temp_source(2, true, 2.5);
 }
 void
 test_inadmissible_explicit(void)
@@ -328,6 +343,8 @@ TEST_LIST = {
   {"test_implicit_1x", test_implicit_1x},
   {"test_implicit_2x", test_implicit_2x},
   {"test_implicit_3x", test_implicit_3x},
+  {"test_explicit_gas_gamma", test_explicit_gas_gamma},
+  {"test_implicit_gas_gamma", test_implicit_gas_gamma},
   {"test_inadmissible_explicit", test_inadmissible_explicit},
   {"test_inadmissible_implicit", test_inadmissible_implicit},
   {NULL, NULL}

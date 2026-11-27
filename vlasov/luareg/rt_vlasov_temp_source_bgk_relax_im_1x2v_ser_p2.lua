@@ -1,6 +1,7 @@
 -- Relaxation under implicit BGK collisions and the implicit BGK-form temperature source nu_Q
 -- (f_M(n, u, T_Q) - f) together, with the Vlasov solver (1x2v):
--- rt_vlasov_temp_source_relax_im_1x2v.c with stiff self-collisions added.
+-- rt_vlasov_temp_source_relax_im_1x2v.c with its collision frequency raised from nu_Q to 1000 nu_Q
+-- (stiff self-collisions).
 -- Two homogeneous neutral species start as bi-Maxwellians drifting along x with T_xx = 1.4 and T_yy
 -- = 0.6 (T = 1). The source of the first has T_Q = 10 (heating) and that of the second T_Q = 0.1
 -- (cooling). Source rate 100 (z = nu_Q dt between 2.45 and 2.55) and collision frequency 1e5 (nu_c

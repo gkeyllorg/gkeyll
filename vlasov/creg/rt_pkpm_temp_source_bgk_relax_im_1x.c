@@ -1,7 +1,10 @@
 // Relaxation under implicit BGK collisions and the implicit BGK-form temperature source nu_Q
 // (f_M(n, u, T_Q) - f) together, with the PKPM system of equations (1x, normalized parallel
-// velocity w = v_par/xi): rt_pkpm_temp_source_relax_im_1x.c with stiff self-collisions added, the
-// counterpart of vlasov/creg/rt_vlasov_temp_source_bgk_relax_im_1x2v.c.
+// velocity w = v_par/xi): rt_pkpm_temp_source_relax_im_1x.c with its collision frequency raised
+// from nu_Q to 1000 nu_Q (stiff self-collisions).
+// vlasov/creg/rt_vlasov_temp_source_bgk_relax_im_1x2v.c is the same case with the Vlasov solver in
+// two velocity dimensions where PKPM has three degrees of freedom: it checks the same per-step
+// factors on a different system.
 // Two homogeneous neutral species start as drifting bi-Maxwellians at T = 1 with T_par/T = 1.4 and
 // T_perp/T = 0.8. The source of the first has T_Q = 10 (heating) and that of the second T_Q = 0.1
 // (cooling). A static magnetic field along x sets the field direction. Source rate 100 and

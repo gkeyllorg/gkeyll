@@ -1,6 +1,6 @@
 // Electrostatic shock with weak LBO self-collisions with the PKPM system of equations (1x,
-// normalized parallel velocity w = v_par/xi), the collisional variant of rt_pkpm_es_shock_1x with
-// the setup of vlasov/creg/rt_vlasov_es_shock_lbo_1x1v.c.
+// normalized parallel velocity w = v_par/xi), with the setup of
+// vlasov/creg/rt_vlasov_es_shock_lbo_1x1v.c.
 // Half domain: a plasma (m_i/m_e = 100, Te/Ti = 4) flowing at Mach 2 toward a reflecting wall at
 // x = 0 piles up against its own reflection and launches a shock back upstream. The inflow boundary
 // at x = Lx holds the upstream state fixed (reservoir). Ions slower than the shock potential are

@@ -4,14 +4,16 @@
 -- (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html), rotated so that the oscillating
 -- electric field E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x;
 -- omega = 0.5 Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the non-resonant case. The
--- fields are external and the species does not feed back on them.
+-- fields are external and the species does not feed back on them. LBO self-collisions at nu = 0.1
+-- Omega_c act on the species; they conserve its momentum and leave the bulk velocity unchanged.
 -- The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
 -- The bulk velocity follows the exact single-particle solution u_y = A (cos(omega t) - cos(Omega_c
 -- t)), u_z = A (sin(Omega_c t) - (omega / Omega_c) sin(omega t)) with A = Omega_c (q / m) E_0 /
 -- (Omega_c^2 - omega^2): at t = 10, u_y = 1.49698 and u_z = 0.08608.
--- Figures of merit (2 x 8 cells, Omega_c dt = 0.12): at t = 10, u_y = 1.49615 and u_z = 0.08558
--- (errors -8.3e-4 and -5.0e-4). SSP-RK3 slightly damps the gyration and the bulk kinetic energy it
--- removes appears as heat: the temperature ends at 1.0010. The Vlasov test is exact to 1e-5.
+-- Figures of merit (2 x 8 cells, Omega_c dt = 0.088): at t = 10, u_y = 1.49665 and u_z = 0.08587
+-- (errors -3.3e-4 and -2.1e-4). SSP-RK3 slightly damps the gyration and the bulk kinetic energy it
+-- removes appears as heat: the temperature ends at 1.0004. The Vlasov test with the same collisions
+-- is exact to 1.1e-6.
 
 local Vlasov = G0.Vlasov
 
@@ -28,6 +30,7 @@ vt = 1.0 -- Thermal velocity.
 n0 = 1.0 -- Reference number density.
 B0 = 1.0 -- Reference magnetic field strength.
 omega = 0.5 -- Oscillating field frequency normalized to cyclotron frequency.
+nu = 0.1 -- Collision frequency normalized to cyclotron frequency.
 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
@@ -97,6 +100,14 @@ vlasovApp = Vlasov.App.new {
             return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
         }
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          return nu
+        end
       }
     },
 

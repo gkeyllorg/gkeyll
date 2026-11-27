@@ -1,22 +1,29 @@
 // Buneman instability with the PKPM system of equations (1x, normalized parallel velocity w =
-// v_par/xi), the counterpart of vlasov/creg/rt_vlasov_buneman_1x1v.c. Parameters follow entry JE33
-// of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je33/je33-buneman.html): m_i/m_e =
-// 25, electron drift 0.159 so that k v_d = omega_pe for the box mode k = 2 pi, vte = 0.02, vti =
-// 0.001, density perturbation 1e-5 with the electric field from Gauss's law. The ghost current
-// cancels the net current of the drifting electrons, so that Ampere's law equals the periodic
-// Poisson solve. In the PKPM variables the drift is the electron fluid velocity and F is a
-// Maxwellian in w. A uniform magnetic field along x sets the field direction.
+// v_par/xi), the counterpart of vlasov/creg/rt_vlasov_buneman_1x1v.c (kinetic species in one
+// velocity dimension with the same collision frequencies). Parameters follow entry JE33 of Ammar's
+// Simulation Journal (https://ammar-hakim.org/sj/je/je33/je33-buneman.html): m_i/m_e = 25, electron
+// drift 0.159 so that k v_d = omega_pe for the box mode k = 2 pi, vte = 0.02, vti = 0.001, density
+// perturbation 1e-5 with the electric field from Gauss's law. The ghost current cancels the net
+// current of the drifting electrons, so that Ampere's law equals the periodic Poisson solve. In the
+// PKPM variables the drift is the electron fluid velocity and F is a Maxwellian in w. A uniform
+// magnetic field along x sets the field direction. LBO collisions act on both species:
+// self-collisions at nu_ee = 1e-4 omega_pe and nu_ii = nu_ee / sqrt(m_i/m_e), cross collisions at
+// nu_ei = nu_ee and nu_ie = (m_e/m_i) nu_ei. The friction slows the drift by 0.4% up to t = 40
+// (rate nu_ei + nu_ie) and raises the electron temperature by 16% (dT_e/dt = (2/3) (m_i/(m_e +
+// m_i)) nu_ei m_e v_d^2).
 // The fluid-field coupling is the staggered operator split with the implicit fluid-Maxwell source
 // step, which solves for the ghost current that keeps the mean of E_x over the step;
 // rt_pkpm_buneman_explicit_1x.c is the same problem with the coupling advanced explicitly within
 // the SSP-RK3 step.
-// Kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425 omega_pe (cold-beam
-// maximum 0.235).
-// Figures of merit (16 x 64 cells): the field energy grows at gamma = 0.1895 over t = 20-65
-// (Vlasov, serendipity p2 on the same grid: 0.1950). It saturates near t = 72 at about 46% of the
-// Vlasov peak (3.2e-3 at t = 72.2 against 7.0e-3 at t = 72.1) and is 1.3e-3 at t = 80 (Vlasov
-// 1.1e-3). Electron and ion number are conserved to 1e-12. The mean of E_x is 5e-16 at t = 80,
-// where the largest cell average of E_x is 0.072.
+// Collisionless kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425
+// omega_pe (cold-beam maximum 0.235).
+// Figures of merit (16 x 64 cells): the field energy grows at gamma = 0.1874 over t = 20-65 (0.1895
+// without collisions), saturates at 3.4e-3 at t = 72.3 (3.2e-3 without collisions) and is 1.4e-3 at
+// t = 80. The Vlasov test (serendipity p2 on the same grid) gives 0.1904, 6.8e-3 at t = 73.1 and
+// 1.2e-3 (without collisions 0.1950, 7.0e-3 at t = 72.1 and 1.1e-3). Its one velocity dimension
+// takes all of the frictional heat (electron temperature +48% up to t = 40), so its figures are not
+// the values to reproduce here. Electron and ion number are conserved to 1.2e-12. The mean of E_x
+// is at round-off (1e-15) at t = 80, where the largest cell average of E_x is 0.071.
 
 #include <math.h>
 #include <stdio.h>
@@ -62,6 +69,10 @@ struct buneman_ctx {
   double Lx; // Domain size (configuration space: x-direction).
   double kx; // Perturbed wave number (x-direction).
   double omega_pe; // Electron plasma frequency.
+  double nu_ee; // Electron-electron collision frequency.
+  double nu_ei; // Electron-ion collision frequency.
+  double nu_ii; // Ion-ion collision frequency.
+  double nu_ie; // Ion-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -106,6 +117,10 @@ create_ctx(void)
   double kx = 2.0 * pi / Lx; // Perturbed wave number (x-direction).
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double nu_ee = 1.0e-4 * omega_pe; // Electron-electron collision frequency.
+  double nu_ei = nu_ee; // Electron-ion collision frequency.
+  double nu_ii = nu_ee / sqrt(mass_ion / mass_elc); // Ion-ion collision frequency.
+  double nu_ie = (mass_elc / mass_ion) * nu_ei; // Ion-electron collision frequency.
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
@@ -142,6 +157,10 @@ create_ctx(void)
     .Lx = Lx,
     .kx = kx,
     .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
+    .nu_ei = nu_ei,
+    .nu_ii = nu_ii,
+    .nu_ie = nu_ie,
     .Nx = Nx,
     .Nvx = Nvx,
     .vx_max_elc = vx_max_elc,
@@ -251,6 +270,42 @@ evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[2] = 0.0;
   fout[3] = 0.0;
   fout[4] = E;
+}
+
+void
+evalNuEE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set electron-electron collision frequency.
+  fout[0] = app->nu_ee;
+}
+
+void
+evalNuEI(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set electron-ion collision frequency.
+  fout[0] = app->nu_ei;
+}
+
+void
+evalNuII(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set ion-ion collision frequency.
+  fout[0] = app->nu_ii;
+}
+
+void
+evalNuIE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set ion-electron collision frequency.
+  fout[0] = app->nu_ie;
 }
 
 void
@@ -437,6 +492,17 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalNuEE,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+        .cross_nu = {evalNuEI},
+        .cross_nu_ctx = {&ctx},
+      },
   };
 
   struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
@@ -449,6 +515,17 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalNuII,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+        .cross_nu = {evalNuIE},
+        .cross_nu_ctx = {&ctx},
+      },
   };
 
   struct gkyl_vlasov_fluid_species ion_fluid = {.init = evalIonFluidInit, .ctx = &ctx};

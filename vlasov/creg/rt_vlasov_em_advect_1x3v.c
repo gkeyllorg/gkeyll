@@ -1,13 +1,18 @@
 // Advection in specified electromagnetic fields (Vlasov, 1x3v). The initial conditions follow entry
-// JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-
-// ptcl.html), rotated so that the oscillating electric field E_z = cos(omega t) is along z and the
-// background magnetic field B_0 = 1 along x; omega = 0.5 Omega_c with Omega_c = q B_0 / m the
-// cyclotron frequency, the non-resonant case. The fields are external and the species does not feed
-// back on them; the 3V setup mirrors the PKPM test of the same name. The bulk velocity follows the
-// exact single-particle solution u_y = A (cos(omega t) - cos(Omega_c t)), u_z = A (sin(Omega_c t) -
-// (omega / Omega_c) sin(omega t)) with A = Omega_c (q / m) E_0 / (Omega_c^2 - omega^2): at t = 10,
-// u_y = 1.49698 and u_z = 0.08608, both exact to 1e-5, and the temperature stays 1 to 1e-4 because
-// the Maxwellian only shifts.
+// JE32 of Ammar's Simulation Journal
+// (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html), rotated so that the oscillating
+// electric field E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x;
+// omega = 0.5 Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the non-resonant case. The
+// fields are external and the species does not feed back on them. LBO self-collisions at nu = 0.1
+// Omega_c act on the species; they conserve its momentum and leave the bulk velocity unchanged. The
+// 3V setup mirrors the PKPM tests rt_pkpm_em_advect_1x and rt_pkpm_em_advect_explicit_1x: the same
+// species, fields and collisions. The bulk velocity follows the exact single-particle solution u_y
+// = A (cos(omega t) - cos(Omega_c t)), u_z = A (sin(Omega_c t) - (omega / Omega_c) sin(omega t))
+// with A = Omega_c (q / m) E_0 / (Omega_c^2 - omega^2): at t = 10, u_y = 1.49698 and u_z = 0.08608.
+// Figures of merit (2 x 8 x 8 x 16 cells; 782 steps with serendipity or tensor p2, 760 with tensor
+// p1; Omega_c dt = 0.013): at t = 10, u_y and u_z are exact to 1.1e-6 on every basis (errors
+// -9.7e-7 and -7.2e-7 at p2), and the temperature stays 1 to 1.4e-6 because the Maxwellian only
+// shifts.
 
 #include <math.h>
 #include <stdio.h>
@@ -44,6 +49,7 @@ struct em_advect_ctx {
   double n0; // Reference number density.
   double B0; // Reference magnetic field strength.
   double omega; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu; // Collision frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -82,6 +88,7 @@ create_ctx(void)
   double n0 = 1.0; // Reference number density.
   double B0 = 1.0; // Reference magnetic field strength.
   double omega = 0.5; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu = 0.1; // Collision frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
@@ -114,6 +121,7 @@ create_ctx(void)
     .n0 = n0,
     .B0 = B0,
     .omega = omega,
+    .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,
@@ -226,6 +234,17 @@ evalExternalFieldInit(
   fout[3] = Bx;
   fout[4] = By;
   fout[5] = Bz;
+}
+
+void
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct em_advect_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set electron collision frequency.
+  fout[0] = nu;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -384,6 +403,8 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},

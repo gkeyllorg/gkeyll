@@ -1205,15 +1205,31 @@ struct vm_fluid_source {
   double scale; // factor of the source in the stage (1 without the boundary flux)
 };
 
-// Temperature source of an Euler fluid: d_t E = (nu_Q T_Q/m rho - nu_Q p)/(gas_gamma - 1), as the
-// weak products of the coefficients (evaluated at the nodes, at the physical coordinates).
+// Temperature source of an Euler fluid, d_t E = (nu_Q T_Q/m rho - nu_Q p)/(gas_gamma - 1).
+// Explicit: the weak products of the coefficients (evaluated at the nodes, at the physical
+// coordinates) in the right-hand side of every stage. Implicit: one backward-Euler step of the
+// thermal energy at the Gauss-Legendre nodes in each stage (vlasov_stage_implicit), the fluid
+// part of the step of a PKPM species.
 struct vm_fluid_temp_source {
   bool is_on; // the species has a temperature source
+  bool is_implicit; // backward Euler in each stage instead of the explicit update
+  double inv_gamma_m1; // 1/(gas_gamma - 1)
+  // rate of the explicit source onto the right-hand side (nothing without one)
+  void (*rhs_func)(
+    gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid,
+    struct gkyl_array *rhs
+  );
+  // explicit source
   struct gkyl_array *nu_temp; // nu_Q T_Q / m
   struct gkyl_array *nu; // nu_Q
   struct gkyl_array *nu_cfl; // cell average of nu_Q (its rate in the time step)
-  struct gkyl_array *buf; // scratch for the weak products
-  double inv_gamma_m1; // 1/(gas_gamma - 1)
+  struct gkyl_array *buf; // buffer for the weak products
+  // implicit source
+  gkyl_pkpm_temp_source *up_temp; // backward-Euler step of the thermal energy at the nodes
+  struct gkyl_array *rate; // nu_Q at the Gauss-Legendre nodes
+  struct gkyl_array *vtsq; // T_Q / m at the Gauss-Legendre nodes
+  // outputs of the step for the distributions of a PKPM species, which a fluid does not use
+  struct gkyl_array *shape, *temp_ratio;
 };
 
 // fluid species data
@@ -3506,8 +3522,9 @@ void vm_fluid_species_temp_source_init(
 );
 
 /**
- * Accumulate the rate of the temperature source of the physical state onto the physical rate,
- * and its frequency onto the CFL rate. Needs the pressure of the state (prim vars).
+ * Accumulate the rate of the explicit temperature source of the physical state onto the physical
+ * rate, and its frequency onto the CFL rate (nothing without a source or with the implicit one).
+ * Needs the pressure of the state (prim vars).
  *
  * @param app Vlasov app object
  * @param f Fluid species object
@@ -3517,6 +3534,21 @@ void vm_fluid_species_temp_source_init(
 void vm_fluid_species_temp_source_rhs(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid,
   struct gkyl_array *rhs
+);
+
+/**
+ * One backward-Euler step of the implicit temperature source on a stage state, in place: the
+ * thermal energy at the Gauss-Legendre nodes, eps <- (eps + nu_Q dt eps_Q)/(1 + nu_Q dt), with
+ * the density and the momentum unchanged, then the vertex positivity limiter and the boundary
+ * conditions.
+ *
+ * @param app Vlasov app object
+ * @param f Fluid species object
+ * @param dt Time step of the stage
+ * @param fluid Fluid state (with its position-map Jacobian), updated in place
+ */
+void vm_fluid_species_temp_source_implicit_advance(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, double dt, struct gkyl_array *fluid
 );
 
 /**

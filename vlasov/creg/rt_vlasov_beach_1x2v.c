@@ -1,16 +1,33 @@
-// Advection of a density pulse by a collisionless neutral gas across a nearly perpendicular
-// magnetic field with the PKPM system of equations (1x, normalized parallel velocity w = v_par/xi).
-// A density pulse n = 1 + 0.2 sin(pi x) in a uniform flow u = 0.05 at uniform pressure p = 1 moves
-// through the uniform static field B = (sin 0.0871, -cos 0.0871, 0) (b_x = 0.087) in a periodic box
-// of length 2, to t = 20 (1851 steps). The gas has no charge, so the field only sets the direction
-// b. Without collisions the pulse is not a steady state in the frame of the flow: the gas streams
-// along b, at b_x w xi along x, which is comparable to the flow, and the pulse drives a flow that
-// decays.
-// Figures of merit (16 x 16 cells) to t = 20: particle number, the three components of the momentum
-// and the total energy (kinetic + p_par/2 + p_perp) are conserved to 2e-12. The kinetic energy
-// rises from 0.0025 to 0.0325 (t = 0.75) and is back at 0.0025 at t = 20; the integrated parallel
-// and perpendicular pressures (both 2 initially) never differ by more than 0.030. The positivity
-// limiter scales no cell.
+// Propagation into a plasma wave beach with kinetic electrons and the Maxwell field (1x2v), the
+// kinetic counterpart of vlasov/creg/rt_dg_5m_mom_beach_1x.c, about a held background density.
+// The setup follows entry JE8 of Ammar's Simulation Journal
+// (https://ammar-hakim.org/sj/je/je8/je8-plasmabeach.html), adapted from Section III. A. of D. N.
+// Smithe (2007), "Finite-difference time-domain simulation of fusion plasmas at radiofrequency time
+// scales", Physics of Plasmas 14 (5): 056104: the plasma frequency falls as omega_p deltaT = 25 (1
+// - x)^5 with deltaT = 0.01 / c, here on a uniform background with omega_p deltaT = 0.025, and an
+// antenna current J_y = -J_0 sin(omega_drive t) on 1 - 1/400 < x < 1 drives a wave with
+// omega_drive deltaT = pi / 10 toward the cutoff omega_p = omega_drive at x = 0.583. The upper
+// boundary of the field, next to the antenna, is absorbing (GKYL_FIELD_ABSORB). The electron
+// current is explicit in the SSP-RK3 stages, so the time step resolves the plasma frequency of
+// every cell (omega_p dt = 0.9 in the cell at x = 0), where the 5-moment beach, with its implicit
+// source step, takes a quarter of the steps. The Maxwellian electrons (1 eV, velocity grid +-6
+// v_te) are held about their initial state
+// (First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
+// that holds them and subtracts what the discretization leaves. Without the hold the pressure
+// gradient pushes the electrons until their space charge stops them, and E_x rings about the
+// ambipolar field -(T_e/e) d ln n/dx at the local plasma frequency, up to 54 V/m. The response is
+// linear in the antenna current: J_0 = 1 A/m^3 (1e-12 in the 5-moment beach) puts the electron
+// drift at 2.4e-5 v_te, above the round-off of the current of a distribution function.
+//
+// Figures of merit at t = 5e-9 (100 x 8 x 8 cells, serendipity p2, 4062 steps), from the cell
+// averages: on 0.3 < x < 0.95, E_y is that of the 5-moment beach, per unit antenna current, times
+// 1.1105 to 3.9e-3 in L2. The factor is the 10/9 of its current that the 3-point quadrature of
+// the applied current gives the antenna, which covers a quarter of the last cell. The maximum of
+// |E_y| is 0.992 V/m at x = 0.625, 2.11 times the amplitude mu_0 c J_0 / 800 the antenna radiates
+// to each side in free space (1.90 times that of the projected current, as in the 5-moment beach),
+// and |E_y| stays below 0.3% of the maximum for x < 0.485, beyond the cutoff. |E_x| stays below
+// 1e-7 V/m, the density at its initial value to 6e-11 and |u_x| below 3e-11 v_te. 12 x 12
+// velocity cells give the same E_y to four digits.
 
 #include <math.h>
 #include <stdio.h>
@@ -33,30 +50,40 @@
 
 #include <rt_arg_parse.h>
 
-struct travel_pulse_ctx {
+struct beach_ctx {
   // Mathematical constants (dimensionless).
-  double pi;
+  double pi; // Pi.
 
-  // Physical constants (using normalized code units).
+  // Physical constants (using non-normalized physical units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
-  double mass; // Neutral mass.
-  double charge; // Neutral charge.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double n0; // Reference number density.
-  double alpha; // Perturbation amplitude.
-  double u0; // Reference fluid velocity (x-direction).
-  double pr0; // Reference pressure.
-  double B0; // Magnetic field strength (in the x-y plane).
-  double theta; // Angle of the magnetic field from the y-direction (b_x = sin(theta)).
+  double Te; // Electron temperature.
+  double J0; // Reference current density (Amps / m^3).
+  double omega_p_floor; // Plasma frequency of the uniform background (times deltaT).
+
+  // Derived physical quantities (using non-normalized physical units).
+  double light_speed; // Speed of light.
+  double vte; // Electron thermal velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Nvx; // Cell count (velocity space: normalized parallel velocity w).
+  int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: w = v_par/xi).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vy_max; // Domain boundary (velocity space: vy-direction).
+  double Lx100; // Domain size over 100 (x-direction).
+  double
+    x_last_edge; // Lower edge of the antenna, which reaches the upper boundary (low density side).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
+
+  double deltaT; // Arbitrary constant, with units of time.
+  double factor; // Numerical factor for calculation of electron number density.
+  double omega_drive; // Drive current angular frequency.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -67,34 +94,47 @@ struct travel_pulse_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct travel_pulse_ctx
+struct beach_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  double pi = M_PI; // Pi.
 
-  // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
-  double mass = 1.0; // Neutral mass.
-  double charge = 0.0; // Neutral charge.
+  // Physical constants (using non-normalized physical units).
+  double epsilon0 = 8.854187817620389850536563031710750260608e-12; // Permittivity of free space.
+  double mu0 = 12.56637061435917295385057353311801153679e-7; // Permeability of free space.
+  double mass_elc = 9.10938215e-31; // Electron mass.
+  double charge_elc = -1.602176487e-19; // Electron charge.
 
-  double n0 = 1.0; // Reference number density.
-  double alpha = 0.2; // Perturbation amplitude.
-  double u0 = 0.05; // Reference fluid velocity (x-direction).
-  double pr0 = 1.0; // Reference pressure.
-  double B0 = 1.0; // Magnetic field strength (in the x-y plane).
-  double theta = 0.0871; // Angle of the magnetic field from the y-direction (b_x = sin(theta)).
+  double Te = 1.0 * (-charge_elc); // Electron temperature (1 eV).
+  double J0 = 1.0; // Reference current density (Amps / m^3).
+  double omega_p_floor = 0.025; // Plasma frequency of the uniform background (times deltaT).
+
+  // Derived physical quantities (using non-normalized physical units).
+  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
+  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
-  int Nvx = 16; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 2.0; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0; // Domain boundary (velocity space: w = v_par/xi).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  int Nx = 100; // Cell count (configuration space: x-direction).
+  int Nvx = 8; // Cell count (velocity space: vx-direction).
+  int Nvy = 8; // Cell count (velocity space: vy-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double vx_max = 6.0 * vte; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 6.0 * vte; // Domain boundary (velocity space: vy-direction).
+  double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
+  double x_last_edge =
+    Lx -
+    Lx / 400.0; // Lower edge of the antenna, which reaches the upper boundary (low density side).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
+  double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
+  double factor =
+    deltaT * deltaT * charge_elc * charge_elc /
+    (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
+  double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
+
+  double t_end = 5.0e-9; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -103,24 +143,30 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct travel_pulse_ctx ctx = {
+  struct beach_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
-    .mass = mass,
-    .charge = charge,
-    .n0 = n0,
-    .alpha = alpha,
-    .u0 = u0,
-    .pr0 = pr0,
-    .B0 = B0,
-    .theta = theta,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .Te = Te,
+    .J0 = J0,
+    .omega_p_floor = omega_p_floor,
+    .light_speed = light_speed,
+    .vte = vte,
     .Nx = Nx,
     .Nvx = Nvx,
+    .Nvy = Nvy,
     .Lx = Lx,
     .vx_max = vx_max,
+    .vy_max = vy_max,
+    .Lx100 = Lx100,
+    .x_last_edge = x_last_edge,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
+    .deltaT = deltaT,
+    .factor = factor,
+    .omega_drive = omega_drive,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -133,71 +179,57 @@ create_ctx(void)
   return ctx;
 }
 
+// Electron distribution function: a Maxwellian at rest with the plasma frequency profile (times
+// deltaT) on the uniform background. The initial condition and the held background.
 void
-evalNeutDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct travel_pulse_ctx *app = ctx;
-  double w = xn[1];
+  struct beach_ctx *app = ctx;
+  double x = xn[0], vx = xn[1], vy = xn[2];
 
   double pi = app->pi;
+  double factor = app->factor;
+  double omega_p_floor = app->omega_p_floor;
+  double vte = app->vte;
 
-  double F = exp(-0.5 * w * w) / sqrt(2.0 * pi); // Normalized Maxwellian in w = v_par/xi.
+  // Plasma frequency profile (times deltaT), on the uniform background.
+  double omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x);
+  double ne =
+    (omegaPdt * omegaPdt + omega_p_floor * omega_p_floor) / factor; // Electron number density.
 
-  // Set normalized neutral distribution functions [F, G] (G = (T_perp/T) F = F).
-  fout[0] = F;
-  fout[1] = F;
-
-  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
-}
-
-void
-evalNeutFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct travel_pulse_ctx *app = ctx;
-  double x = xn[0];
-
-  double n0 = app->n0;
-  double alpha = app->alpha;
-  double pi = app->pi;
-  double mass = app->mass;
-  double u0 = app->u0;
-  double pr0 = app->pr0;
-
-  double n = n0 + alpha * sin(pi * x); // Number density.
-  double rho = mass * n; // Mass density.
-  double E = 0.5 * rho * u0 * u0 + 1.5 * pr0; // Total energy density (uniform pressure).
-
-  // Set neutral fluid state [rho, rho ux, rho uy, rho uz, E].
-  fout[0] = rho;
-  fout[1] = rho * u0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = E;
+  // Set electron distribution function.
+  fout[0] = ne / (2.0 * pi * vte * vte) * exp(-(vx * vx + vy * vy) / (2.0 * vte * vte));
 }
 
 void
 evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct travel_pulse_ctx *app = ctx;
-
-  double B0 = app->B0;
-  double theta = app->theta;
-
   // Set electric field, magnetic field and correction potentials.
+  for (int i = 0; i < 8; ++i) {
+    fout[i] = 0.0;
+  }
+}
+
+void
+evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct beach_ctx *app = ctx;
+  double x = xn[0];
+
+  double J0 = app->J0;
+  double x_last_edge = app->x_last_edge;
+  double omega_drive = app->omega_drive;
+
+  // Applied current (y-direction): the antenna next to the upper boundary.
+  double app_y = 0.0;
+  if (x > x_last_edge) {
+    app_y = -J0 * sin(omega_drive * t);
+  }
+
+  // Set applied current.
   fout[0] = 0.0;
-  fout[1] = 0.0;
+  fout[1] = app_y;
   fout[2] = 0.0;
-  fout[3] = B0 * sin(theta);
-  fout[4] = -B0 * cos(theta);
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -270,10 +302,26 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct travel_pulse_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct beach_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
+
+  // Field.
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0,
+    .mu0 = ctx.mu0,
+
+    .init = evalFieldInit,
+    .ctx = &ctx,
+
+    .app_current = evalAppCurrent,
+    .app_current_ctx = &ctx,
+    .app_current_evolve = true,
+
+    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_ABSORB},
+  };
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -319,6 +367,23 @@ main(int argc, char **argv)
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
+  // Electrons.
+  struct gkyl_vlasov_kinetic_species elc = {
+    .lower = {-ctx.vx_max, -ctx.vy_max},
+    .upper = {ctx.vx_max, ctx.vy_max},
+    .cells = {NVX, NVY},
+
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcInit, .ctx_func = &ctx},
+    // The initial state is held as the background.
+    .background = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcInit, .ctx_func = &ctx},
+
+    .bcx = {.lower = {.type = GKYL_SPECIES_COPY}, .upper = {.type = GKYL_SPECIES_COPY}},
+
+    .num_diag_moments = 3,
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
+  };
+
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
   int comm_size;
@@ -336,36 +401,11 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Neutrals.
-  struct gkyl_vlasov_kinetic_species neut_kinetic = {
-    .lower = {-ctx.vx_max},
-    .upper = {ctx.vx_max},
-    .cells = {NVX},
-
-    .num_init = 1,
-    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalNeutDistInit, .ctx_func = &ctx},
-  };
-
-  struct gkyl_vlasov_fluid_species neut_fluid = {.init = evalNeutFluidInit, .ctx = &ctx};
-
-  // Field.
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
-
-    .init = evalFieldInit,
-    .ctx = &ctx,
-
-    .is_static = true,
-  };
-
-  // PKPM app.
+  // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
-    .vdim = 1,
+    .vdim = 2,
     .lower = {0.0},
     .upper = {ctx.Lx},
     .cells = {NX},
@@ -374,23 +414,26 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .num_periodic_dir = 0,
+    .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_PKPM,
-      .kinetic = neut_kinetic,
-      .fluid = neut_fluid,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .type = GKYL_SPECIES_VLASOV,
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {cuts[0]}, .comm = comm},
   };
+
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
@@ -575,24 +618,16 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
   );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
-  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
   );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.species_io_tm);
+  double io_tm =
+    stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:
   // Free resources after simulation completion.

@@ -1064,6 +1064,14 @@ vlasov_species_init_fluid_aspects(struct gkyl_vm *vm, gkyl_vlasov_app *app)
       vm_fluid_species_coll_cross_init(app, &app->species[i]);
     }
   }
+
+  // The fluid species whose temperature source takes its step in the implicit stage.
+  app->num_fluid_temp_source_implicit = 0;
+  for (int i = 0; i < app->num_species; ++i) {
+    if (app->species[i].type == GKYL_SPECIES_FLUID && app->species[i].fluid->tsrc.is_implicit) {
+      app->fluid_temp_source_implicit[app->num_fluid_temp_source_implicit++] = &app->species[i];
+    }
+  }
 }
 
 void

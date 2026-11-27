@@ -217,6 +217,8 @@ vp_potential_init(
 
   pot->rho = mkarr(app->use_gpu, nb, app->local_ext.volume);
   pot->rho_global = mkarr(app->use_gpu, nb, app->global_ext.volume);
+  pot->rho_bg = mkarr(app->use_gpu, nb, app->local_ext.volume);
+  gkyl_array_clear(pot->rho_bg, 0.0);
 
   pot->phi = mkarr(app->use_gpu, nb, app->local_ext.volume);
   pot->phi_global = mkarr(app->use_gpu, nb, app->global_ext.volume);
@@ -320,6 +322,7 @@ vp_potential_release(const struct gkyl_vlasov_app *app, struct vp_potential *pot
 
   gkyl_array_release(pot->rho_global);
   gkyl_array_release(pot->rho);
+  gkyl_array_release(pot->rho_bg);
 }
 
 // Solve one potential from its accumulated source: gather the source into the
@@ -335,6 +338,13 @@ vp_potential_solve(gkyl_vlasov_app *app, struct vm_field *field, struct vp_poten
   gkyl_fem_poisson_solve(pot->fem_poisson, pot->phi_global);
 
   gkyl_array_copy_range_to_range(pot->phi, pot->phi_global, &app->local, &field->global_sub_range);
+}
+
+// The potential while the held backgrounds are captured: zero (vp_field_background_begin).
+static void
+vp_potential_solve_zero(gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot)
+{
+  gkyl_array_clear(pot->phi, 0.0);
 }
 
 // Append the integrated |grad phi|^2 + mu_sq phi^2 (scaled by the potential's
@@ -441,6 +451,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   vpf->num_pots = 0;
+  vpf->pot_solve_func = vp_potential_solve;
   if (vpf->info.epsilon0 > 0.0 && has_charge) {
     // Electrostatics: - nabla . (epsilon0 * nabla phi) + epsilon0 * mu_sq * phi =
     // sum_s q_s n_s, screened by a massive dark photon when mu_sq > 0.
@@ -941,11 +952,50 @@ vp_field_solve(
     vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], 0);
   }
 
+  // The potentials are those of the departure of the species from their held backgrounds (the
+  // source of the backgrounds is zero without one).
   for (int p = 0; p < field->num_pots; ++p) {
-    vp_potential_solve(app, field, &field->pots[p]);
+    struct vp_potential *pot = &field->pots[p];
+    gkyl_array_accumulate_range(pot->rho, -1.0, pot->rho_bg, &app->local);
+    field->pot_solve_func(app, field, pot);
   }
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+vp_field_background_begin(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  field->pot_solve_func = vp_potential_solve_zero;
+  for (int p = 0; p < field->num_pots; ++p) {
+    gkyl_array_clear(field->pots[p].phi, 0.0);
+  }
+  // The forces of the kick and the total field of PKPM species, without the potentials.
+  if (field->em_pot) {
+    vp_field_calc_kick(app, field);
+  }
+}
+
+void
+vp_field_background_end(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  field->pot_solve_func = vp_potential_solve;
+
+  // The source of the held species, which are on their backgrounds.
+  for (int p = 0; p < field->num_pots; ++p) {
+    gkyl_array_clear(field->pots[p].rho, 0.0);
+  }
+  for (int i = 0; i < app->num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (vlasov_species_has_background(sp)) {
+      vlasov_species_accumulate_field_coupling(
+        app, sp, sp->kinetic ? sp->kinetic->f : 0, sp->fluid ? sp->fluid->fluid : 0, 0
+      );
+    }
+  }
+  for (int p = 0; p < field->num_pots; ++p) {
+    gkyl_array_copy(field->pots[p].rho_bg, field->pots[p].rho);
+  }
 }
 
 void

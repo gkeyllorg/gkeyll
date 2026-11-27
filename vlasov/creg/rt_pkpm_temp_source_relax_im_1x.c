@@ -1,21 +1,31 @@
 // Relaxation of the temperature and of the pressure anisotropy under the BGK-form temperature
-// source nu_Q (f_M(n, u, T_Q) - f) with the PKPM system of equations (1x, normalized parallel
-// velocity w = v_par/xi), implicit update: the backward-Euler twin of
-// rt_pkpm_temp_source_relax_1x.c at 100 times its source rate.
+// source nu_Q (f_M(n, u, T_Q) - f) and BGK self-collisions with the PKPM system of equations (1x,
+// normalized parallel velocity w = v_par/xi), implicit update: the backward-Euler twin of
+// rt_pkpm_temp_source_relax_1x.c at 100 times its source rate and collision frequency.
 // Two homogeneous neutral species start as drifting bi-Maxwellians at T = 1 with T_par/T = 1.4 and
 // T_perp/T = 0.8. The source of the first has T_Q = 10 (heating, T_Q/T = 10 initially) and that of
 // the second T_Q = 0.1 (cooling). A static magnetic field along x sets the field direction. Source
-// rate 100, with nu_Q dt between 1.5 and 1.7 (the explicit update would need nu_Q dt below 0.1).
-// The source takes one backward-Euler step in each SSP-RK3 stage, over the time weight of the
-// stage, so with z = nu_Q dt a step multiplies a relaxing quantity by
-// R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3) (0.335 at z = 1.74).
+// rate 100 and collision frequency nu_c = 100 for both species, with nu_Q dt between 1.59 and 1.73
+// (0.97 in the two shortened final steps; the explicit update starts at nu_Q dt = 0.09). The
+// collisions are self-collisions only: the two species are independent cases sharing a run, and the
+// kinetic implicit BGK of the Vlasov partner takes no cross collisions.
+// vlasov/creg/rt_vlasov_temp_source_relax_im_1x2v.c is the same case with the Vlasov solver in two
+// velocity dimensions (T = (T_xx + T_yy)/2, the collisions exchange energy between T_xx and T_yy)
+// where PKPM has three degrees of freedom (T = (T_par + 2 T_perp)/3): it checks the same per-step
+// factors on a different system.
+// The two operators take one backward-Euler step together in each SSP-RK3 stage, over the time
+// weight of the stage, with their frequencies summed, so a step multiplies a quantity relaxing at
+// the rate nu by R(nu dt), R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3) (0.337
+// at z = 1.73, 0.188 at z = 3.46). The collisions leave the temperature to the source, which
+// multiplies T - T_Q by R(nu_Q dt), and the pressure anisotropy decays by R((nu_c + nu_Q) dt).
 // The stages combine the distributions with weights that follow the temperature change of the
 // implicit steps, so the combination is linear in the pressure components although the temperature
 // changes seven-fold in the first step of the heated species.
 // Figures of merit (2 x 48 cells, to t = 0.5): density and momentum are conserved to round-off and
-// the constraints stay at [1, 0, 1]. Each step multiplies T - T_Q by R(z) to 1e-9 and the pressure
-// anisotropy p_par - p_perp by R(z) to 1e-6, and the temperature stays between T_0 and T_Q: 6.9697
-// and 0.40303 after the first step.
+// the constraints stay at [1, 0, 1]. Each step multiplies T - T_Q by R(nu_Q dt) to 1e-9 and the
+// pressure anisotropy p_par - p_perp by R((nu_c + nu_Q) dt) to 1e-6 over the 12 steps in which it
+// exceeds 1e-9 of its initial value, and the temperature stays between T_0 and T_Q: 6.9697 and
+// 0.40303 after the first step.
 
 #include <math.h>
 #include <stdio.h>
@@ -54,6 +64,7 @@ struct relax_ctx {
   double ux0; // Flow velocity (x-direction, along the field).
   double uy0; // Flow velocity (y-direction).
   double nu_Q; // Rate of the temperature source.
+  double nu; // Collision frequency.
   double T_heat; // Temperature of the source of the heated species.
   double T_cool; // Temperature of the source of the cooled species.
   double B0; // Magnetic field along x (sets the field direction b).
@@ -96,6 +107,7 @@ create_ctx(void)
   double ux0 = 0.5; // Flow velocity (x-direction, along the field).
   double uy0 = 0.3; // Flow velocity (y-direction).
   double nu_Q = 100.0; // Rate of the temperature source.
+  double nu = 100.0; // Collision frequency.
   double T_heat = 10.0; // Temperature of the source of the heated species.
   double T_cool = 0.1; // Temperature of the source of the cooled species.
   double B0 = 1.0; // Magnetic field along x (sets the field direction b).
@@ -133,6 +145,7 @@ create_ctx(void)
     .ux0 = ux0,
     .uy0 = uy0,
     .nu_Q = nu_Q,
+    .nu = nu,
     .T_heat = T_heat,
     .T_cool = T_cool,
     .B0 = B0,
@@ -201,6 +214,17 @@ evalFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[2] = rho * uy0;
   fout[3] = 0.0;
   fout[4] = E;
+}
+
+void
+evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = nu;
 }
 
 void
@@ -399,6 +423,14 @@ main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
 
+    .collisions =
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
+
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
@@ -420,6 +452,14 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
 
     .source_bgk =
       {

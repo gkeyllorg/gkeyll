@@ -1,13 +1,21 @@
 -- Relaxation of the temperature and of the pressure anisotropy under the BGK-form temperature
--- source nu_Q (f_M(n, u, T_Q) - f) with the Vlasov solver (1x2v), explicit update: the counterpart
--- of rt_pkpm_temp_source_relax_1x.c.
+-- source nu_Q (f_M(n, u, T_Q) - f) and BGK self-collisions with the Vlasov solver (1x2v), explicit
+-- update. rt_pkpm_temp_source_relax_1x.c is the same case with the PKPM system, which has three
+-- velocity degrees of freedom (T = (T_par + 2 T_perp)/3) where this test has two (T = (T_xx +
+-- T_yy)/2, the collisions exchange energy between T_xx and T_yy): the two check the same rates on
+-- different systems.
 -- Two homogeneous neutral species start as bi-Maxwellians drifting along x with T_xx = 1.4 and T_yy
 -- = 0.6 (T = 1). The source of the first has T_Q = 10 (heating) and that of the second T_Q = 0.1
--- (cooling). Source rate 1, run for 5 relaxation times.
--- Figures of merit (serendipity p2, 2 x 48 x 48 cells, 201 steps): density and momentum are
--- conserved to round-off (2e-14). The temperature follows T_Q + (T_0 - T_Q) exp(-nu_Q t) to 2.2e-6
--- (heated) and 2.2e-7 (cooled): 9.9394 and 0.10606 at t = 5, with T - T_Q decaying at rate
--- 1.000001. The pressure anisotropy P_xx - P_yy decays at rates 1.000003 and 1.000001.
+-- (cooling). Source rate 1 and collision frequency nu_c = 1 for both species, run for 5 relaxation
+-- times of the source. The collisions are self-collisions only: the two species are independent
+-- cases sharing a run, and the kinetic implicit BGK of rt_vlasov_temp_source_relax_im_1x2v.c takes
+-- no cross collisions.
+-- Figures of merit (serendipity p2, 2 x 48 x 48 cells, 206 steps): density and momentum are
+-- conserved to round-off (3e-14). The collisions leave the temperature to the source: it follows
+-- T_Q + (T_0 - T_Q) exp(-nu_Q t) to 2.0e-6 (heated) and 2.0e-7 (cooled), 9.9394 and 0.10606 at t =
+-- 5, with T - T_Q decaying at rate 1.000001. The pressure anisotropy P_xx - P_yy decays at the
+-- summed rate nu_Q + nu_c: 2.0003 (heated) and 2.00003 (cooled) between t = 0 and t = 5, where it
+-- is within 5e-8 of 0.8 exp(-10) = 3.632e-5.
 
 local Vlasov = G0.Vlasov
 
@@ -26,6 +34,7 @@ ux0 = 0.5 -- Initial drift velocity (x-direction).
 nu_Q = 1.0 -- Rate of the temperature source.
 T_Q_heat = 10.0 -- Source temperature of the heated species.
 T_Q_cool = 0.1 -- Source temperature of the cooled species.
+nu_c = 1.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
@@ -99,6 +108,14 @@ vlasovApp = Vlasov.App.new {
       }
     },
 
+    collisions = {
+      collisionID = G0.Collisions.BGK,
+
+      selfNu = function (t, xn)
+        return nu_c -- Collision frequency.
+      end
+    },
+
     sourceBGK = {
       rateProfile = function (t, xn)
         return nu_Q -- Rate of the temperature source.
@@ -145,6 +162,14 @@ vlasovApp = Vlasov.App.new {
           return f
         end
       }
+    },
+
+    collisions = {
+      collisionID = G0.Collisions.BGK,
+
+      selfNu = function (t, xn)
+        return nu_c -- Collision frequency.
+      end
     },
 
     sourceBGK = {

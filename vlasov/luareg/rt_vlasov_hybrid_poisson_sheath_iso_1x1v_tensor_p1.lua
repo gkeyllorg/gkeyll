@@ -1,17 +1,20 @@
 -- Sheath formation with kinetic ions and an isothermal electron fluid (hybrid Vlasov-Poisson, 1x1v),
--- rt_vlasov_hybrid_poisson_sheath_1x1v.c with the isothermal closure of the electrons (thermal speed
--- vte, so no electron temperature source).
+-- rt_vlasov_hybrid_poisson_sheath_1x1v.c with the isothermal closure of the electrons (thermal
+-- speed vte, so no electron temperature source).
 -- Half domain: symmetry plane at x = 0 (reflecting ions and electrons, zero normal field), absorbing
 -- grounded wall at x = Lx (phi = 0). The absorbing wall of the electron fluid is a boundary flux:
 -- that of the electrons of the Maxwellian of the wall cell (at the thermal speed vte) that move
 -- toward the wall (none come back). A boundary-flux source of each species replaces the ions lost
 -- to the wall, and the BGK-form temperature source of the ions at the source temperature acts
--- upstream (x < L_nu). The position map clusters the cells at the wall. Run to t = 1000/omega_pe.
+-- upstream (x < L_nu). LBO self-collisions of the ions act upstream as well (nu_ii = 0.02 omega_pe
+-- for x < L_nu); a kinetic species cannot collide with a fluid species, so the ions and the
+-- electron fluid exchange no momentum or energy. The position map clusters the cells at the wall.
+-- Run to t = 1000/omega_pe.
 -- Figures of merit at t = 1000 (16 x 24 cells, tensor p1 with the hybrid phase basis):
--- midplane-to-wall potential drop e*dphi/Te = 2.258, ion wall flux / (n_mid c_s) = 0.494, ion speed
--- at the wall / c_s = 1.754, with c_s = sqrt((Te + Ti)/mi) (adiabatic electrons,
--- rt_vlasov_hybrid_poisson_sheath_1x1v.c: 2.128, 0.495, 1.712; kinetic electrons, rt_vp_sheath_1x1v.c:
--- 1.925, 0.509, 1.629).
+-- midplane-to-wall potential drop e*dphi/Te = 2.267, ion wall flux / (n_mid c_s) = 0.489, ion speed
+-- at the wall / c_s = 1.765, with c_s = sqrt((Te + Ti)/mi) (adiabatic electrons,
+-- rt_vlasov_hybrid_poisson_sheath_1x1v.c: 2.140, 0.491, 1.722; kinetic electrons and no LBO,
+-- rt_vp_sheath_1x1v.c: 1.925, 0.509, 1.629).
 
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler
@@ -36,6 +39,7 @@ vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 lambda_D = math.sqrt(epsilon0 * Te / (n0 * charge_ion * charge_ion)) -- Electron Debye length.
 omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
 
+nu_ii = vti / (5.0 * lambda_D) -- Ion-ion collision frequency (upstream).
 nu_Q_ion = vti / (5.0 * lambda_D) -- Rate of the ion temperature source (upstream).
 
 -- Simulation parameters.
@@ -43,7 +47,7 @@ Nx = 16 -- Cell count (configuration space: x-direction).
 Nvx = 24 -- Cell count (velocity space: vx-direction).
 Lx = 64.0 * lambda_D -- Domain size (configuration space: x-direction).
 Ls = 40.0 * lambda_D -- Domain size (source).
-L_nu = 32.0 * lambda_D -- Extent of the collisional (fixed-temperature) region.
+L_nu = 32.0 * lambda_D -- Extent of the collisional and temperature-source region.
 vx_max_ion = 8.0 * vti -- Domain boundary (ion velocity space: vx-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "tensor" -- Basis function set (hybrid phase-space basis of the kinetic species).
@@ -157,6 +161,18 @@ vlasovApp = Vlasov.App.new {
           end
         }
       }
+    },
+
+    collisions = {
+      collisionID = G0.Collisions.LBO,
+
+      selfNu = function (t, xn)
+        local x = xn[1]
+
+        local nu = nu_ii / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D))) -- Ion collision frequency.
+
+        return nu
+      end
     },
 
     sourceBGK = {

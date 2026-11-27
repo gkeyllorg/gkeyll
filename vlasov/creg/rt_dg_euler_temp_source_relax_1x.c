@@ -1,15 +1,12 @@
-// Linear Landau damping of a Langmuir wave with the PKPM system of equations (1x, normalized
-// parallel velocity w = v_par/xi), the counterpart of vlasov/creg/rt_vlasov_landau_damping_1x1v.c.
-// A Maxwellian electron plasma (vt = 1, lambda_D = 1) on a neutralizing ion background is perturbed
-// in density at k lambda_D = 0.5 with amplitude 1e-4; the electric field follows from Gauss's law.
-// A uniform magnetic field along x gives PKPM its field direction and does not act on the parallel
-// electrostatic wave.
-// The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
-// Collisionless linear theory at k lambda_D = 0.5 (Vlasov; the parallel kinetics of PKPM are exact
-// for this wave): omega = 1.4157 omega_pe, damping rate gamma = 0.1533 omega_pe.
-// Figures of merit (32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at gamma = 0.1549
-// and recur at omega = 1.414; the field energy at t = 20 is 0.0009 of its initial value, as with
-// the implicit coupling (Vlasov, serendipity p2 on the same grid: 0.1549, 1.413, 0.00091).
+// Relaxation of the temperature of an Euler fluid under the temperature source, the moments of the
+// BGK-form source nu_Q (f_M(n, u, T_Q) - f), with the DG Euler solver (1x), explicit update.
+// Two homogeneous drifting gases (gamma = 1.4) start at T = 1 on a periodic domain. The source of
+// the first has T_Q = 10 (heating) and that of the second T_Q = 0.1 (cooling). Source rate 1, run
+// for 5 relaxation times.
+// Figures of merit (serendipity p1, 2 cells, to t = 5): density and momentum are conserved to
+// round-off. The temperature follows T_Q + (T_0 - T_Q) exp(-nu_Q t): 9.9394 and 0.10606 at
+// t = 5, with T - T_Q decaying at rate 1.0000 (largest departure from the exponential 3.4e-5 of
+// T_0 - T_Q, with nu_Q dt up to 0.14).
 
 #include <math.h>
 #include <stdio.h>
@@ -19,6 +16,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -32,26 +30,20 @@
 
 #include <rt_arg_parse.h>
 
-struct landau_damping_ctx {
-  // Mathematical constants (dimensionless).
-  double pi;
+struct relax_ctx {
+  double pi; // Pi.
+  double gas_gamma; // Adiabatic index.
+  double mass; // Species mass.
+  double n0; // Number density.
+  double T0; // Initial temperature.
+  double ux0; // Flow velocity (x-direction).
+  double uy0; // Flow velocity (y-direction).
+  double nu_Q; // Rate of the temperature source.
+  double T_heat; // Temperature of the source of the heated species.
+  double T_cool; // Temperature of the source of the cooled species.
 
-  // Physical constants (using normalized code units).
-  double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
-  double mass_elc; // Electron mass.
-  double charge_elc; // Electron charge.
-
-  double vt; // Thermal velocity.
-  double B0; // Magnetic field along x (sets the field direction b).
-  double alpha; // Applied perturbation amplitude.
-  double k0; // Perturbed wave number.
-
-  // Simulation parameters.
-  int Nx; // Cell count (configuration space: x-direction).
-  int Nvx; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: w = v_par/xi).
+  int Nx; // Cell count (x-direction).
+  double Lx; // Domain size (x-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -64,32 +56,26 @@ struct landau_damping_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct landau_damping_ctx
+struct relax_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  double pi = M_PI; // Pi.
+  double gas_gamma = 1.4; // Adiabatic index.
+  double mass = 1.0; // Species mass.
+  double n0 = 1.0; // Number density.
+  double T0 = 1.0; // Initial temperature.
+  double ux0 = 0.5; // Flow velocity (x-direction).
+  double uy0 = 0.3; // Flow velocity (y-direction).
+  double nu_Q = 1.0; // Rate of the temperature source.
+  double T_heat = 10.0; // Temperature of the source of the heated species.
+  double T_cool = 0.1; // Temperature of the source of the cooled species.
 
-  // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
-  double mass_elc = 1.0; // Electron mass.
-  double charge_elc = -1.0; // Electron charge.
-
-  double vt = 1.0; // Thermal velocity.
-  double B0 = 1.0; // Magnetic field along x (sets the field direction b).
-  double alpha = 1.0e-4; // Applied perturbation amplitude.
-  double k0 = 0.5; // Perturbed wave number.
-
-  // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0; // Domain boundary (velocity space: w = v_par/xi).
+  int Nx = 2; // Cell count (x-direction).
+  double Lx = 2.5; // Domain size (x-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
+  double t_end = 5.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -98,20 +84,19 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct landau_damping_ctx ctx = {
+  struct relax_ctx ctx = {
     .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .vt = vt,
-    .B0 = B0,
-    .alpha = alpha,
-    .k0 = k0,
+    .gas_gamma = gas_gamma,
+    .mass = mass,
+    .n0 = n0,
+    .T0 = T0,
+    .ux0 = ux0,
+    .uy0 = uy0,
+    .nu_Q = nu_Q,
+    .T_heat = T_heat,
+    .T_cool = T_cool,
     .Nx = Nx,
-    .Nvx = Nvx,
     .Lx = Lx,
-    .vx_max = vx_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -127,89 +112,58 @@ create_ctx(void)
 }
 
 void
-evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct landau_damping_ctx *app = ctx;
-  double w = xn[1];
+  struct relax_ctx *app = ctx;
+  double gas_gamma = app->gas_gamma;
+  double mass = app->mass;
+  double n0 = app->n0;
+  double T0 = app->T0;
+  double ux0 = app->ux0;
+  double uy0 = app->uy0;
 
-  double pi = app->pi;
+  double rho = mass * n0; // Mass density.
+  double p = n0 * T0; // Pressure.
 
-  double F = exp(-0.5 * w * w) / sqrt(2.0 * pi); // Normalized Maxwellian in w = v_par/xi.
-
-  // Set normalized electron distribution functions [F, G] (G = (T_perp/T) F = F).
-  fout[0] = F;
-  fout[1] = F;
-
-  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
-}
-
-void
-evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct landau_damping_ctx *app = ctx;
-  double x = xn[0];
-
-  double alpha = app->alpha;
-  double k0 = app->k0;
-  double mass_elc = app->mass_elc;
-  double vt = app->vt;
-
-  double n = 1.0 + alpha * cos(k0 * x); // Electron number density.
-  double rho = mass_elc * n; // Electron mass density.
-  double E = 1.5 * n * mass_elc * vt * vt; // Electron total energy density (at rest).
-
-  // Set electron fluid state [rho, rho ux, rho uy, rho uz, E].
+  // Set fluid mass density, momentum density and total energy density.
   fout[0] = rho;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
+  fout[1] = rho * ux0;
+  fout[2] = rho * uy0;
   fout[3] = 0.0;
-  fout[4] = E;
+  fout[4] = 0.5 * rho * (ux0 * ux0 + uy0 * uy0) + p / (gas_gamma - 1.0);
 }
 
 void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalSourceRate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct landau_damping_ctx *app = ctx;
-  double x = xn[0];
+  struct relax_ctx *app = ctx;
 
-  double alpha = app->alpha;
-  double k0 = app->k0;
+  double nu_Q = app->nu_Q;
 
-  double Ex = -alpha * sin(k0 * x) / k0; // Electric field (x-direction).
-
-  // Set electric field, magnetic field and correction potentials.
-  fout[0] = Ex;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
+  // Set rate of the temperature source.
+  fout[0] = nu_Q;
 }
 
 void
-evalExternalFieldInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+evalHeatSourceTemp(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct landau_damping_ctx *app = ctx;
+  struct relax_ctx *app = ctx;
 
-  double B0 = app->B0;
+  double T_heat = app->T_heat;
 
-  // Set external electric and magnetic fields.
-  fout[0] = 0.0;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = B0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
+  // Set temperature of the source of the heated species.
+  fout[0] = T_heat;
+}
+
+void
+evalCoolSourceTemp(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct relax_ctx *app = ctx;
+
+  double T_cool = app->T_cool;
+
+  // Set temperature of the source of the cooled species.
+  fout[0] = T_cool;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -282,10 +236,9 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct landau_damping_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -331,6 +284,47 @@ main(int argc, char **argv)
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
+  // Fluid equations.
+  // Created after the communicator: on GPUs under MPI the communicator selects this rank's
+  // device, where the equation's device copy must live.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = ctx.gas_gamma,
+    .rp_type = WV_EULER_RP_HLLC,
+    .use_gpu = app_args.use_gpu,
+  });
+
+  // Heated species.
+  struct gkyl_vlasov_fluid_species heat = {
+    .equation = euler,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+
+    .source_bgk =
+      {
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = evalSourceRate,
+        .rate_profile_ctx = &ctx,
+        .temp_shape = evalHeatSourceTemp,
+        .temp_shape_ctx = &ctx,
+      },
+  };
+
+  // Cooled species.
+  struct gkyl_vlasov_fluid_species cool = {
+    .equation = euler,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+
+    .source_bgk =
+      {
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = evalSourceRate,
+        .rate_profile_ctx = &ctx,
+        .temp_shape = evalCoolSourceTemp,
+        .temp_shape_ctx = &ctx,
+      },
+  };
+
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
   int comm_size;
@@ -348,64 +342,35 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Electrons.
-  struct gkyl_vlasov_kinetic_species elc_kinetic = {
-    .lower = {-ctx.vx_max},
-    .upper = {ctx.vx_max},
-    .cells = {NVX},
-
-    .num_init = 1,
-    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
-  };
-
-  struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
-
-  // Field.
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
-
-    .init = evalFieldInit,
-    .ctx = &ctx,
-
-    .ext_em = evalExternalFieldInit,
-    .ext_em_ctx = &ctx,
-  };
-
-  // PKPM app.
+  // Vlasov-Maxwell app.
+  // Vlasov app (fluid only).
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
-    .vdim = 1,
-    .lower = {-0.5 * ctx.Lx},
-    .upper = {0.5 * ctx.Lx},
+    .vdim = 0,
+    .lower = {0.0},
+    .upper = {ctx.Lx},
     .cells = {NX},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .use_explicit_sources = true,
-
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
 
-    .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_PKPM,
-      .kinetic = elc_kinetic,
-      .fluid = elc_fluid,
-    }},
+    .num_species = 2,
+    .species =
+      {
+        {.name = "heat", .mass = ctx.mass, .type = GKYL_SPECIES_FLUID, .fluid = heat},
+        {.name = "cool", .mass = ctx.mass, .type = GKYL_SPECIES_FLUID, .fluid = cool},
+      },
 
-    .field = field,
+    .skip_field = true,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {cuts[0]}, .comm = comm},
   };
+
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
@@ -590,28 +555,21 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
   );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
-  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
   );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.species_io_tm);
+  double io_tm =
+    stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
+  gkyl_wv_eqn_release(euler);
   gkyl_vlasov_app_release(app);
 
 mpifinalize:

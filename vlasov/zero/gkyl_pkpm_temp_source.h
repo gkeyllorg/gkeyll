@@ -10,16 +10,18 @@ typedef struct gkyl_pkpm_temp_source gkyl_pkpm_temp_source;
 // Input packaged as a struct
 struct gkyl_pkpm_temp_source_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  // Thermal energy per unit of rho vtsq, 1/(gas_gamma - 1) (0 => default 3/2, a PKPM species).
+  double energy_fac;
   bool use_gpu; // bool to determine if on GPU.
 };
 
 /**
- * Create an updater for the fluid part of the PKPM temperature source
- * S = nu_Q (f_M(n, u, T_Q) - f), at the 2^cdim interior Gauss-Legendre nodes of configuration
- * space. The density and the momentum are unchanged. The thermal energy
- * eps = E - |M|^2/(2 rho) relaxes to eps_Q = (3/2) rho vtsq_Q at the rate nu_Q, and the
- * normalized distributions relax to the unit Maxwellian at the rate nu_Q eps_Q/eps, which the
- * updater returns for the BGK updater (gkyl_pkpm_bgk_collisions).
+ * Create an updater for the fluid part of the temperature source
+ * S = nu_Q (f_M(n, u, T_Q) - f) of a PKPM species or an Euler fluid, at the 2^cdim interior
+ * Gauss-Legendre nodes of configuration space. The density and the momentum are unchanged. The
+ * thermal energy eps = E - |M|^2/(2 rho) relaxes to eps_Q = energy_fac rho vtsq_Q at the rate
+ * nu_Q, and the normalized distributions of a PKPM species relax to the unit Maxwellian at the
+ * rate nu_Q eps_Q/eps, which the updater returns for the BGK updater (gkyl_pkpm_bgk_collisions).
  *
  * The fluid state may carry the position-map Jacobian, which is constant in a cell: every
  * quantity formed here is homogeneous in it.

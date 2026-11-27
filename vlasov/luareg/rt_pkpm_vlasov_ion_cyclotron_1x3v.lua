@@ -1,14 +1,18 @@
 -- Parallel ion cyclotron wave with kinetic ions (1x3v) and PKPM electrons, the mixed counterpart of
--- vlasov/creg/rt_vlasov_hybrid_ion_cyclotron_1x3v.c (the same ions with fluid electrons, at mi / me
--- = 100). A left-hand circularly polarized wave propagates along the background magnetic field (x)
--- at k d_i = 1 in a plasma with beta_i = beta_e = 0.1, vA / c = 0.1 and mi / me = 25, and is damped
--- by the cyclotron resonance of the Maxwellian ions. The electrons are a PKPM species: their
--- transverse velocity is in the fluid state, F is a Maxwellian in w = v_par/xi, and the wave turns
--- the field direction, so their first harmonic carries the transverse response. The fluid-field
--- coupling is the staggered operator split: the source step takes the ion current as known and
--- solves the electron momentum with E, the transport step moves the ions with that E.
--- Linear theory (Maxwell's equations with the displacement current, kinetic ions, and cold
--- electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
+-- vlasov/creg/rt_vlasov_hybrid_ion_cyclotron_1x3v.c (the same ions with the same LBO
+-- self-collisions and Euler fluid electrons, at mi / me = 100; a kinetic species cannot collide
+-- with a fluid species, so that test has no ion-electron collisions). A left-hand circularly
+-- polarized wave propagates along the background magnetic field (x) at k d_i = 1 in a plasma with
+-- beta_i = beta_e = 0.1, vA / c = 0.1 and mi / me = 25, and is damped by the cyclotron resonance of
+-- the Maxwellian ions. The electrons are a PKPM species: their transverse velocity is in the fluid
+-- state, F is a Maxwellian in w = v_par/xi, and the wave turns the field direction, so their first
+-- harmonic carries the transverse response. The fluid-field coupling is the staggered operator
+-- split: the source step takes the ion current as known and solves the electron momentum with E,
+-- the transport step moves the ions with that E. Both species have LBO collisions with constant
+-- frequencies, nu_ii = 1e-3 Omega_ci, nu_ee = nu_ei = 5e-3 Omega_ci and nu_ie = (me / mi) nu_ei;
+-- the cross operator of the kinetic ions carries the exchange of the pair.
+-- Collisionless linear theory (Maxwell's equations with the displacement current, kinetic ions, and
+-- cold electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
 -- omega_pi^2 (omega / (sqrt(2) k v_ti)) Z((omega - Omega_ci) / (sqrt(2) k v_ti)) - omega_pe^2 omega
 -- / (omega + |Omega_ce|) = 0 gives omega = 0.51471 Omega_ci and a damping rate of 0.05039 Omega_ci.
 -- The wave starts with a magnetic field of 1e-4 B0, Maxwellian ions and electrons with transverse
@@ -17,11 +21,12 @@
 -- wave number and polarization are not excited (the whistler that propagates the opposite way and
 -- two high-frequency electron modes). The Maxwellian is not the kinetic eigenfunction: the rest of
 -- the perturbation phase-mixes during the first period, so the figures of merit are taken after it.
--- Figures of merit (16 cells; 16 x 6 x 6 in the ion velocity, 16 in w for the electrons; 1866
+-- Figures of merit (16 cells; 16 x 6 x 6 in the ion velocity, 16 in w for the electrons; 1870
 -- steps, omega_pe dt = 0.65, |Omega_ce| dt = 0.33): between t = 1 and 2 wave periods the k d_i = 1
--- mode of B_y + i B_z decays at 0.05104 Omega_ci (+1.3%) with omega = 0.51627 Omega_ci (+0.3%); the
--- history of the transverse magnetic energy over the same interval gives 0.05111 Omega_ci (+1.4%).
--- The total energy changes by -5e-13 of itself (7e-5 of the initial magnetic energy of the wave).
+-- mode of B_y + i B_z decays at 0.05115 Omega_ci (+1.5%) with omega = 0.51688 Omega_ci (+0.4%); the
+-- history of the transverse magnetic energy over the same interval gives 0.05122 Omega_ci (+1.7%).
+-- The collisions change the rate by +0.2% and omega by +0.1%. The total energy changes by -5e-13 of
+-- itself (7e-5 of the initial magnetic energy of the wave).
 
 local Vlasov = G0.Vlasov
 
@@ -44,6 +49,10 @@ Te = Ti -- Electron temperature.
 vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 vA = B0 / math.sqrt(mu0 * n0 * mass_ion) -- Alfven speed.
 omega_ci = charge_ion * B0 / mass_ion -- Ion cyclotron frequency.
+nu_ee = 5.0e-3 * omega_ci -- Electron-electron collision frequency.
+nu_ei = nu_ee -- Electron-ion collision frequency.
+nu_ii = 1.0e-3 * omega_ci -- Ion-ion collision frequency.
+nu_ie = (mass_elc / mass_ion) * nu_ei -- Ion-electron collision frequency.
 omega_pi = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)) -- Ion plasma frequency.
 di = 1.0 / (math.sqrt(epsilon0 * mu0) * omega_pi) -- Ion inertial length.
 
@@ -139,6 +148,24 @@ vlasovApp = Vlasov.App.new {
       }
     },
 
+    collisions = {
+      collisionID = G0.Collisions.LBO,
+
+      selfNu = function (t, xn)
+        return nu_ii
+      end,
+
+      numCrossCollisions = 1,
+      collideWith = { "elc" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return nu_ie
+          end
+        }
+      }
+    },
+
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
@@ -166,6 +193,24 @@ vlasovApp = Vlasov.App.new {
 
             return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
+        }
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          return nu_ee
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "ion" },
+        collideWithCrossNu = {
+          {
+            crossNu = function (t, xn)
+              return nu_ei
+            end
+          }
         }
       }
     },

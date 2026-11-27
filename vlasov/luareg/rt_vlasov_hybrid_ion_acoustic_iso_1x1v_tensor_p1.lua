@@ -4,18 +4,24 @@
 -- travelling wave at k lambda_De = 0.05, started from the linear densities and velocities of the
 -- wave with an ion density amplitude of 1e-4. The ions start as a Maxwellian with these moments,
 -- which is not the kinetic eigenfunction: the rest of the perturbation phase-mixes during the first
--- period, so the figures of merit are taken after it. The fluid-EM coupling is the implicit
--- staggered split: the source step takes the ion current as known and solves the electron momentum
--- with E, the transport step moves the ions with that E. Linear theory, 1 + chi_i + chi_e = 0 with
--- chi_i = (1 + zeta Z(zeta)) / (k lambda_Di)^2, zeta = omega / (sqrt(2) k v_ti), and chi_e =
--- -omega_pe^2 / (omega^2 - k^2 Te / me): omega = 0.08339 omega_pi, damping rate 0.02024 omega_pi.
--- Kinetic electrons give omega = 0.08590 omega_pi and a damping rate of 0.02508 omega_pi; adiabatic
--- fluid electrons (gamma = 5/3, rt_vlasov_hybrid_ion_acoustic_1x1v) 0.09470 and 0.01333. Figures of
--- merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, 1727 steps, omega_pe dt = 1.31):
--- between t = 1 and 3 wave periods the ion density wave decays at 0.02009 omega_pi (-0.8%) with
--- omega = 0.08295 omega_pi (-0.5%). The total energy (field, ions, and (1/2) rho u^2 + v_t^2 rho ln
--- rho of the electrons) changes by +3e-11 (6.1e-4 of twice the initial kinetic energy of the ion
--- flow).
+-- period, so the figures of merit are taken after it. The ions have LBO self-collisions at nu_ii =
+-- 2e-4 omega_pi, as in rt_vlasov_hybrid_ion_acoustic_1x1v; there are no collisions with the
+-- electron fluid. The fluid-EM coupling is the implicit staggered split: the source step takes the
+-- ion current as known and solves the electron momentum with E, the transport step moves the ions
+-- with that E. Collisionless linear theory, 1 + chi_i + chi_e = 0 with chi_i = (1 + zeta Z(zeta)) /
+-- (k lambda_Di)^2, zeta = omega / (sqrt(2) k v_ti), and chi_e = -omega_pe^2 / (omega^2 - k^2 Te /
+-- me): omega = 0.08339 omega_pi, damping rate 0.02024 omega_pi. Kinetic electrons give omega =
+-- 0.08590 omega_pi and a damping rate of 0.02508 omega_pi; adiabatic fluid electrons (gamma = 5/3,
+-- rt_vlasov_hybrid_ion_acoustic_1x1v) 0.09470 and 0.01333. With the ion collisions (linearized
+-- kinetic equation in Hermite moments, of which the LBO damps moment m >= 3 at m nu_ii, and the
+-- isothermal electron fluid) the theory gives omega = 0.08347 omega_pi and a damping rate of
+-- 0.01994 omega_pi. Figures of merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, 1727
+-- steps, omega_pe dt = 1.31): between t = 1 and 3 wave periods the ion density wave decays at
+-- 0.01986 omega_pi (-0.4% against the theory with collisions) with omega = 0.08306 omega_pi
+-- (-0.5%). Without collisions the run gives 0.02009 and 0.08295: the collisions change the rate by
+-- -1.2% (theory -1.5%) and omega by +0.13% (theory +0.10%). The total energy (field, ions, and
+-- (1/2) rho u^2 + v_t^2 rho ln rho of the electrons) changes by +3e-11 (6.1e-4 of twice the initial
+-- kinetic energy of the ion flow).
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler
 
@@ -34,6 +40,8 @@ n0 = 1.0 -- Reference number density.
 Te = 1.0 -- Electron temperature.
 Ti = 0.5 -- Ion temperature.
 vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
+omega_pi = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)) -- Ion plasma frequency.
+nu_ii = 2.0e-4 * omega_pi -- Ion-ion collision frequency.
 
 alpha = 1.0e-4 -- Amplitude of the ion density of the wave, relative to n0.
 k0 = 0.05 -- Wave number (k lambda_De = 0.05).
@@ -125,6 +133,14 @@ vlasovApp = Vlasov.App.new {
           return n / math.sqrt(2.0 * pi * vti * vti) * math.exp(-(vx - ux) * (vx - ux) / (2.0 * vti * vti))
         end
       }
+    },
+
+    collisions = {
+      collisionID = G0.Collisions.LBO,
+
+      selfNu = function (t, xn)
+        return nu_ii -- Self-collision frequency.
+      end
     },
 
     evolve = true, -- Evolve species?

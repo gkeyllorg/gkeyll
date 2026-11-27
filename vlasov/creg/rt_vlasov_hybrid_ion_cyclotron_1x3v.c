@@ -3,10 +3,15 @@
 // = 1 in a plasma with beta_i = beta_e = 0.1, vA / c = 0.1 and mi / me = 100, and is damped by the
 // cyclotron resonance of the Maxwellian ions. The fluid-EM coupling is the implicit staggered
 // split: the source step takes the ion current as known and solves the electron momentum with E,
-// the transport step moves the ions with that E.
+// the transport step moves the ions with that E. The ions have LBO self-collisions with a constant
+// frequency nu_ii = 1e-3 Omega_ci. A kinetic species cannot collide with a fluid species, so there
+// are no ion-electron collisions; the mixed counterpart
+// vlasov/creg/rt_pkpm_vlasov_ion_cyclotron_1x3v.c (kinetic ions and PKPM electrons, at mi / me =
+// 25) has the same ion self-collisions and, in addition, electron self-collisions and the
+// collisions of the ion-electron pair.
 //
-// Linear theory (Maxwell's equations with the displacement current, kinetic ions, and cold
-// electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
+// Collisionless linear theory (Maxwell's equations with the displacement current, kinetic ions, and
+// cold electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
 // omega_pi^2 (omega / (sqrt(2) k v_ti)) Z((omega - Omega_ci) / (sqrt(2) k v_ti)) - omega_pe^2 omega
 // / (omega + |Omega_ce|) = 0 gives omega = 0.51572 Omega_ci and a damping rate of 0.05099 Omega_ci.
 // Kinetic electrons give 0.51575 and 0.05101.
@@ -23,10 +28,10 @@
 //
 // Figures of merit (tensor p1 with the hybrid phase basis, 16 x 16 x 6 x 6 cells, 2327 steps,
 // omega_pi dt = 0.131, omega_pe dt = |Omega_ce| dt = 1.31, set by the light wave): between t = 1
-// and 2.5 wave periods the k d_i = 1 mode of B_y + i B_z decays at 0.05145 Omega_ci (+0.9%) with
-// omega = 0.51662 Omega_ci (+0.2%); the history of the transverse magnetic energy over the same
-// interval gives 0.05148 Omega_ci (+1.0%). The total energy changes by -4e-13 (5e-5 of the initial
-// magnetic energy of the wave).
+// and 2.5 wave periods the k d_i = 1 mode of B_y + i B_z decays at 0.05150 Omega_ci (+1.0%) with
+// omega = 0.51714 Omega_ci (+0.3%); the history of the transverse magnetic energy over the same
+// interval gives 0.05153 Omega_ci (+1.1%). The collisions change the rate and omega by +0.1% each.
+// The total energy changes by -4e-13 (5e-5 of the initial magnetic energy of the wave).
 
 #include <math.h>
 #include <stdio.h>
@@ -71,6 +76,7 @@ struct hybrid_ion_cyclotron_ctx {
   double vti; // Ion thermal velocity.
   double vA; // Alfven speed.
   double omega_ci; // Ion cyclotron frequency.
+  double nu_ii; // Ion-ion collision frequency.
 
   double alpha; // Amplitude of the magnetic field of the wave, relative to B0.
   double k0; // Wave number.
@@ -123,6 +129,7 @@ create_ctx(void)
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double vA = B0 / sqrt(mu0 * n0 * mass_ion); // Alfven speed.
   double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
+  double nu_ii = 1.0e-3 * omega_ci; // Ion-ion collision frequency.
   double omega_pi =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
   double di = 1.0 / (sqrt(epsilon0 * mu0) * omega_pi); // Ion inertial length.
@@ -174,6 +181,7 @@ create_ctx(void)
     .vti = vti,
     .vA = vA,
     .omega_ci = omega_ci,
+    .nu_ii = nu_ii,
     .alpha = alpha,
     .k0 = k0,
     .omega_r = omega_r,
@@ -278,6 +286,15 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   // Set correction potentials.
   fout[6] = 0.0;
   fout[7] = 0.0;
+}
+
+void
+evalNuII(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct hybrid_ion_cyclotron_ctx *app = ctx;
+
+  // Set ion-ion collision frequency.
+  fout[0] = app->nu_ii;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -426,6 +443,8 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonInit, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNuII, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},

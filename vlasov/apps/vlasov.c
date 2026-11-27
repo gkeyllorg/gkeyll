@@ -290,15 +290,20 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       );
     }
   }
-  // So does the exchange between colliding species with a fluid aspect, which is at the nodes.
-  bool has_fluid_collisions = false;
+  // So do the operators of fluid species at the nodes: the exchange between colliding species
+  // with a fluid aspect and the implicit temperature source (their kernels are those of
+  // polynomial order 1, and they have no device version).
+  bool has_fluid_nodal_ops = false;
   for (int i = 0; i < ntot; ++i) {
-    has_fluid_collisions = has_fluid_collisions ||
-                           (vm->species[i].type == GKYL_SPECIES_FLUID &&
-                            vm->species[i].fluid.collisions.num_cross_collisions > 0);
+    has_fluid_nodal_ops = has_fluid_nodal_ops ||
+                          (vm->species[i].type == GKYL_SPECIES_FLUID &&
+                           (vm->species[i].fluid.collisions.num_cross_collisions > 0 ||
+                            vm->species[i].fluid.source_bgk.is_implicit));
   }
-  if (has_fluid_collisions && (poly_order != 1 || app->use_gpu)) {
-    gkyl_exit("gkyl_vlasov_app_new: collisions of fluid species need polyOrder = 1 on the CPU.");
+  if (has_fluid_nodal_ops && (poly_order != 1 || app->use_gpu)) {
+    gkyl_exit(
+      "gkyl_vlasov_app_new: collisions and implicit temperature sources of fluid species need polyOrder = 1 on the CPU."
+    );
   }
 
   if (app->use_gpu) {
@@ -446,9 +451,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name, "position-map");
 
   // Conversions to the configuration-nodal, velocity-modal form of the node-based operators of
-  // PKPM species and of the collisions of fluid species (CPU runs).
+  // PKPM species and of fluid species (collisions, implicit temperature sources; CPU runs).
   app->conf_nodal = 0;
-  if ((app->has_pkpm || has_fluid_collisions) && !app->use_gpu) {
+  if ((app->has_pkpm || has_fluid_nodal_ops) && !app->use_gpu) {
     // the phase-space basis of the PKPM species (the same for all of them, one velocity dimension)
     struct gkyl_basis phase_basis;
     gkyl_cart_modal_hybrid(&phase_basis, cdim, 1);
@@ -506,7 +511,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // The momentum and energy exchange between the species with a fluid aspect that collide.
   vm_coll_exchange_init(app);
-  app->has_coll_stage = app->has_pkpm || app->coll_exchange.num_species > 0;
+  app->has_coll_stage = app->has_pkpm || app->coll_exchange.num_species > 0 ||
+                        app->num_fluid_temp_source_implicit > 0;
 
   // Fluid-EM coupling: supported for the fluid aspects that carry a momentum (PKPM species;
   // fluid species with the Euler or isothermal Euler equations)
@@ -684,8 +690,15 @@ vm_apply_bc(
 
 // Held backgrounds (First_Fourier_Harmonic_Notes/background_density_gradient.tex), captured at the
 // end of the initial conditions (no-op without a held species). The held species are put on their
-// backgrounds, with the other species at their initial conditions and the evolved Maxwell field zero
-// (the background magnetic field is external). The right-hand side of a stage there, without the
+// backgrounds, with the other species at their initial conditions and no electric force of the
+// fields (vlasov_field_background_begin): the evolved Maxwell field, the potentials of the Poisson
+// field, the electric part of the external field and the external scalar potential are zero (the
+// background magnetic field is external and stays). These forces act in the stages on a kinetic
+// species and in the source step on a fluid aspect under the operator split, so a hold derived
+// from the stages with them would differ by type of species. From the capture on the potentials of
+// the Poisson field are solved from the departure of the species from their held backgrounds, so
+// the backgrounds themselves exert no force of the potentials. The right-hand side of a stage there,
+// without the
 // force of the backgrounds, gives the force that holds each held species (its momentum moment divided
 // by the density); the right-hand side with that force is the remainder every stage subtracts. The
 // initial conditions wait in the fnew buffers (the projection of a PKPM species uses f1), the field in
@@ -701,16 +714,13 @@ vlasov_capture_backgrounds(gkyl_vlasov_app *app, double t0)
   struct gkyl_vlasov_stat stat_ic = app->stat;
   int num_species = app->num_species;
   struct vm_field *field = app->field;
-  bool has_em = field->field_id == GKYL_FIELD_E_B;
+  bool has_pot = app->has_field && field->field_id == GKYL_FIELD_PHI;
+  struct vlasov_field_background_capture field_cap;
 
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_copy_range(app, &app->species[i], VM_RK_FNEW, VM_RK_F);
   }
-  if (has_em) {
-    gkyl_array_copy(field->em1, field->em);
-    gkyl_array_clear(field->em, 0.0);
-    vlasov_field_apply_bc(app, field->em);
-  }
+  vlasov_field_background_begin(app, &field_cap);
   for (int i = 0; i < num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
     if (vlasov_species_has_background(sp)) {
@@ -751,6 +761,10 @@ vlasov_capture_backgrounds(gkyl_vlasov_app *app, double t0)
     }
   }
 
+  // The source of the potentials that the held species have on their backgrounds, and the fields
+  // back.
+  vlasov_field_background_end(app, &field_cap, t0);
+
   // The initial conditions back; nothing the evaluations recorded is kept, except the speeds of the
   // velocity-domain edges of a held PKPM species.
   for (int i = 0; i < num_species; ++i) {
@@ -761,8 +775,12 @@ vlasov_capture_backgrounds(gkyl_vlasov_app *app, double t0)
     }
     vlasov_species_copy_range(app, sp, VM_RK_F, VM_RK_FNEW);
   }
-  if (has_em) {
-    gkyl_array_copy(field->em, field->em1);
+  if (has_pot) {
+    // The forces of the kick and the total field of the initial state, with the potentials of the
+    // departure from the backgrounds.
+    const struct gkyl_array *fin_ic[num_species];
+    vlasov_species_gather_dist(app, fin_ic);
+    vlasov_field_apply_ic(app, fin_ic, t0);
   }
   app->stat = stat_ic;
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);

@@ -1,16 +1,18 @@
 // Linear Landau damping of a Langmuir wave with the PKPM system of equations and the Poisson field
-// (1x, normalized parallel velocity w = v_par/xi), the Poisson counterpart of
-// rt_pkpm_landau_damping_1x.c and of rt_vp_landau_damping_1x1v.c. A Maxwellian electron plasma
-// (vt = 1, lambda_D = 1) on a neutralizing ion background, which the periodic solve removes as the
-// mean charge density, is perturbed in density at k lambda_D = 0.5 with amplitude 1e-4. A uniform
-// external magnetic field along x gives PKPM its field direction and does not act on the parallel
-// electrostatic wave. The fluid takes E = -grad(phi) in the kicks of the kick-drift-kick split
-// between the SSP-RK3 transport steps, with phi solved from the density at the start of each kick.
+// (1x, normalized parallel velocity w = v_par/xi), the counterpart of
+// rt_vp_landau_damping_lbo_1x3v.c. A Maxwellian electron plasma (vt = 1, lambda_D = 1) on a
+// neutralizing ion background, which the periodic solve removes as the mean charge density, is
+// perturbed in density at k lambda_D = 0.5 with amplitude 1e-4. A uniform external magnetic field
+// along x gives PKPM its field direction and does not act on the parallel electrostatic wave. LBO
+// self-collisions at nu = 0.05 omega_pe act on the electrons. The fluid takes E = -grad(phi) in the
+// kicks of the kick-drift-kick split between the SSP-RK3 transport steps, with phi solved from the
+// density at the start of each kick.
 // Collisionless linear theory at k lambda_D = 0.5: omega = 1.4157 omega_pe, damping rate gamma =
 // 0.1533 omega_pe.
-// Figures of merit (32 x 32 cells, 931 steps at the CFL step, omega_pe dt = 0.021): the
-// field-energy peaks over t = 0.5-12 decay at gamma = 0.1556 and recur at omega = 1.413; the field
-// energy at t = 20 is 0.00086 of its initial value (the Maxwell twin: 0.1549, 1.414, 0.00090).
+// Figures of merit (32 x 32 cells, 1267 steps at the CFL step, omega_pe dt = 0.016): the
+// field-energy peaks over t = 0.5-12 decay at gamma = 0.1446 and recur at omega = 1.387; the field
+// energy at t = 20 is 0.00052 of its initial value (rt_pkpm_landau_damping_lbo_1x.c, with the
+// Maxwell field: 0.1440, 1.388, 0.00057).
 
 #include <math.h>
 #include <stdio.h>
@@ -43,6 +45,7 @@ struct landau_damping_ctx {
   double charge_elc; // Electron charge.
 
   double vt; // Thermal velocity.
+  double nu; // Collision frequency.
   double B0; // Magnetic field along x (sets the field direction b).
   double alpha; // Applied perturbation amplitude.
   double k0; // Perturbed wave number.
@@ -76,6 +79,7 @@ create_ctx(void)
   double charge_elc = -1.0; // Electron charge.
 
   double vt = 1.0; // Thermal velocity.
+  double nu = 0.05; // Collision frequency.
   double B0 = 1.0; // Magnetic field along x (sets the field direction b).
   double alpha = 1.0e-4; // Applied perturbation amplitude.
   double k0 = 0.5; // Perturbed wave number.
@@ -103,6 +107,7 @@ create_ctx(void)
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
+    .nu = nu,
     .B0 = B0,
     .alpha = alpha,
     .k0 = k0,
@@ -186,6 +191,17 @@ evalExternalFieldInit(
   fout[3] = B0;
   fout[4] = 0.0;
   fout[5] = 0.0;
+}
+
+void
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct landau_damping_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set electron collision frequency.
+  fout[0] = nu;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -332,6 +348,8 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
   };
 
   struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};

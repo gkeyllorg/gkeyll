@@ -217,6 +217,55 @@ vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm)
 }
 
 void
+vlasov_field_background_begin(gkyl_vlasov_app *app, struct vlasov_field_background_capture *cap)
+{
+  struct vm_field *field = app->field;
+  int num_basis = app->basis.num_basis;
+
+  // The electric part [E_x, E_y, E_z] of the external field and the scalar part of the external
+  // potentials [phi, A_x, A_y, A_z], zero until the end of the capture.
+  cap->ext_em_evolve = field->ext_em_evolve;
+  cap->ext_pot_evolve = field->ext_pot_evolve;
+  field->ext_em_evolve = false;
+  field->ext_pot_evolve = false;
+  if (field->has_ext_em) {
+    gkyl_array_set_offset_ncoeff(field->ext_em, 0.0, field->ext_em, 3 * num_basis, 0, 0);
+  }
+  if (field->has_ext_pot) {
+    gkyl_array_set_offset_ncoeff(field->ext_pot, 0.0, field->ext_pot, num_basis, 0, 0);
+  }
+
+  if (field->field_id == GKYL_FIELD_E_B) {
+    gkyl_array_copy(field->em1, field->em);
+    gkyl_array_clear(field->em, 0.0);
+    vlasov_field_apply_bc(app, field->em);
+  }
+  if (field->field_id == GKYL_FIELD_PHI) {
+    vp_field_background_begin(app, field);
+  }
+}
+
+void
+vlasov_field_background_end(
+  gkyl_vlasov_app *app, const struct vlasov_field_background_capture *cap, double t0
+)
+{
+  struct vm_field *field = app->field;
+
+  if (field->field_id == GKYL_FIELD_PHI) {
+    vp_field_background_end(app, field);
+  }
+  if (field->field_id == GKYL_FIELD_E_B) {
+    gkyl_array_copy(field->em, field->em1);
+  }
+
+  field->ext_em_evolve = cap->ext_em_evolve;
+  field->ext_pot_evolve = cap->ext_pot_evolve;
+  vlasov_field_calc_ext_em(app, t0);
+  vlasov_field_calc_ext_pot(app, t0);
+}
+
+void
 vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct gkyl_array *fin[])
 {
   app->field->calc_energy_func(app, tm, app->field, fin);

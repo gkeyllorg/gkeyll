@@ -1,18 +1,22 @@
 // Sheath formation with the PKPM system of equations (1x, normalized parallel velocity
-// w = v_par/xi), the counterpart of vlasov/creg/rt_vlasov_sheath_1x1v.c.
+// w = v_par/xi), LBO collisions and a temperature source.
 // Half domain: symmetry boundary at x = 0 (reflecting species, symmetry-wall field),
 // absorbing conducting wall at x = Lx. A boundary-flux source replaces the particles lost
 // to the wall, and a BGK-form temperature source at the source temperature acts upstream
-// (x < L_nu) to hold the pre-sheath plasma at that temperature; the region next to
-// the wall is collisionless. The position map clusters the cells at the wall.
-// Run to t = 1000/omega_pe, when the wall loss is 0.6% below its steady value.
-// Figures of merit at t = 1000 (16 x 16 cells; Vlasov 1x1v in parentheses): midplane-to-wall
-// potential drop e*dphi/Te = 1.929 (1.925), ion wall flux / (n_mid c_s) = 0.506 (0.509), ion speed
-// at the wall / c_s = 1.635 (1.629), with c_s = sqrt((Te + Ti)/mi). Over the presheath (the 13
-// cells upstream of the three sheath cells) the cell averages of the density and the flow velocity
-// of both species are within 1.1% of Vlasov (rms 0.4%), the largest difference being in the cell at
-// the sheath edge; the wall cell has the electron density 2.2% low and the electron velocity 2.0%
-// high.
+// (x < L_nu) to hold the pre-sheath plasma at that temperature. LBO self-collisions act upstream as
+// well (nu_ee = 0.2 omega_pe, nu_ii = 0.02 omega_pe for x < L_nu) and electron-ion collisions use
+// Spitzer frequencies computed from the local moments (nu_ei = 0.043 omega_pe at the reference
+// density and the source temperatures; their momentum and energy exchange takes one backward-Euler
+// step in each SSP-RK3 stage). The position map clusters the cells at the wall.
+// Run to t = 1000/omega_pe, when the wall loss is 0.1% below its value at t = 3000/omega_pe.
+// Figures of merit at t = 1000 (16 x 16 cells): midplane-to-wall potential drop e*dphi/Te = 1.935,
+// ion wall flux / (n_mid c_s) = 0.508, ion speed at the wall / c_s = 1.679, with Te the source
+// temperature and c_s = sqrt((Te + Ti)/mi). At x = 0 the electron temperature is 0.988 and the ion
+// temperature 0.918 of the source temperature.
+// The Vlasov test with the same sources and collisions, rt_vlasov_sheath_temp_source_1x1v.c, has
+// one velocity dimension, and PKPM three velocity degrees of freedom (collisions in one dimension
+// cannot exchange parallel and perpendicular energy), so its figures are not the values to
+// reproduce here: it gives 1.786, 0.507, 1.585 and the temperatures 0.966 and 0.783 at x = 0.
 
 #include <math.h>
 #include <stdio.h>
@@ -53,6 +57,8 @@ struct sheath_ctx {
   double vti; // Ion thermal velocity.
   double lambda_D; // Electron Debye length.
   double omega_pe; // Electron plasma frequency.
+  double nu_ee; // Electron-electron collision frequency (upstream).
+  double nu_ii; // Ion-ion collision frequency (upstream).
   double nu_Q_elc; // Rate of the electron temperature source (upstream).
   double nu_Q_ion; // Rate of the ion temperature source (upstream).
 
@@ -61,7 +67,7 @@ struct sheath_ctx {
   int Nvx; // Cell count (velocity space: normalized parallel velocity w).
   double Lx; // Domain size (configuration space: x-direction).
   double Ls; // Extent of the source region.
-  double L_nu; // Extent of the temperature-source region.
+  double L_nu; // Extent of the collisional and temperature-source region.
   double map_A; // Amplitude of the position map clustering the cells at the wall.
   double vx_max_elc; // Domain boundary (electron velocity space: w = v_par/xi).
   double vx_max_ion; // Domain boundary (ion velocity space: w = v_par/xi).
@@ -101,6 +107,8 @@ create_ctx(void)
   ); // Electron Debye length.
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double nu_ee = vte / (5.0 * lambda_D); // Electron-electron collision frequency (upstream).
+  double nu_ii = vti / (5.0 * lambda_D); // Ion-ion collision frequency (upstream).
   double nu_Q_elc = vte / (5.0 * lambda_D); // Rate of the electron temperature source (upstream).
   double nu_Q_ion = vti / (5.0 * lambda_D); // Rate of the ion temperature source (upstream).
 
@@ -109,7 +117,7 @@ create_ctx(void)
   int Nvx = 16; // Cell count (velocity space: normalized parallel velocity w).
   double Lx = 64.0 * lambda_D; // Domain size (configuration space: x-direction).
   double Ls = 40.0 * lambda_D; // Extent of the source region.
-  double L_nu = 32.0 * lambda_D; // Extent of the temperature-source region.
+  double L_nu = 32.0 * lambda_D; // Extent of the collisional and temperature-source region.
   double map_A = 0.8; // Amplitude of the position map clustering the cells at the wall.
   double vx_max_elc = 5.0; // Domain boundary (electron velocity space: w = v_par/xi).
   double vx_max_ion = 5.0; // Domain boundary (ion velocity space: w = v_par/xi).
@@ -139,6 +147,8 @@ create_ctx(void)
     .vti = vti,
     .lambda_D = lambda_D,
     .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
+    .nu_ii = nu_ii,
     .nu_Q_elc = nu_Q_elc,
     .nu_Q_ion = nu_Q_ion,
     .Nx = Nx,
@@ -276,8 +286,30 @@ evalExternalFieldInit(
   fout[5] = 0.0;
 }
 
+// Self-collision frequencies: nu_ee and nu_ii upstream (x < L_nu), vanishing over 6 lambda_D
+// towards the region next to the wall.
+void
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0];
+
+  // Set electron collision frequency.
+  fout[0] = app->nu_ee / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
+}
+
+void
+evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0];
+
+  // Set ion collision frequency.
+  fout[0] = app->nu_ii / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
+}
+
 // Rates of the temperature source: nu_Q_elc and nu_Q_ion upstream (x < L_nu), vanishing over
-// 6 lambda_D towards the collisionless region next to the wall.
+// 6 lambda_D towards the region next to the wall.
 void
 evalElcSourceRate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
@@ -495,6 +527,15 @@ main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
 
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalElcNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+      },
+
     .source =
       {
         .source_id = GKYL_BFLUX_SOURCE,
@@ -542,6 +583,15 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalIonNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+      },
 
     .source =
       {

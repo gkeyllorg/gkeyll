@@ -1,15 +1,24 @@
-// Linear Landau damping of a Langmuir wave with the PKPM system of equations (1x, normalized
-// parallel velocity w = v_par/xi), the counterpart of vlasov/creg/rt_vlasov_landau_damping_1x1v.c.
-// A Maxwellian electron plasma (vt = 1, lambda_D = 1) on a neutralizing ion background is perturbed
-// in density at k lambda_D = 0.5 with amplitude 1e-4; the electric field follows from Gauss's law.
-// A uniform magnetic field along x gives PKPM its field direction and does not act on the parallel
-// electrostatic wave.
-// The fluid-field coupling is integrated implicitly, split from the explicit SSP-RK3 step.
-// Collisionless linear theory at k lambda_D = 0.5 (Vlasov; the parallel kinetics of PKPM are exact
-// for this wave): omega = 1.4157 omega_pe, damping rate gamma = 0.1533 omega_pe.
-// Figures of merit (32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at gamma = 0.1549
-// and recur at omega = 1.414; the field energy at t = 20 is 0.0009 of its initial value (Vlasov,
-// serendipity p2 on the same grid: 0.1549, 1.413, 0.00091).
+// Langmuir oscillation about a held, nonuniform electron background with the PKPM system of
+// equations and the Poisson field (1x, normalized parallel velocity w = v_par/xi). Electrons (vt =
+// 0.01, lambda_D = 0.01, no ions) with the density n0 (1 + 0.5 cos(k x)), k = 1, are held about
+// that state at rest: the potential is solved from the departure of the electrons from their
+// background, so the background, which is not neutral, exerts no force (its own field would be 5e3
+// times that of the oscillation), and the app derives the body force that balances its pressure
+// gradient. The initial velocity u0 sin(k x), u0 = 1e-4, starts an oscillation of every fluid
+// element at its local plasma frequency: for a cold plasma u_x = u0 sin(k x) cos(omega_p(x) t) and
+// E_x = (m / |q|) u0 sin(k x) omega_p(x) sin(omega_p(x) t), with omega_p(x)^2 = omega_pe^2 (1 +
+// 0.5 cos(k x)). The oscillation phase-mixes along x: after two periods of omega_pe, the end of
+// the run, the phase differs by 6.5 radians across the domain. Thermal corrections are of the
+// order of (k lambda_D)^2. A uniform external magnetic field along x gives PKPM its field
+// direction and does not act on the oscillation; LBO self-collisions at nu = 0.01 omega_pe act on
+// the electrons (they conserve the momentum of the oscillation). The coupling is the
+// kick-drift-kick split, whose kicks take E = -grad(phi) (cfl_frac = 0.2).
+// rt_dg_5m_poisson_langmuir_background_1x.c and rt_vp_langmuir_background_1x1v.c are the same
+// problem with fluid and kinetic electrons.
+//
+// Figures of merit at t = 4 pi / omega_pe (64 x 16 cells, 248 steps, omega_pe dt = 0.051): the
+// cell averages of E_x differ from the cold local solution by 8.4e-3 in L2 and those of u_x by
+// 1.1e-2. The density changes by at most 3.1e-4 of itself, the compression of the oscillation.
 
 #include <math.h>
 #include <stdio.h>
@@ -32,20 +41,25 @@
 
 #include <rt_arg_parse.h>
 
-struct landau_damping_ctx {
+struct langmuir_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
   double vt; // Thermal velocity.
   double B0; // Magnetic field along x (sets the field direction b).
-  double alpha; // Applied perturbation amplitude.
-  double k0; // Perturbed wave number.
+  double n0; // Number density.
+  double a_bg; // Relative amplitude of the density variation of the background.
+  double u0; // Amplitude of the initial velocity.
+  double k; // Wavenumber.
+
+  // Derived physical quantities (using normalized code units).
+  double omega_pe; // Plasma frequency.
+  double nu_ee; // Electron-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -64,7 +78,7 @@ struct landau_damping_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct landau_damping_ctx
+struct langmuir_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -72,24 +86,29 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double vt = 1.0; // Thermal velocity.
+  double vt = 0.01; // Thermal velocity.
   double B0 = 1.0; // Magnetic field along x (sets the field direction b).
-  double alpha = 1.0e-4; // Applied perturbation amplitude.
-  double k0 = 0.5; // Perturbed wave number.
+  double n0 = 1.0; // Number density.
+  double a_bg = 0.5; // Relative amplitude of the density variation of the background.
+  double u0 = 1.0e-4; // Amplitude of the initial velocity.
+  double k = 1.0; // Wavenumber.
+
+  // Derived physical quantities (using normalized code units).
+  double omega_pe = sqrt(n0 * charge_elc * charge_elc / (epsilon0 * mass_elc)); // Plasma frequency.
+  double nu_ee = 0.01 * omega_pe; // Electron-electron collision frequency.
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nvx = 16; // Cell count (velocity space: normalized parallel velocity w).
+  double Lx = 2.0 * pi / k; // Domain size (configuration space: x-direction).
   double vx_max = 6.0; // Domain boundary (velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.2; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
+  double t_end = 4.0 * pi / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -98,16 +117,19 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct landau_damping_ctx ctx = {
+  struct langmuir_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
     .B0 = B0,
-    .alpha = alpha,
-    .k0 = k0,
+    .n0 = n0,
+    .a_bg = a_bg,
+    .u0 = u0,
+    .k = k,
+    .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -129,7 +151,7 @@ create_ctx(void)
 void
 evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct landau_damping_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double w = xn[1];
 
   double pi = app->pi;
@@ -149,49 +171,59 @@ evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[7] = 0.0;
 }
 
+// Fluid background of the electrons: a density that varies along x, at rest, with a uniform
+// temperature.
+void
+evalElcFluidBackground(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
+{
+  struct langmuir_ctx *app = ctx;
+  double x = xn[0];
+
+  double mass_elc = app->mass_elc;
+  double vt = app->vt;
+  double n0 = app->n0;
+  double a_bg = app->a_bg;
+  double k = app->k;
+
+  double n = n0 * (1.0 + a_bg * cos(k * x)); // Electron number density.
+
+  // Set electron fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = mass_elc * n;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 1.5 * n * mass_elc * vt * vt;
+}
+
+// Initial fluid state: the background with the velocity u0 sin(k x).
 void
 evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct landau_damping_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double x = xn[0];
 
-  double alpha = app->alpha;
-  double k0 = app->k0;
-  double mass_elc = app->mass_elc;
-  double vt = app->vt;
+  double u0 = app->u0;
+  double k = app->k;
 
-  double n = 1.0 + alpha * cos(k0 * x); // Electron number density.
-  double rho = mass_elc * n; // Electron mass density.
-  double E = 1.5 * n * mass_elc * vt * vt; // Electron total energy density (at rest).
+  evalElcFluidBackground(t, xn, fout, ctx);
+  double ux = u0 * sin(k * x); // Flow velocity.
 
-  // Set electron fluid state [rho, rho ux, rho uy, rho uz, E].
-  fout[0] = rho;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = E;
+  // Set momentum density and total energy density.
+  fout[1] = fout[0] * ux;
+  fout[4] += 0.5 * fout[0] * ux * ux;
 }
 
 void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct landau_damping_ctx *app = ctx;
-  double x = xn[0];
+  struct langmuir_ctx *app = ctx;
 
-  double alpha = app->alpha;
-  double k0 = app->k0;
+  double nu_ee = app->nu_ee;
 
-  double Ex = -alpha * sin(k0 * x) / k0; // Electric field (x-direction).
-
-  // Set electric field, magnetic field and correction potentials.
-  fout[0] = Ex;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
+  // Set electron-electron collision frequency.
+  fout[0] = nu_ee;
 }
 
 void
@@ -199,7 +231,7 @@ evalExternalFieldInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
-  struct landau_damping_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
 
   double B0 = app->B0;
 
@@ -282,7 +314,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct landau_damping_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct langmuir_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -356,19 +388,28 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+    // The electrons are held about their background: the normalized Maxwellian here, the fluid
+    // background in the fluid block.
+    .background = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
   };
 
-  struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
-
-  // Field.
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
-
-    .init = evalFieldInit,
+  struct gkyl_vlasov_fluid_species elc_fluid = {
+    .init = evalElcFluidInit,
     .ctx = &ctx,
+    .background = evalElcFluidBackground,
+    .background_ctx = &ctx,
+    .eval_on_nodes = true,
+  };
+
+  // Field: the electrostatic potential of the departure of the electrons from their background,
+  // and the static external magnetic field that sets b.
+  struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
+    .epsilon0 = ctx.epsilon0,
+
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
 
     .ext_em = evalExternalFieldInit,
     .ext_em_ctx = &ctx,
@@ -379,8 +420,8 @@ main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 1,
-    .lower = {-0.5 * ctx.Lx},
-    .upper = {0.5 * ctx.Lx},
+    .lower = {0.0},
+    .upper = {ctx.Lx},
     .cells = {NX},
 
     .poly_order = ctx.poly_order,
@@ -391,14 +432,17 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_PKPM,
-      .kinetic = elc_kinetic,
-      .fluid = elc_fluid,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_PKPM,
+          .kinetic = elc_kinetic,
+          .fluid = elc_fluid,
+        },
+      },
 
     .field = field,
 

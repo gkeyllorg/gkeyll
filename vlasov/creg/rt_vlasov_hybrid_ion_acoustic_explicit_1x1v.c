@@ -2,18 +2,29 @@
 // Maxwellian ions (mi/me = 100, Te/Ti = 2) and an adiabatic electron fluid (gamma = 5/3) carry a
 // travelling wave at k lambda_De = 0.05, started from the linear densities and velocities of the
 // wave with an ion density amplitude of 1e-4. The ions start as a Maxwellian with these moments,
-// which is not the kinetic eigenfunction: the rest of the perturbation phase-mixes during the
-// first period, so the figures of merit are taken after it. The fluid-EM coupling is explicit
-// (use_explicit_sources): the Lorentz force is in the electron right-hand side and both currents
-// are on Ampere's law in every SSP-RK3 stage, with the step resolving the electron plasma
-// frequency. Linear theory, 1 + chi_i + chi_e = 0 with chi_i = (1 + zeta Z(zeta)) / (k
-// lambda_Di)^2, zeta = omega / (sqrt(2) k v_ti), and chi_e = -omega_pe^2 / (omega^2 - gamma k^2 Te
-// / me): omega = 0.09470 omega_pi, damping rate 0.01333 omega_pi. Kinetic electrons, which are
-// isothermal at this frequency, give omega = 0.08590 omega_pi and a damping rate of 0.02508
-// omega_pi. Figures of merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, omega_pe dt =
-// 0.995): between t = 1 and 3 wave periods the ion density wave decays at 0.01332 omega_pi (-0.1%)
-// with omega = 0.09465 omega_pi (-0.1%); the total energy changes by -7e-13 (7e-5 of twice the
-// initial kinetic energy of the ion flow).
+// which is not the kinetic eigenfunction: the rest of the perturbation phase-mixes during the first
+// period, so the figures of merit are taken after it. The ions have LBO self-collisions at nu_ii =
+// 2e-4 omega_pi, the frequency of the PKPM test of this problem
+// (vlasov/creg/rt_pkpm_hybrid_ion_acoustic_explicit_1x.c). Collisions between a kinetic species and
+// a fluid species are not supported, so there is no exchange with the electron fluid, which the
+// PKPM ions have (nu_ei = 2e-3 omega_pi). In one velocity dimension the collisions conserve the one
+// temperature of the ions; a PKPM species has three degrees of freedom and its collisions also
+// exchange parallel and perpendicular energy, so the figures of this test are not the values the
+// PKPM test should reproduce. The fluid-EM coupling is explicit (use_explicit_sources): the Lorentz
+// force is in the electron right-hand side and both currents are on Ampere's law in every SSP-RK3
+// stage, with the step resolving the electron plasma frequency. Collisionless linear theory, 1 +
+// chi_i + chi_e = 0 with chi_i = (1 + zeta Z(zeta)) / (k lambda_Di)^2, zeta = omega / (sqrt(2) k
+// v_ti), and chi_e = -omega_pe^2 / (omega^2 - gamma k^2 Te / me): omega = 0.09470 omega_pi, damping
+// rate 0.01333 omega_pi. Kinetic electrons, which are isothermal at this frequency, give omega =
+// 0.08590 omega_pi and a damping rate of 0.02508 omega_pi. With the ion collisions (linearized
+// kinetic equation in Hermite moments, of which the LBO damps moment m >= 3 at m nu_ii, and the
+// electron fluid) the theory gives omega = 0.09466 omega_pi and a damping rate of 0.01314 omega_pi.
+// Figures of merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, omega_pe dt = 0.995):
+// between t = 1 and 3 wave periods the ion density wave decays at 0.01311 omega_pi (-0.2% against
+// the theory with collisions) with omega = 0.09461 omega_pi (-0.1%). Without collisions the run
+// gives 0.01332 and 0.09465: the collisions change the rate by -1.5% (theory -1.4%) and omega by
+// -0.04% (theory -0.04%). The total energy changes by -7e-13 (7e-5 of twice the initial kinetic
+// energy of the ion flow).
 
 #include <complex.h>
 #include <math.h>
@@ -55,6 +66,8 @@ struct hybrid_ion_acoustic_ctx {
   double Ti; // Ion temperature.
   double gas_gamma; // Adiabatic index of the electron fluid.
   double vti; // Ion thermal velocity.
+  double omega_pi; // Ion plasma frequency.
+  double nu_ii; // Ion-ion collision frequency.
 
   double alpha; // Amplitude of the ion density of the wave, relative to n0.
   double k0; // Wave number.
@@ -110,6 +123,9 @@ create_ctx(void)
   double Ti = 0.5; // Ion temperature.
   double gas_gamma = 5.0 / 3.0; // Adiabatic index of the electron fluid.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
+  double omega_pi =
+    sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
+  double nu_ii = 2.0e-4 * omega_pi; // Ion-ion collision frequency.
 
   double alpha = 1.0e-4; // Amplitude of the ion density of the wave, relative to n0.
   double k0 = 0.05; // Wave number (k lambda_De = 0.05).
@@ -148,6 +164,8 @@ create_ctx(void)
     .Ti = Ti,
     .gas_gamma = gas_gamma,
     .vti = vti,
+    .omega_pi = omega_pi,
+    .nu_ii = nu_ii,
     .alpha = alpha,
     .k0 = k0,
     .omega_r = omega_r,
@@ -199,6 +217,15 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
 
   // Set distribution function.
   fout[0] = n / sqrt(2.0 * pi * vti * vti) * exp(-(vx - ux) * (vx - ux) / (2.0 * vti * vti));
+}
+
+void
+evalNuII(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct hybrid_ion_acoustic_ctx *app = ctx;
+
+  // Set ion-ion collision frequency.
+  fout[0] = app->nu_ii;
 }
 
 void
@@ -392,6 +419,13 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalNuII,
+        .self_nu_ctx = &ctx,
+      },
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},

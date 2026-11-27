@@ -1,14 +1,25 @@
-// Compressive flow of a collisionless neutral gas across a nearly perpendicular magnetic field with
-// the PKPM system of equations (1x, normalized parallel velocity w = v_par/xi). A uniform gas (n =
-// 1, p = 1) with the flow u_x = 0.1 cos(pi x) sits in the uniform static field B = (sin 0.0871,
-// -cos 0.0871, 0) (b_x = 0.087) in a periodic box of length 2. The gas has no charge, so the field
-// only sets the direction b. The gas streams along x at b_x w xi, comparable to the flow, so the
-// velocity w = -u_x/b_x at which the configuration-space flux changes its upwind side lies inside
-// the velocity grid, in different velocity cells at the two faces of a cell.
-// Figures of merit (16 x 16 cells) to t = 2: particle number, the three components of the momentum
-// and the total energy (kinetic + p_par/2 + p_perp) are conserved to 2e-13. The kinetic energy
-// falls from 0.005 to 0.0013, and the integrated parallel and perpendicular pressures are 1.9983
-// and 2.0045 at t = 2 (both 2 initially). The positivity limiter scales no cell.
+// A held, nonuniform electron background driven by a static external scalar potential phi_ext =
+// (E0 / k) cos(k x), with the PKPM system of equations and the Poisson field (1x, normalized
+// parallel velocity w = v_par/xi). Electrons (vt = 0.01, lambda_D = 0.01, no ions) with the
+// density n0 (1 + 0.5 cos(k x)), k = 1, are held about that state at rest, and start on it. The
+// hold is derived with no electric force of the fields, so the external field, E_ext = E0 sin(k x)
+// with E0 = 1e-4, acts on the electrons in full, for every type of species (derived with it, the
+// hold of a kinetic species would cancel it for good, and that of a fluid would not). For a cold
+// plasma every fluid element oscillates at its local plasma frequency about the displacement that
+// shields the external field: u_x = (q / m) E_ext sin(omega_p(x) t) / omega_p(x), and the field of
+// the electrons is E_x = -E_ext (1 - cos(omega_p(x) t)), with omega_p(x)^2 = omega_pe^2 (1 + 0.5
+// cos(k x)), so the total field is E_ext cos(omega_p(x) t). Thermal corrections are of the order
+// of (k lambda_D)^2. The potential of the electrons is solved from their departure from the
+// background; the coupling is the kick-drift-kick split, whose kicks take E = -grad(phi + phi_ext)
+// (cfl_frac = 0.2). A uniform external magnetic field along x gives PKPM its field direction; LBO
+// self-collisions at nu = 0.01 omega_pe act on the electrons. The same problem with the other
+// models and fields: rt_dg_5m_poisson_ext_pot_background_1x.c, rt_vp_ext_pot_background_1x1v.c,
+// rt_dg_5m_ext_field_background_1x.c, rt_vlasov_ext_field_background_1x1v.c.
+//
+// Figures of merit at t = 4 pi / omega_pe (64 x 16 cells, 248 steps, omega_pe dt = 0.051): the
+// cell averages of the field of the electrons, -grad(phi), differ from the cold local solution by
+// 5.9e-3 in L2 and those of u_x by 1.0e-2. The density changes by at most 3.8e-4 of itself, the
+// compression of the oscillation.
 
 #include <math.h>
 #include <stdio.h>
@@ -31,21 +42,25 @@
 
 #include <rt_arg_parse.h>
 
-struct compress_ctx {
+struct langmuir_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
-  double mass; // Neutral mass.
-  double charge; // Neutral charge.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double n0; // Reference number density.
-  double ux0; // Amplitude of the compressive flow (x-direction).
-  double pr0; // Reference pressure.
-  double B0; // Magnetic field strength (in the x-y plane).
-  double theta; // Angle of the magnetic field from the y-direction (b_x = sin(theta)).
+  double vt; // Thermal velocity.
+  double B0; // Magnetic field along x (sets the field direction b).
+  double n0; // Number density.
+  double a_bg; // Relative amplitude of the density variation of the background.
+  double E0; // Amplitude of the external electric field.
+  double k; // Wavenumber.
+
+  // Derived physical quantities (using normalized code units).
+  double omega_pe; // Plasma frequency.
+  double nu_ee; // Electron-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -64,7 +79,7 @@ struct compress_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct compress_ctx
+struct langmuir_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -72,25 +87,29 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
-  double mass = 1.0; // Neutral mass.
-  double charge = 0.0; // Neutral charge.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double n0 = 1.0; // Reference number density.
-  double ux0 = 0.1; // Amplitude of the compressive flow (x-direction).
-  double pr0 = 1.0; // Reference pressure.
-  double B0 = 1.0; // Magnetic field strength (in the x-y plane).
-  double theta = 0.0871; // Angle of the magnetic field from the y-direction (b_x = sin(theta)).
+  double vt = 0.01; // Thermal velocity.
+  double B0 = 1.0; // Magnetic field along x (sets the field direction b).
+  double n0 = 1.0; // Number density.
+  double a_bg = 0.5; // Relative amplitude of the density variation of the background.
+  double E0 = 1.0e-4; // Amplitude of the external electric field.
+  double k = 1.0; // Wavenumber.
+
+  // Derived physical quantities (using normalized code units).
+  double omega_pe = sqrt(n0 * charge_elc * charge_elc / (epsilon0 * mass_elc)); // Plasma frequency.
+  double nu_ee = 0.01 * omega_pe; // Electron-electron collision frequency.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 2.0; // Domain size (configuration space: x-direction).
+  double Lx = 2.0 * pi / k; // Domain size (configuration space: x-direction).
   double vx_max = 6.0; // Domain boundary (velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.2; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 4.0 * pi / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -99,17 +118,19 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct compress_ctx ctx = {
+  struct langmuir_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass = mass,
-    .charge = charge,
-    .n0 = n0,
-    .ux0 = ux0,
-    .pr0 = pr0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .vt = vt,
     .B0 = B0,
-    .theta = theta,
+    .n0 = n0,
+    .a_bg = a_bg,
+    .E0 = E0,
+    .k = k,
+    .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -129,16 +150,16 @@ create_ctx(void)
 }
 
 void
-evalNeutDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct compress_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double w = xn[1];
 
   double pi = app->pi;
 
   double F = exp(-0.5 * w * w) / sqrt(2.0 * pi); // Normalized Maxwellian in w = v_par/xi.
 
-  // Set normalized neutral distribution functions [F, G] (G = (T_perp/T) F = F).
+  // Set normalized electron distribution functions [F, G] (G = (T_perp/T) F = F).
   fout[0] = F;
   fout[1] = F;
 
@@ -151,47 +172,75 @@ evalNeutDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[7] = 0.0;
 }
 
+// Fluid background of the electrons: a density that varies along x, at rest, with a uniform
+// temperature.
 void
-evalNeutFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcFluidBackground(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
-  struct compress_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double x = xn[0];
 
+  double mass_elc = app->mass_elc;
+  double vt = app->vt;
   double n0 = app->n0;
-  double pi = app->pi;
-  double mass = app->mass;
-  double ux0 = app->ux0;
-  double pr0 = app->pr0;
+  double a_bg = app->a_bg;
+  double k = app->k;
 
-  double rho = mass * n0; // Mass density.
-  double ux = ux0 * cos(pi * x); // Compressive flow.
-  double E = 0.5 * rho * ux * ux + 1.5 * pr0; // Total energy density (uniform pressure).
+  double n = n0 * (1.0 + a_bg * cos(k * x)); // Electron number density.
 
-  // Set neutral fluid state [rho, rho ux, rho uy, rho uz, E].
-  fout[0] = rho;
-  fout[1] = rho * ux;
+  // Set electron fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = mass_elc * n;
+  fout[1] = 0.0;
   fout[2] = 0.0;
   fout[3] = 0.0;
-  fout[4] = E;
+  fout[4] = 1.5 * n * mass_elc * vt * vt;
 }
 
 void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct compress_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
+
+  double nu_ee = app->nu_ee;
+
+  // Set electron-electron collision frequency.
+  fout[0] = nu_ee;
+}
+
+void
+evalExtPotInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct langmuir_ctx *app = ctx;
+  double x = xn[0];
+
+  double E0 = app->E0;
+  double k = app->k;
+
+  // Set external potentials [phi, A_x, A_y, A_z]: E_ext = -grad(phi) = E0 sin(k x).
+  fout[0] = (E0 / k) * cos(k * x);
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+}
+
+void
+evalExternalFieldInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
+{
+  struct langmuir_ctx *app = ctx;
 
   double B0 = app->B0;
-  double theta = app->theta;
 
-  // Set electric field, magnetic field and correction potentials.
+  // Set external electric and magnetic fields.
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = B0 * sin(theta);
-  fout[4] = -B0 * cos(theta);
+  fout[3] = B0;
+  fout[4] = 0.0;
   fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -264,7 +313,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct compress_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct langmuir_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -330,29 +379,42 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Neutrals.
-  struct gkyl_vlasov_kinetic_species neut_kinetic = {
+  // Electrons.
+  struct gkyl_vlasov_kinetic_species elc_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
     .num_init = 1,
-    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalNeutDistInit, .ctx_func = &ctx},
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+    // The electrons are held about their background: the normalized Maxwellian here, the fluid
+    // background in the fluid block.
+    .background = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
   };
 
-  struct gkyl_vlasov_fluid_species neut_fluid = {.init = evalNeutFluidInit, .ctx = &ctx};
-
-  // Field.
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
-
-    .init = evalFieldInit,
+  struct gkyl_vlasov_fluid_species elc_fluid = {
+    .init = evalElcFluidBackground,
     .ctx = &ctx,
+    .background = evalElcFluidBackground,
+    .background_ctx = &ctx,
+    .eval_on_nodes = true,
+  };
 
-    .is_static = true,
+  // Field: the electrostatic potential of the departure of the electrons from their background, with the external potential,
+  // and the static external magnetic field that sets b.
+  struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
+    .epsilon0 = ctx.epsilon0,
+
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
+
+    .external_potentials = evalExtPotInit,
+    .external_potentials_ctx = &ctx,
+
+    .ext_em = evalExternalFieldInit,
+    .ext_em_ctx = &ctx,
   };
 
   // PKPM app.
@@ -372,14 +434,17 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_PKPM,
-      .kinetic = neut_kinetic,
-      .fluid = neut_fluid,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_PKPM,
+          .kinetic = elc_kinetic,
+          .fluid = elc_fluid,
+        },
+      },
 
     .field = field,
 

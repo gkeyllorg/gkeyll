@@ -5,12 +5,20 @@
 // that of the electrons of the Maxwellian of the wall cell that move toward the wall (none come
 // back). A boundary-flux source of each species replaces the ions lost to the wall, and a BGK-form
 // temperature source (for the electrons its moments) at the source temperature acts upstream
-// (x < L_nu) to hold the pre-sheath plasma at that temperature. The position map clusters the cells
-// at the wall. The static guide field along x sets b of the ions. Run to t = 1000/omega_pe.
-// Figures of merit at t = 1000 (16 x 16 cells): midplane-to-wall potential drop e*dphi/Te = 2.127,
-// ion wall flux / (n_mid c_s) = 0.497, ion speed at the wall / c_s = 1.717, with c_s =
-// sqrt((Te + Ti)/mi) (rt_pkpm_sheath_1x.c with PKPM electrons and the Maxwell field: 1.929, 0.506,
-// 1.635). The ion temperature at x = 0 is 0.926 Ti0 (rt_pkpm_sheath_1x.c: 0.925).
+// (x < L_nu) to hold the pre-sheath plasma at that temperature. LBO self-collisions of the ions act
+// upstream as well (nu_ii = 0.02 omega_pe for x < L_nu), and the ions and the electron fluid
+// exchange momentum and energy with Spitzer frequencies computed from the local moments (nu_ei =
+// 0.043 omega_pe at the reference density and the source temperatures; one backward-Euler step in
+// each SSP-RK3 stage). The position map clusters the cells at the wall. The static guide field
+// along x sets b of the ions. Run to t = 1000/omega_pe.
+// Figures of merit at t = 1000 (16 x 16 cells): midplane-to-wall potential drop e*dphi/Te = 2.097,
+// ion wall flux / (n_mid c_s) = 0.500, ion speed at the wall / c_s = 1.757, with c_s =
+// sqrt((Te + Ti)/mi) (rt_pkpm_sheath_1x.c with PKPM electrons and the Maxwell field: 1.935, 0.508,
+// 1.679). The ion temperature at x = 0 is 0.919 Ti0 (rt_pkpm_sheath_1x.c: 0.918).
+// The Vlasov test with kinetic ions, rt_vlasov_hybrid_poisson_sheath_1x1v.c, has one velocity
+// dimension and the self-collisions of the ions only (a kinetic species cannot collide with a fluid
+// species), so its figures are not the values to reproduce here: it gives 2.140, 0.491, 1.722 and
+// 0.771 Ti0.
 
 #include <math.h>
 #include <stdio.h>
@@ -52,6 +60,7 @@ struct sheath_ctx {
   double vti; // Ion thermal velocity.
   double lambda_D; // Electron Debye length.
   double omega_pe; // Electron plasma frequency.
+  double nu_ii; // Ion-ion collision frequency (upstream).
   double nu_Q_elc; // Rate of the electron temperature source (upstream).
   double nu_Q_ion; // Rate of the ion temperature source (upstream).
 
@@ -60,7 +69,7 @@ struct sheath_ctx {
   int Nvx; // Cell count (velocity space: normalized parallel velocity w).
   double Lx; // Domain size (configuration space: x-direction).
   double Ls; // Extent of the source region.
-  double L_nu; // Extent of the temperature-source region.
+  double L_nu; // Extent of the collisional and temperature-source region.
   double map_A; // Amplitude of the position map clustering the cells at the wall.
   double vx_max_ion; // Domain boundary (ion velocity space: w = v_par/xi).
   int poly_order; // Polynomial order.
@@ -99,6 +108,7 @@ create_ctx(void)
   ); // Electron Debye length.
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double nu_ii = vti / (5.0 * lambda_D); // Ion-ion collision frequency (upstream).
   double nu_Q_elc = vte / (5.0 * lambda_D); // Rate of the electron temperature source (upstream).
   double nu_Q_ion = vti / (5.0 * lambda_D); // Rate of the ion temperature source (upstream).
 
@@ -107,7 +117,7 @@ create_ctx(void)
   int Nvx = 16; // Cell count (velocity space: normalized parallel velocity w).
   double Lx = 64.0 * lambda_D; // Domain size (configuration space: x-direction).
   double Ls = 40.0 * lambda_D; // Extent of the source region.
-  double L_nu = 32.0 * lambda_D; // Extent of the temperature-source region.
+  double L_nu = 32.0 * lambda_D; // Extent of the collisional and temperature-source region.
   double map_A = 0.8; // Amplitude of the position map clustering the cells at the wall.
   double vx_max_ion = 5.0; // Domain boundary (ion velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
@@ -136,6 +146,7 @@ create_ctx(void)
     .vti = vti,
     .lambda_D = lambda_D,
     .omega_pe = omega_pe,
+    .nu_ii = nu_ii,
     .nu_Q_elc = nu_Q_elc,
     .nu_Q_ion = nu_Q_ion,
     .Nx = Nx,
@@ -233,8 +244,20 @@ evalExternalFieldInit(
   fout[5] = 0.0;
 }
 
+// Ion self-collision frequency: nu_ii upstream (x < L_nu), vanishing over 6 lambda_D towards the
+// region next to the wall.
+void
+evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0];
+
+  // Set ion collision frequency.
+  fout[0] = app->nu_ii / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
+}
+
 // Rates of the temperature source: nu_Q_elc and nu_Q_ion upstream (x < L_nu), vanishing over
-// 6 lambda_D towards the collisionless region next to the wall.
+// 6 lambda_D towards the region next to the wall.
 void
 evalElcSourceRate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
@@ -443,7 +466,8 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Electrons: an Euler fluid with the HLLC flux.
+  // Electrons: an Euler fluid with the HLLC flux. It collides with the ions through the exchange of
+  // the fluid states, with frequencies computed from the local moments.
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
     .gas_gamma = ctx.gas_gamma,
     .rp_type = WV_EULER_RP_HLLC,
@@ -453,6 +477,8 @@ main(int argc, char **argv)
     .equation = elc_euler,
     .init = evalElcFluidInit,
     .ctx = &ctx,
+
+    .collisions = {.num_cross_collisions = 1, .collide_with = {"ion"}},
 
     .source =
       {
@@ -494,6 +520,15 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalIonNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+      },
 
     .source =
       {

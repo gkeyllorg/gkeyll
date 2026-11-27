@@ -1,17 +1,20 @@
 // Sheath formation with kinetic ions and an isothermal electron fluid (hybrid Vlasov-Poisson, 1x1v),
-// rt_vlasov_hybrid_poisson_sheath_1x1v.c with the isothermal closure of the electrons (thermal speed
-// vte, so no electron temperature source).
+// rt_vlasov_hybrid_poisson_sheath_1x1v.c with the isothermal closure of the electrons (thermal
+// speed vte, so no electron temperature source).
 // Half domain: symmetry plane at x = 0 (reflecting ions and electrons, zero normal field), absorbing
 // grounded wall at x = Lx (phi = 0). The absorbing wall of the electron fluid is a boundary flux:
 // that of the electrons of the Maxwellian of the wall cell (at the thermal speed vte) that move
 // toward the wall (none come back). A boundary-flux source of each species replaces the ions lost
 // to the wall, and the BGK-form temperature source of the ions at the source temperature acts
-// upstream (x < L_nu). The position map clusters the cells at the wall. Run to t = 1000/omega_pe.
+// upstream (x < L_nu). LBO self-collisions of the ions act upstream as well (nu_ii = 0.02 omega_pe
+// for x < L_nu); a kinetic species cannot collide with a fluid species, so the ions and the
+// electron fluid exchange no momentum or energy. The position map clusters the cells at the wall.
+// Run to t = 1000/omega_pe.
 // Figures of merit at t = 1000 (16 x 24 cells, tensor p1 with the hybrid phase basis):
-// midplane-to-wall potential drop e*dphi/Te = 2.258, ion wall flux / (n_mid c_s) = 0.494, ion speed
-// at the wall / c_s = 1.754, with c_s = sqrt((Te + Ti)/mi) (adiabatic electrons,
-// rt_vlasov_hybrid_poisson_sheath_1x1v.c: 2.128, 0.495, 1.712; kinetic electrons, rt_vp_sheath_1x1v.c:
-// 1.925, 0.509, 1.629).
+// midplane-to-wall potential drop e*dphi/Te = 2.267, ion wall flux / (n_mid c_s) = 0.489, ion speed
+// at the wall / c_s = 1.765, with c_s = sqrt((Te + Ti)/mi) (adiabatic electrons,
+// rt_vlasov_hybrid_poisson_sheath_1x1v.c: 2.140, 0.491, 1.722; kinetic electrons and no LBO,
+// rt_vp_sheath_1x1v.c: 1.925, 0.509, 1.629).
 
 #include <math.h>
 #include <stdio.h>
@@ -56,6 +59,7 @@ struct sheath_ctx {
   double lambda_D; // Electron Debye length.
   double omega_pe; // Electron plasma frequency.
 
+  double nu_ii; // Ion-ion collision frequency (upstream).
   double nu_Q_ion; // Rate of the ion temperature source (upstream).
 
   // Simulation parameters.
@@ -63,7 +67,7 @@ struct sheath_ctx {
   int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Ls; // Domain size (source).
-  double L_nu; // Extent of the collisional (fixed-temperature) region.
+  double L_nu; // Extent of the collisional and temperature-source region.
   double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
@@ -101,6 +105,7 @@ create_ctx(void)
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
+  double nu_ii = vti / (5.0 * lambda_D); // Ion-ion collision frequency (upstream).
   double nu_Q_ion = vti / (5.0 * lambda_D); // Rate of the ion temperature source (upstream).
 
   // Simulation parameters.
@@ -108,7 +113,7 @@ create_ctx(void)
   int Nvx = 24; // Cell count (velocity space: vx-direction).
   double Lx = 64.0 * lambda_D; // Domain size (configuration space: x-direction).
   double Ls = 40.0 * lambda_D; // Domain size (source).
-  double L_nu = 32.0 * lambda_D; // Extent of the collisional (fixed-temperature) region.
+  double L_nu = 32.0 * lambda_D; // Extent of the collisional and temperature-source region.
   double vx_max_ion = 8.0 * vti; // Domain boundary (ion velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
@@ -136,6 +141,7 @@ create_ctx(void)
     .vti = vti,
     .lambda_D = lambda_D,
     .omega_pe = omega_pe,
+    .nu_ii = nu_ii,
     .nu_Q_ion = nu_Q_ion,
     .Nx = Nx,
     .Nvx = Nvx,
@@ -308,6 +314,23 @@ evalElcSourceTemp(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 
   // Set electron source temperature.
   fout[0] = app->Te;
+}
+
+void
+evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double x = xn[0];
+
+  double nu_ii = app->nu_ii;
+  double lambda_D = app->lambda_D;
+  double L_nu = app->L_nu;
+
+  double nu = nu_ii / (1.0 + exp((x - L_nu) / (6.0 * lambda_D))); // Ion collision frequency.
+
+  // Set ion collision frequency.
+  fout[0] = nu;
 }
 
 void
@@ -517,6 +540,8 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalIonNu, .self_nu_ctx = &ctx},
+
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_HEATING,

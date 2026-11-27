@@ -41,9 +41,10 @@ stage_implicit_species(gkyl_vlasov_app *app, double dt)
 // ---- species with a fluid aspect ----
 
 // Implicit collisions and sources inside the SSP-RK3 stages: the cross-species momentum and
-// energy exchange of the species with a fluid aspect (PKPM species and Euler fluids), and for
-// PKPM species the implicit BGK relaxation of the distributions and the implicit temperature
-// source. After the forward-Euler step and the combination of
+// energy exchange of the species with a fluid aspect (PKPM species and Euler fluids), the
+// implicit temperature source of an Euler fluid, and for PKPM species the implicit BGK
+// relaxation of the distributions and the implicit temperature source. After the forward-Euler
+// step and the combination of
 // stage i, whose state is in f1 and fluid1 of each species, they take one backward-Euler step
 // over the time weight of the stage: dt, dt/4 and 2 dt/3. The step has three phases over all
 // species: the moments of the stage state (the exchange, which needs every species, and the
@@ -105,6 +106,12 @@ vm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
   // energy step of the implicit temperature source and the shape factor of the implicit step of
   // each species.
   vm_coll_exchange_advance(app, dt_stage, fluid);
+  // Fluid species: the energy step of the implicit temperature source, after the exchange, as for
+  // a PKPM species.
+  for (int i = 0; i < app->num_fluid_temp_source_implicit; ++i) {
+    struct vlasov_species *s = app->fluid_temp_source_implicit[i];
+    vm_fluid_species_temp_source_implicit_advance(app, s->fluid, dt_stage, fluid[s - app->species]);
+  }
   for (int i = 0; i < app->num_pkpm_species; ++i) {
     struct vlasov_species *s = app->pkpm_species[i];
     struct gkyl_array *fluid_s = fluid[s - app->species];

@@ -5,12 +5,14 @@
 // rotated so that the oscillating electric field E_z = cos(omega t) is along z and the background
 // magnetic field B_0 = 1 along x; omega = 1.0 Omega_c with Omega_c = q B_0 / m the cyclotron
 // frequency, the resonant case. The fields are external and the species does not feed back on them.
+// LBO self-collisions at nu = 0.1 Omega_c act on the species; they conserve its momentum and leave
+// the bulk velocity unchanged.
 // The Lorentz force on the fluid is integrated implicitly, split from the explicit SSP-RK3 step.
 // The resonant drive grows the bulk velocity secularly, u ~ (q / m) E_0 t / 2: at t = 10, u_y =
-// -2.72010 and u_z = 4.46736.
-// Figures of merit (2 x 8 cells, Omega_c dt = 0.12): at t = 10, u_y = -2.68980 and u_z = 4.47338,
-// off by the second-order error of the split source (+3.0e-2 and +6.0e-3); the temperature stays 1
-// to round-off. The Vlasov test is exact to 1e-5.
+// -2.72011 and u_z = 4.46737.
+// Figures of merit (2 x 8 cells, Omega_c dt = 0.088): at t = 10, u_y = -2.70330 and u_z = 4.47078,
+// off by the second-order error of the split source (+1.7e-2 and +3.4e-3); the temperature stays 1
+// to round-off. The Vlasov test with the same collisions is exact to 2.5e-6.
 
 #include <math.h>
 #include <stdio.h>
@@ -47,6 +49,7 @@ struct em_advect_ctx {
   double n0; // Reference number density.
   double B0; // Reference magnetic field strength.
   double omega; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu; // Collision frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -81,6 +84,7 @@ create_ctx(void)
   double n0 = 1.0; // Reference number density.
   double B0 = 1.0; // Reference magnetic field strength.
   double omega = 1.0; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu = 0.1; // Collision frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
@@ -109,6 +113,7 @@ create_ctx(void)
     .n0 = n0,
     .B0 = B0,
     .omega = omega,
+    .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -203,6 +208,17 @@ evalExternalFieldInit(
   fout[3] = B0;
   fout[4] = 0.0;
   fout[5] = 0.0;
+}
+
+void
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct em_advect_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set electron collision frequency.
+  fout[0] = nu;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -349,6 +365,8 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
   };
 
   struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};

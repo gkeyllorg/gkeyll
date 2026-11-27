@@ -1,27 +1,33 @@
 // Buneman instability with PKPM electrons and a DG Euler fluid for the ions (1x), the mixed
 // counterpart of vlasov/creg/rt_pkpm_buneman_1x.c (both species PKPM) and
-// vlasov/creg/rt_vlasov_hybrid_buneman_1x1v.c (kinetic electrons with the same ion fluid).
-// Parameters follow entry JE33 of Ammar's Simulation Journal
-// (https://ammar-hakim.org/sj/je/je33/je33-buneman.html): m_i/m_e = 25, electron drift 0.159 so
-// that k v_d = omega_pe for the box mode k = 2 pi, vte = 0.02, vti = 0.001, density perturbation
-// 1e-5 of the electrons with the electric field from Gauss's law. The electrons are a PKPM species:
-// the drift is their fluid velocity and F is a Maxwellian in w = v_par/xi; a uniform magnetic field
-// along x sets the field direction. The ions are a fluid (gamma = 5/3, HLLC flux) with the
-// temperature of the kinetic test. The ghost current of each species cancels its mean current, so
-// that Ampere's law equals the periodic Poisson solve.
+// vlasov/creg/rt_vlasov_hybrid_buneman_1x1v.c (kinetic electrons in one velocity dimension with the
+// same ion fluid and the same electron self-collisions; collisions between a kinetic and a fluid
+// species are not supported, so that test has no electron-ion exchange). Parameters follow entry
+// JE33 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je33/je33-buneman.html):
+// m_i/m_e = 25, electron drift 0.159 so that k v_d = omega_pe for the box mode k = 2 pi, vte =
+// 0.02, vti = 0.001, density perturbation 1e-5 of the electrons with the electric field from
+// Gauss's law. The electrons are a PKPM species: the drift is their fluid velocity and F is a
+// Maxwellian in w = v_par/xi; a uniform magnetic field along x sets the field direction. The ions
+// are a fluid (gamma = 5/3, HLLC flux) with the temperature of the kinetic test. The ghost current
+// of each species cancels its mean current, so that Ampere's law equals the periodic Poisson solve.
+// LBO self-collisions act on the electrons at nu_ee = 1e-4 omega_pe; the electrons and the ion
+// fluid exchange momentum and energy at nu_ei = nu_ee and nu_ie = (m_e/m_i) nu_ei. The friction
+// slows the drift by 0.4% up to t = 40 (rate nu_ei + nu_ie) and raises the electron temperature by
+// 16% (dT_e/dt = (2/3) (m_i/(m_e + m_i)) nu_ei m_e v_d^2).
 // The fluid-field coupling is the staggered operator split with the implicit fluid-Maxwell source
 // step, which solves the momenta of both species with E and the ghost current that keeps the mean
 // of E_x over the step; rt_pkpm_hybrid_buneman_explicit_1x.c is the same problem with the coupling
 // advanced explicitly within the SSP-RK3 step.
-// Linear theory with kinetic electrons and the adiabatic ion fluid at k = 2 pi: gamma = 0.19764
-// omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
+// Collisionless linear theory with kinetic electrons and the adiabatic ion fluid at k = 2 pi: gamma
+// = 0.19764 omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
 // Figures of merit (16 cells, 64 in w): the field-energy history int E_x^2 dx grows at gamma =
-// 0.1895 over t = 20-65 (both species PKPM: 0.1895; kinetic electrons with the same ion fluid:
-// 0.1946). It peaks at 3.4e-3 at t = 72.3 (both PKPM: 3.2e-3 at t = 72.2) and is 1.8e-3 at t = 80.
-// Electron and ion number are conserved to 1e-12. The total energy (field and the fluid energies of
-// both species from the histories) changes by 5e-13 of itself up to t = 40 and by 6e-12 up to t =
-// 80. The mean of E_x is at round-off (1e-15) at t = 80, where the largest cell average of E_x is
-// 0.086.
+// 0.1875 over t = 20-65 (0.1895 without collisions; both species PKPM: 0.1874; the test with
+// kinetic electrons and the same ion fluid, which has no friction and no frictional heating:
+// 0.1946). It peaks at 3.5e-3 at t = 72.2 (both PKPM: 3.4e-3 at t = 72.3) and is 1.8e-3 at t = 80.
+// Electron and ion number are conserved to 1.2e-12. The total energy (field and the fluid energies
+// of both species from the histories) changes by at most 5e-13 of itself up to t = 40 and by at
+// most 6e-12 up to t = 80. The mean of E_x is at round-off (1e-15) at t = 80, where the largest
+// cell average of E_x is 0.085.
 
 #include <math.h>
 #include <stdio.h>
@@ -69,6 +75,9 @@ struct buneman_ctx {
   double Lx; // Domain size (configuration space: x-direction).
   double kx; // Perturbed wave number (x-direction).
   double omega_pe; // Electron plasma frequency.
+  double nu_ee; // Electron-electron collision frequency.
+  double nu_ei; // Electron-ion collision frequency.
+  double nu_ie; // Ion-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -113,6 +122,9 @@ create_ctx(void)
   double kx = 2.0 * pi / Lx; // Perturbed wave number (x-direction).
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double nu_ee = 1.0e-4 * omega_pe; // Electron-electron collision frequency.
+  double nu_ei = nu_ee; // Electron-ion collision frequency.
+  double nu_ie = (mass_elc / mass_ion) * nu_ei; // Ion-electron collision frequency.
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
@@ -149,6 +161,9 @@ create_ctx(void)
     .Lx = Lx,
     .kx = kx,
     .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
+    .nu_ei = nu_ei,
+    .nu_ie = nu_ie,
     .Nx = Nx,
     .Nvx = Nvx,
     .vx_max_elc = vx_max_elc,
@@ -235,6 +250,33 @@ evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[2] = 0.0;
   fout[3] = 0.0;
   fout[4] = E;
+}
+
+void
+evalNuEE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set electron-electron collision frequency.
+  fout[0] = app->nu_ee;
+}
+
+void
+evalNuEI(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set electron-ion collision frequency.
+  fout[0] = app->nu_ei;
+}
+
+void
+evalNuIE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct buneman_ctx *app = ctx;
+
+  // Set ion-electron collision frequency.
+  fout[0] = app->nu_ie;
 }
 
 void
@@ -421,11 +463,22 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalNuEE,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+        .cross_nu = {evalNuEI},
+        .cross_nu_ctx = {&ctx},
+      },
   };
 
   struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
 
-  // Ions (adiabatic fluid, HLLC fluxes).
+  // Ions (adiabatic fluid, HLLC fluxes): they collide with the electrons through the exchange.
   struct gkyl_wv_euler_inp euler_inp = {
     .gas_gamma = ctx.gas_gamma,
     .rp_type = WV_EULER_RP_HLLC,
@@ -436,6 +489,14 @@ main(int argc, char **argv)
     .equation = ion_euler,
     .init = evalIonFluidInit,
     .ctx = &ctx,
+
+    .collisions =
+      {
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+        .cross_nu = {evalNuIE},
+        .cross_nu_ctx = {&ctx},
+      },
   };
 
   // Field.

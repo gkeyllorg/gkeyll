@@ -1,19 +1,27 @@
 // Relaxation of the temperature and of the pressure anisotropy under the BGK-form temperature
-// source nu_Q (f_M(n, u, T_Q) - f) with the Vlasov solver (1x2v), implicit update: the
-// backward-Euler twin of rt_vlasov_temp_source_relax_1x2v.c at 100 times its source rate, and the
-// counterpart of rt_pkpm_temp_source_relax_im_1x.c.
+// source nu_Q (f_M(n, u, T_Q) - f) and BGK self-collisions with the Vlasov solver (1x2v), implicit
+// update: the backward-Euler twin of rt_vlasov_temp_source_relax_1x2v.c at 100 times its source
+// rate and collision frequency. rt_pkpm_temp_source_relax_im_1x.c is the same case with the PKPM
+// system, which has three velocity degrees of freedom (T = (T_par + 2 T_perp)/3) where this test
+// has two (T = (T_xx + T_yy)/2, the collisions exchange energy between T_xx and T_yy): the two
+// check the same per-step factors on different systems.
 // Two homogeneous neutral species start as bi-Maxwellians drifting along x with T_xx = 1.4 and T_yy
 // = 0.6 (T = 1). The source of the first has T_Q = 10 (heating) and that of the second T_Q = 0.1
-// (cooling). Source rate 100, with z = nu_Q dt between 2.45 and 2.55 (the explicit update takes z =
-// 0.72 at this rate).
-// The source takes one backward-Euler step in each SSP-RK3 stage, over the time weight of the
-// stage, so a step multiplies a relaxing quantity by R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 +
-// z/4)]/(1 + 2 z/3) (0.247 at z = 2.55).
+// (cooling). Source rate 100 and collision frequency nu_c = 100 for both species, with z = nu_Q dt
+// between 2.45 and 2.55 (the explicit update takes z = 0.42 at these rates). The collisions are
+// self-collisions only: the two species are independent cases sharing a run, and the kinetic
+// implicit BGK takes no cross collisions.
+// The two operators take one backward-Euler step together in each SSP-RK3 stage, over the time
+// weight of the stage, f' = (f + dt nu_c f_M(T') + dt nu_Q f_M(T_Q))/(1 + dt (nu_c + nu_Q)), where
+// T' = (T + dt nu_Q T_Q)/(1 + dt nu_Q) is the temperature the source gives the species over the
+// step. The collisions therefore leave the temperature to the source, which multiplies T - T_Q by
+// R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3) every step (0.247 at z = 2.55),
+// and the anisotropy decays by R((nu_c + nu_Q) dt) (0.128 at 5.11).
 // Figures of merit (serendipity p2, 2 x 48 x 48 cells, 4 steps): density and momentum are conserved
-// to round-off (3e-14). Each step multiplies T - T_Q by R(z) to 3e-12, and the temperature stays
+// to round-off (3e-14). Each step multiplies T - T_Q by R(z) to 2e-12, and the temperature stays
 // between T_0 and T_Q: 7.7779 and 0.32221 after the first step. Over the run the pressure
-// anisotropy P_xx - P_yy is multiplied by the product of the R(z) of the steps to 1.6e-5 (heated)
-// and 1.9e-6 (cooled).
+// anisotropy P_xx - P_yy is multiplied by the product of the R((nu_c + nu_Q) dt) of the steps to
+// 2.1e-4 (heated) and 1.9e-5 (cooled).
 
 #include <math.h>
 #include <stdio.h>
@@ -49,6 +57,7 @@ struct relax_ctx {
   double nu_Q; // Rate of the temperature source.
   double T_Q_heat; // Source temperature of the heated species.
   double T_Q_cool; // Source temperature of the cooled species.
+  double nu_c; // Collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -84,6 +93,7 @@ create_ctx(void)
   double nu_Q = 100.0; // Rate of the temperature source.
   double T_Q_heat = 10.0; // Source temperature of the heated species.
   double T_Q_cool = 0.1; // Source temperature of the cooled species.
+  double nu_c = 100.0; // Collision frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
@@ -115,6 +125,7 @@ create_ctx(void)
     .nu_Q = nu_Q,
     .T_Q_heat = T_Q_heat,
     .T_Q_cool = T_Q_cool,
+    .nu_c = nu_c,
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,
@@ -180,6 +191,15 @@ evalCoolSourceTemp(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 
   // Set source temperature of the cooled species.
   fout[0] = app->T_Q_cool;
+}
+
+void
+evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct relax_ctx *app = ctx;
+
+  // Set collision frequency.
+  fout[0] = app->nu_c;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -329,6 +349,14 @@ main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
 
+    .collisions =
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
+
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
@@ -355,6 +383,14 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
 
     .source_bgk =
       {

@@ -20,7 +20,7 @@ return {
    moat = {
       "rt_vlasov_landau_damping_1x1v_ser_p2", "rt_vlasov_twostream_1x1v_ser_p2",
       "rt_vlasov_es_shock_1x1v_ser_p2", "rt_vlasov_bgk_relax_1x1v_ser_p2",
-      "rt_pkpm_landau_damping_1x", "rt_pkpm_em_advect_1x",
+      "rt_pkpm_landau_damping_lbo_1x", "rt_pkpm_em_advect_1x",
       "rt_pkpm_neut_lbo_sodshock_1x", "rt_pkpm_travel_pulse_lbo_1x",
    },
    parallel = {},

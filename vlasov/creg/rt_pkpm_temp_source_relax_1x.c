@@ -1,17 +1,24 @@
 // Relaxation of the temperature and of the pressure anisotropy under the BGK-form temperature
-// source nu_Q (f_M(n, u, T_Q) - f) with the PKPM system of equations (1x, normalized parallel
-// velocity w = v_par/xi), explicit update.
+// source nu_Q (f_M(n, u, T_Q) - f) and BGK self-collisions with the PKPM system of equations (1x,
+// normalized parallel velocity w = v_par/xi), explicit update.
 // Two homogeneous neutral species start as drifting bi-Maxwellians at T = 1 with T_par/T = 1.4 and
 // T_perp/T = 0.8. The source of the first has T_Q = 10 (heating, T_Q/T = 10 initially) and that of
 // the second T_Q = 0.1 (cooling). A static magnetic field along x sets the field direction. Source
-// rate 1, run for 5 relaxation times.
+// rate 1 and collision frequency nu_c = 1 for both species, run for 5 relaxation times of the
+// source. The collisions are self-collisions only: the two species are independent cases sharing a
+// run, and the kinetic implicit BGK of the Vlasov tests of this family takes no cross collisions.
+// vlasov/creg/rt_vlasov_temp_source_relax_1x2v.c is the same case with the Vlasov solver in two
+// velocity dimensions (T = (T_xx + T_yy)/2, the collisions exchange energy between T_xx and T_yy)
+// where PKPM has three degrees of freedom (T = (T_par + 2 T_perp)/3): it checks the same rates on a
+// different system.
 // Figures of merit (2 x 48 cells, to t = 5): density and momentum are conserved to round-off and
-// the constraints stay at [1, 0, 1]. The temperature follows T_Q + (T_0 - T_Q) exp(-nu_Q t): 9.9394
-// and 0.10606 at t = 5, with T - T_Q decaying at rate 1.0000. The pressure anisotropy p_par -
-// p_perp decays at rate 1.0000 for both species, although the normalized distributions relax at
-// nu_Q T_Q/T. The explicit time step is limited by nu_Q T_Q/T (10 at the start of the heated
-// species), where the anisotropy of that species departs from the exponential by 3.7e-4, third
-// order in the time step.
+// the constraints stay at [1, 0, 1]. The collisions leave the temperature to the source: it follows
+// T_Q + (T_0 - T_Q) exp(-nu_Q t), 9.9394 and 0.10606 at t = 5, with T - T_Q decaying at rate
+// 1.0000. The pressure anisotropy p_par - p_perp decays at the summed rate nu_Q + nu_c, 2.0000 for
+// both species, although the normalized distributions relax at nu_Q T_Q/T + nu_c. That rate enters
+// the explicit time step ((nu_Q T_Q/T + nu_c) dt = 0.35 at the start of the heated species), where
+// the anisotropy of that species departs from exp(-(nu_Q + nu_c) t) by 6.7e-4, third order in the
+// time step.
 
 #include <math.h>
 #include <stdio.h>
@@ -50,6 +57,7 @@ struct relax_ctx {
   double ux0; // Flow velocity (x-direction, along the field).
   double uy0; // Flow velocity (y-direction).
   double nu_Q; // Rate of the temperature source.
+  double nu; // Collision frequency.
   double T_heat; // Temperature of the source of the heated species.
   double T_cool; // Temperature of the source of the cooled species.
   double B0; // Magnetic field along x (sets the field direction b).
@@ -92,6 +100,7 @@ create_ctx(void)
   double ux0 = 0.5; // Flow velocity (x-direction, along the field).
   double uy0 = 0.3; // Flow velocity (y-direction).
   double nu_Q = 1.0; // Rate of the temperature source.
+  double nu = 1.0; // Collision frequency.
   double T_heat = 10.0; // Temperature of the source of the heated species.
   double T_cool = 0.1; // Temperature of the source of the cooled species.
   double B0 = 1.0; // Magnetic field along x (sets the field direction b).
@@ -129,6 +138,7 @@ create_ctx(void)
     .ux0 = ux0,
     .uy0 = uy0,
     .nu_Q = nu_Q,
+    .nu = nu,
     .T_heat = T_heat,
     .T_cool = T_cool,
     .B0 = B0,
@@ -197,6 +207,17 @@ evalFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[2] = rho * uy0;
   fout[3] = 0.0;
   fout[4] = E;
+}
+
+void
+evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = nu;
 }
 
 void
@@ -395,6 +416,8 @@ main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
 
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
+
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
@@ -415,6 +438,8 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .source_bgk =
       {

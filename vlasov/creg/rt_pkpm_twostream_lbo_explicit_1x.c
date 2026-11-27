@@ -1,6 +1,6 @@
 // Two-stream instability with weak LBO self-collisions with the PKPM system of equations (1x,
-// normalized parallel velocity w = v_par/xi), the collisional variant of
-// rt_pkpm_twostream_explicit_1x. Two counter-streaming Maxwellian electron beams (drift +-4 vt,
+// normalized parallel velocity w = v_par/xi).
+// Two counter-streaming Maxwellian electron beams (drift +-4 vt,
 // n0/2 each, lambda_D = 1) on a neutralizing ion background are perturbed in density at k lambda_D
 // = 0.1 with amplitude 1e-5; the electric field follows from Gauss's law. In the PKPM variables the
 // beams are one normalized distribution F(w) with two humps at w = +-4 vt/xi, xi^2 = (T_par + 2

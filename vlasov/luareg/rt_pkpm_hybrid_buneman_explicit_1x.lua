@@ -1,27 +1,33 @@
 -- Buneman instability with PKPM electrons and a DG Euler fluid for the ions (1x), the mixed
 -- counterpart of vlasov/creg/rt_pkpm_buneman_explicit_1x.c (both species PKPM) and
--- vlasov/creg/rt_vlasov_hybrid_buneman_1x1v.c (kinetic electrons with the same ion fluid).
--- Parameters follow entry JE33 of Ammar's Simulation Journal
--- (https://ammar-hakim.org/sj/je/je33/je33-buneman.html): m_i/m_e = 25, electron drift 0.159 so
--- that k v_d = omega_pe for the box mode k = 2 pi, vte = 0.02, vti = 0.001, density perturbation
--- 1e-5 of the electrons with the electric field from Gauss's law. The electrons are a PKPM species:
--- the drift is their fluid velocity and F is a Maxwellian in w = v_par/xi; a uniform magnetic field
--- along x sets the field direction. The ions are a fluid (gamma = 5/3, HLLC flux) with the
--- temperature of the kinetic test. The ghost current of each species cancels its mean current, so
--- that Ampere's law equals the periodic Poisson solve.
+-- vlasov/creg/rt_vlasov_hybrid_buneman_1x1v.c (kinetic electrons in one velocity dimension with the
+-- same ion fluid and the same electron self-collisions; collisions between a kinetic and a fluid
+-- species are not supported, so that test has no electron-ion exchange). Parameters follow entry
+-- JE33 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je33/je33-buneman.html):
+-- m_i/m_e = 25, electron drift 0.159 so that k v_d = omega_pe for the box mode k = 2 pi, vte =
+-- 0.02, vti = 0.001, density perturbation 1e-5 of the electrons with the electric field from
+-- Gauss's law. The electrons are a PKPM species: the drift is their fluid velocity and F is a
+-- Maxwellian in w = v_par/xi; a uniform magnetic field along x sets the field direction. The ions
+-- are a fluid (gamma = 5/3, HLLC flux) with the temperature of the kinetic test. The ghost current
+-- of each species cancels its mean current, so that Ampere's law equals the periodic Poisson solve.
+-- LBO self-collisions act on the electrons at nu_ee = 1e-4 omega_pe; the electrons and the ion
+-- fluid exchange momentum and energy at nu_ei = nu_ee and nu_ie = (m_e/m_i) nu_ei. The friction
+-- slows the drift by 0.4% up to t = 40 (rate nu_ei + nu_ie) and raises the electron temperature by
+-- 16% (dT_e/dt = (2/3) (m_i/(m_e + m_i)) nu_ei m_e v_d^2).
 -- The fluid-field coupling is advanced explicitly within the SSP-RK3 step (use_explicit_sources):
 -- the Lorentz force is in the right-hand side of both species and their currents are on the Ampere
 -- right-hand side of every stage; rt_pkpm_hybrid_buneman_1x.lua is the same problem with the
 -- staggered operator split.
--- Linear theory with kinetic electrons and the adiabatic ion fluid at k = 2 pi: gamma = 0.19764
--- omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
+-- Collisionless linear theory with kinetic electrons and the adiabatic ion fluid at k = 2 pi: gamma
+-- = 0.19764 omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
 -- Figures of merit (16 cells, 64 in w): the field-energy history int E_x^2 dx grows at gamma =
--- 0.1895 over t = 20-65 (both species PKPM: 0.1895; kinetic electrons with the same ion fluid:
--- 0.1946). It peaks at 3.4e-3 at t = 72.3 (both PKPM: 3.2e-3 at t = 72.3) and is 1.8e-3 at t = 80.
--- Electron and ion number are conserved to 1e-12. The total energy (field and the fluid energies of
--- both species from the histories) changes by 7e-14 of itself up to t = 40 and by 4e-11 up to t =
--- 80. The mean of E_x is at round-off (below 1e-15) at t = 80, where the largest cell average of
--- E_x is 0.086.
+-- 0.1875 over t = 20-65 (0.1895 without collisions; both species PKPM: 0.1874; the test with
+-- kinetic electrons and the same ion fluid, which has no friction and no frictional heating:
+-- 0.1946). It peaks at 3.5e-3 at t = 72.3 (both PKPM: 3.4e-3 at t = 72.3) and is 1.8e-3 at t = 80.
+-- Electron and ion number are conserved to 1.2e-12. The total energy (field and the fluid energies
+-- of both species from the histories) changes by at most 2e-13 of itself up to t = 40 and by at
+-- most 6e-11 up to t = 80. The mean of E_x is at round-off (below 1e-15) at t = 80, where the
+-- largest cell average of E_x is 0.085.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
@@ -49,6 +55,9 @@ B0 = 1.0 -- Magnetic field along x (sets the field direction b).
 Lx = 1.0 -- Domain size (configuration space: x-direction).
 kx = 2.0 * pi / Lx -- Perturbed wave number (x-direction).
 omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
+nu_ee = 1.0e-4 * omega_pe -- Electron-electron collision frequency.
+nu_ei = nu_ee -- Electron-ion collision frequency.
+nu_ie = (mass_elc / mass_ion) * nu_ei -- Ion-electron collision frequency.
 
 -- Simulation parameters.
 Nx = 16 -- Cell count (configuration space: x-direction).
@@ -117,6 +126,24 @@ vlasovApp = Vlasov.App.new {
             return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
         }
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          return nu_ee
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "ion" },
+        collideWithCrossNu = {
+          {
+            crossNu = function (t, xn)
+              return nu_ei
+            end
+          }
+        }
       }
     },
 
@@ -136,7 +163,8 @@ vlasovApp = Vlasov.App.new {
     evolve = true -- Evolve species?
   },
 
-  -- Ions (adiabatic fluid, HLLC fluxes by default).
+  -- Ions (adiabatic fluid, HLLC fluxes by default): they collide with the electrons through the
+  -- exchange.
   ion = Vlasov.FluidSpecies.new {
     charge = charge_ion, mass = mass_ion,
     equation = Euler.new { gasGamma = gas_gamma },
@@ -149,6 +177,18 @@ vlasovApp = Vlasov.App.new {
 
       return rho, rho * ux, 0.0, 0.0, E
     end,
+
+    collisions = {
+      numCrossCollisions = 1,
+      collideWith = { "elc" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return nu_ie
+          end
+        }
+      }
+    }
   },
 
   -- Field.

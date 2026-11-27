@@ -8,7 +8,7 @@
 // Thermal state of one cell at the nodes.
 struct pkpm_temp_source_nodal {
   double eps[PKPM_MAX_CONF_BASIS]; // thermal energy E - |M|^2/(2 rho)
-  double eps_target[PKPM_MAX_CONF_BASIS]; // its target (3/2) rho vtsq_Q
+  double eps_target[PKPM_MAX_CONF_BASIS]; // its target energy_fac rho vtsq_Q
   double ratio[PKPM_MAX_CONF_BASIS]; // eps_target/eps (1 at an inadmissible node)
   bool has_density[PKPM_MAX_CONF_BASIS]; // whether the density is positive
 };
@@ -33,7 +33,7 @@ pkpm_temp_source_nodal_state(
     state->has_density[q] = rho > 0.0;
     state->eps[q] = state->has_density[q] ? fluid_n[PKPM_FLUID_ENERGY][q] - 0.5 * mom_sq / rho :
                                             0.0;
-    state->eps_target[q] = 1.5 * rho * vtsq_d[q];
+    state->eps_target[q] = up->energy_fac * rho * vtsq_d[q];
     state->ratio[q] = state->eps[q] > 0.0 ? state->eps_target[q] / state->eps[q] : 1.0;
   }
 }
@@ -50,6 +50,7 @@ gkyl_pkpm_temp_source_inew(const struct gkyl_pkpm_temp_source_inp *inp)
 
   struct gkyl_pkpm_temp_source *up = gkyl_malloc(sizeof(*up));
   up->num_nodes = inp->conf_basis->num_basis;
+  up->energy_fac = inp->energy_fac > 0.0 ? inp->energy_fac : 1.5;
   up->conf_to_nodal = dg_conf_nodal_conf_to_nodal_kernels.kernels[inp->conf_basis->ndim - 1];
   up->conf_to_modal = dg_conf_nodal_conf_to_modal_kernels.kernels[inp->conf_basis->ndim - 1];
   return up;

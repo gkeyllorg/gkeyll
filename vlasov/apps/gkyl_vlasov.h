@@ -259,15 +259,21 @@ struct gkyl_vlasov_kinetic_species {
   // Held background (First_Fourier_Harmonic_Notes/background_density_gradient.tex): a projection,
   // in the format of those of the initial condition, of the state the species is held about. Once,
   // in gkyl_vlasov_app_apply_ic, the right-hand side of the species is evaluated on its background
-  // (the other species at their initial conditions, the evolved field zero): its momentum moment
+  // (the other species at their initial conditions, and no electric force of the fields: the
+  // evolved field, the electric part of the external field and the external scalar potential are
+  // zero in that evaluation, so they act on the species in full afterwards): its momentum moment
   // divided by the density is a body force, applied with app_accel in every stage, and what is left
   // is subtracted in every stage. The background is then a steady state of the discrete system, and
   // the force acts on everything that evolves about it. The initial condition may carry a
-  // perturbation of the background. The background magnetic field belongs in the external field
-  // (ext_em); a background at rest along the field (or unmagnetized) is held by the force alone,
-  // while a gradient across the field needs the diamagnetic flow in the background. Non-relativistic
-  // species without velocity or position maps. A PKPM species gives the eight normalized
-  // distributions here (one GKYL_PROJ_FUNC projection) and its fluid background in the fluid block.
+  // perturbation of the background. With the Poisson field the potentials are zero in that
+  // evaluation and are solved from the departure of the species from their held backgrounds
+  // (charge and mass density): a background exerts no force of the potentials, and one that is not
+  // neutral or that gravitates is held like any other. The background magnetic field belongs in
+  // the external field (ext_em); a background at rest along the field (or unmagnetized) is held
+  // by the force alone, while a gradient across the field needs the diamagnetic flow in the
+  // background. Non-relativistic species without velocity or position maps. A PKPM species gives
+  // the eight normalized distributions here (one GKYL_PROJ_FUNC projection) and its fluid
+  // background in the fluid block.
   struct gkyl_vlasov_projection background;
 
   bool is_static; // Set to true if species does not change in time.
@@ -430,7 +436,9 @@ struct gkyl_vlasov_fluid_species {
   // Temperature source of an Euler fluid (GKYL_SOURCE_BGK_HEATING): the moments of the BGK-form
   // source of a kinetic species (see gkyl_vlasov_source_bgk), which relaxes the pressure toward
   // n T_Q at the rate nu_Q, d_t p = nu_Q (n T_Q - p), with the density and the momentum unchanged.
-  // Explicit, in every stage (is_implicit is not available for a fluid).
+  // Explicit in every stage, with the time step limited by nu_Q, or with is_implicit one
+  // backward-Euler step in each SSP-RK3 stage, over the time weight of the stage (polynomial
+  // order 1; not on the GPU).
   struct gkyl_vlasov_source_bgk source_bgk;
 
   // Applied acceleration [ax, ay, az] (external force per unit mass) of an Euler or isothermal

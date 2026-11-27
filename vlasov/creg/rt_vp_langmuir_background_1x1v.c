@@ -1,16 +1,24 @@
-// Electrons in an electrostatic potential well with the PKPM system of equations (1x, normalized
-// parallel velocity w = v_par/xi), the counterpart of vlasov/creg/rt_vp_es_pot_well_1x1v.c. A
-// uniform Maxwellian (n = 1, v_t = 1) starts at rest in the field E = -sin(x) of the potential well
-// phi = -cos(x) and evolves with Maxwell's equations (omega_p = 1, Debye length 1). In one
-// dimension Ampere's law with the initial E is equivalent to the Poisson solution for the external
-// well plus the self-consistent potential of the plasma response, which is how the Vlasov-Poisson
-// test is posed. Electrons bunch at the bottom of the well and partially screen it. A uniform
-// magnetic field along x gives PKPM its field direction and does not act on the parallel motion.
-// The fluid-field coupling is integrated implicitly, split from the explicit SSP-RK3 step.
-// Figures of merit (32 x 24 cells): particle number and the total energy (kinetic, thermal and
-// field) are conserved to 2e-13. By t = 3 the density ranges from 0.65 to 1.37 and the
-// self-consistent potential reaches 0.37 of the external one (Vlasov-Poisson, serendipity p2:
-// 0.65-1.37 and 0.37).
+// Langmuir oscillation about a held, nonuniform electron background with kinetic electrons and the
+// Poisson field (1x1v). Electrons (vt = 0.01, lambda_D = 0.01, no ions) with the density n0 (1 +
+// 0.5 cos(k x)), k = 1, are held about that state at rest: the potential is solved from the
+// departure of the electrons from their background, so the background, which is not neutral,
+// exerts no force (its own field would be 5e3 times that of the oscillation), and the app derives
+// the body force that balances its pressure gradient. The initial velocity u0 sin(k x), u0 = 1e-4,
+// starts an oscillation of every fluid element at its local plasma frequency: for a cold plasma
+// u_x = u0 sin(k x) cos(omega_p(x) t) and E_x = (m / |q|) u0 sin(k x) omega_p(x) sin(omega_p(x)
+// t), with omega_p(x)^2 = omega_pe^2 (1 + 0.5 cos(k x)). The oscillation phase-mixes along x:
+// after two periods of omega_pe, the end of the run, the phase differs by 6.5 radians across the
+// domain. Thermal corrections are of the order of (k lambda_D)^2. LBO self-collisions at nu = 0.01
+// omega_pe act on the electrons, as in the PKPM test (they conserve the momentum of the
+// oscillation). The potential is solved in every SSP-RK3 stage (cfl_frac = 0.5, so that the
+// third-order stepper resolves the oscillation: omega_p dt up to 0.16).
+// rt_dg_5m_poisson_langmuir_background_1x.c and rt_pkpm_poisson_langmuir_background_1x.c are the
+// same problem with fluid and PKPM electrons.
+//
+// Figures of merit at t = 4 pi / omega_pe (64 x 16 cells, serendipity p2, velocity grid +-6 vt, 99
+// steps): the cell averages of E_x differ from the cold local solution by 8.7e-3 in L2 and those
+// of u_x by 1.1e-2. The density changes by at most 3.1e-4 of itself, the compression of the
+// oscillation.
 
 #include <math.h>
 #include <stdio.h>
@@ -33,25 +41,31 @@
 
 #include <rt_arg_parse.h>
 
-struct es_pot_well_ctx {
+struct langmuir_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
   double vt; // Thermal velocity.
-  double n0; // Reference number density.
-  double B0; // Magnetic field along x (sets the field direction b).
+
+  double n0; // Number density.
+  double a_bg; // Relative amplitude of the density variation of the background.
+  double u0; // Amplitude of the initial velocity.
+  double k; // Wavenumber.
+
+  // Derived physical quantities (using normalized code units).
+  double omega_pe; // Plasma frequency.
+  double nu_ee; // Electron-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Nvx; // Cell count (velocity space: normalized parallel velocity w).
+  int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: w = v_par/xi).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -64,7 +78,7 @@ struct es_pot_well_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct es_pot_well_ctx
+struct langmuir_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -72,23 +86,28 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double vt = 1.0; // Thermal velocity.
-  double n0 = 1.0; // Reference number density.
-  double B0 = 1.0; // Magnetic field along x (sets the field direction b).
+  double vt = 0.01; // Thermal velocity.
+  double n0 = 1.0; // Number density.
+  double a_bg = 0.5; // Relative amplitude of the density variation of the background.
+  double u0 = 1.0e-4; // Amplitude of the initial velocity.
+  double k = 1.0; // Wavenumber.
+
+  // Derived physical quantities (using normalized code units).
+  double omega_pe = sqrt(n0 * charge_elc * charge_elc / (epsilon0 * mass_elc)); // Plasma frequency.
+  double nu_ee = 0.01 * omega_pe; // Electron-electron collision frequency.
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 24; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0; // Domain boundary (velocity space: w = v_par/xi).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  double Lx = 2.0 * pi / k; // Domain size (configuration space: x-direction).
+  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 0.5; // CFL coefficient.
 
-  double t_end = 3.0; // Final simulation time.
+  double t_end = 4.0 * pi / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -97,15 +116,18 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct es_pot_well_ctx ctx = {
+  struct langmuir_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
     .n0 = n0,
-    .B0 = B0,
+    .a_bg = a_bg,
+    .u0 = u0,
+    .k = k,
+    .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -124,68 +146,55 @@ create_ctx(void)
   return ctx;
 }
 
-void
-evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+// Maxwellian of the electrons with the density of the background and the flow velocity ux.
+static double
+elc_maxwellian(const struct langmuir_ctx *app, double x, double vx, double ux)
 {
-  struct es_pot_well_ctx *app = ctx;
-  double w = xn[1];
-
   double pi = app->pi;
-
-  double F = exp(-0.5 * w * w) / sqrt(2.0 * pi); // Normalized Maxwellian in w = v_par/xi.
-
-  // Set normalized electron distribution functions [F, G] (G = (T_perp/T) F = F).
-  fout[0] = F;
-  fout[1] = F;
-
-  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
-}
-
-void
-evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct es_pot_well_ctx *app = ctx;
-
-  double mass_elc = app->mass_elc;
-  double n0 = app->n0;
   double vt = app->vt;
+  double n0 = app->n0;
+  double a_bg = app->a_bg;
+  double k = app->k;
 
-  double rho = mass_elc * n0; // Electron mass density.
-  double E = 1.5 * n0 * mass_elc * vt * vt; // Electron total energy density (at rest).
+  double n = n0 * (1.0 + a_bg * cos(k * x)); // Number density.
 
-  // Set electron fluid state [rho, rho ux, rho uy, rho uz, E].
-  fout[0] = rho;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = E;
+  return n / sqrt(2.0 * pi * vt * vt) * exp(-(vx - ux) * (vx - ux) / (2.0 * vt * vt));
+}
+
+// Background of the electrons: a density that varies along x, at rest, with a uniform temperature.
+void
+evalElcBackground(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct langmuir_ctx *app = ctx;
+  double x = xn[0], vx = xn[1];
+
+  // Set distribution function.
+  fout[0] = elc_maxwellian(app, x, vx, 0.0);
+}
+
+// Initial condition: the background with the velocity u0 sin(k x).
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct langmuir_ctx *app = ctx;
+  double x = xn[0], vx = xn[1];
+
+  double u0 = app->u0;
+  double k = app->k;
+
+  // Set distribution function.
+  fout[0] = elc_maxwellian(app, x, vx, u0 * sin(k * x));
 }
 
 void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct es_pot_well_ctx *app = ctx;
-  double x = xn[0];
+  struct langmuir_ctx *app = ctx;
 
-  double B0 = app->B0;
+  double nu_ee = app->nu_ee;
 
-  double Ex = -sin(x); // Electric field of the well phi = -cos(x) (x-direction).
-
-  // Set electric field, magnetic field and correction potentials.
-  fout[0] = Ex;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = B0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
+  // Set electron-electron collision frequency.
+  fout[0] = nu_ee;
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -258,7 +267,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct es_pot_well_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct langmuir_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -325,29 +334,31 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_vlasov_kinetic_species elc_kinetic = {
+  struct gkyl_vlasov_kinetic_species elc = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
     .num_init = 1,
-    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcInit, .ctx_func = &ctx},
+    // The electrons are held about their background.
+    .background = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcBackground, .ctx_func = &ctx},
+
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
+
+    .num_diag_moments = 3,
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
 
-  struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
-
-  // Field.
+  // Field: the electrostatic potential of the departure of the electrons from their background.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
 
-    .init = evalFieldInit,
-    .ctx = &ctx,
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
   };
 
-  // PKPM app.
+  // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
@@ -364,19 +375,22 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {{
-      .name = "elc",
-      .charge = ctx.charge_elc,
-      .mass = ctx.mass_elc,
-      .type = GKYL_SPECIES_PKPM,
-      .kinetic = elc_kinetic,
-      .fluid = elc_fluid,
-    }},
+    .species =
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+      },
 
     .field = field,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
+
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
@@ -561,24 +575,16 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
   );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
-  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
   );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.species_io_tm);
+  double io_tm =
+    stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:
   // Free resources after simulation completion.

@@ -1,27 +1,35 @@
 -- Ion acoustic wave with PKPM ions and fluid electrons (1x), the counterpart of
--- vlasov/creg/rt_vlasov_hybrid_ion_acoustic_explicit_1x1v.c (kinetic ions with the same electron
--- fluid). Maxwellian ions (mi/me = 100, Te/Ti = 2) and an adiabatic electron fluid (gamma = 5/3,
--- HLLC flux) carry a travelling wave at k lambda_De = 0.05, started from the linear densities and
--- velocities of the wave with an ion density amplitude of 1e-4. The ions are a PKPM species: the
--- density and the velocity of the wave are in their fluid state and F is a Maxwellian in w =
--- v_par/xi, which is not the kinetic eigenfunction: the rest of the perturbation phase-mixes during
--- the first period, so the figures of merit are taken after it. A uniform magnetic field along x
--- sets the field direction; along it the ions are kinetic, so the linear theory is that of the
--- kinetic test.
+-- vlasov/creg/rt_vlasov_hybrid_ion_acoustic_explicit_1x1v.c (kinetic ions in one velocity dimension
+-- with the same electron fluid and the same ion self-collisions; collisions between a kinetic and a
+-- fluid species are not supported, so that test has no ion-electron exchange). Maxwellian ions
+-- (mi/me = 100, Te/Ti = 2) and an adiabatic electron fluid (gamma = 5/3, HLLC flux) carry a
+-- travelling wave at k lambda_De = 0.05, started from the linear densities and velocities of the
+-- wave with an ion density amplitude of 1e-4. The ions are a PKPM species: the density and the
+-- velocity of the wave are in their fluid state and F is a Maxwellian in w = v_par/xi, which is not
+-- the kinetic eigenfunction: the rest of the perturbation phase-mixes during the first period, so
+-- the figures of merit are taken after it. A uniform magnetic field along x sets the field
+-- direction; along it the ions are kinetic, so the collisionless linear theory is that of the
+-- kinetic test. The ions have LBO collisions with constant frequencies: nu_ii = 2e-4 omega_pi among
+-- themselves and nu_ie = (me/mi) nu_ei with the electron fluid, nu_ei = 2e-3 omega_pi. The pair
+-- exchanges momentum and energy through the fluid states, which relaxes Te - Ti by 1.6% during the
+-- run (Te/Ti = 1.98 at the end).
 -- The fluid-field coupling is advanced explicitly within the SSP-RK3 step (use_explicit_sources):
 -- the Lorentz force is in the right-hand side of both species and their currents are on the Ampere
 -- right-hand side of every stage, with the step resolving the electron plasma and cyclotron
 -- frequencies; rt_pkpm_hybrid_ion_acoustic_1x.lua is the same problem with the staggered operator
 -- split.
--- Linear theory, 1 + chi_i + chi_e = 0 with chi_i = (1 + zeta Z(zeta)) / (k lambda_Di)^2, zeta =
--- omega / (sqrt(2) k v_ti), and chi_e = -omega_pe^2 / (omega^2 - gamma k^2 Te / me): omega =
--- 0.09470 omega_pi, damping rate 0.01333 omega_pi.
+-- Collisionless linear theory at Te/Ti = 2, 1 + chi_i + chi_e = 0 with chi_i = (1 + zeta Z(zeta)) /
+-- (k lambda_Di)^2, zeta = omega / (sqrt(2) k v_ti), and chi_e = -omega_pe^2 / (omega^2 - gamma k^2
+-- Te / me): omega = 0.09470 omega_pi, damping rate 0.01333 omega_pi.
 -- Figures of merit (32 cells, 48 in w, 3992 steps, omega_pe dt = 0.50: the explicit step resolves
 -- omega_pe + |Omega_ce| of the electron fluid, and the field that sets the direction has |Omega_ce|
 -- = omega_pe, so the step is half that of the kinetic test): between t = 1 and 3 wave periods the
--- ion density wave decays at 0.01331 omega_pi (-0.2%) with omega = 0.09463 omega_pi (-0.1%); the
--- kinetic test gives 0.01332 and 0.09465. The total energy changes by -7e-13 of itself (9e-5 of
--- twice the initial kinetic energy of the ion flow).
+-- ion density wave decays at 0.01329 omega_pi (-0.3%) with omega = 0.09453 omega_pi (-0.2%). The
+-- collisions change the rate by -0.1% and omega by -0.1%. The kinetic test, with its one velocity
+-- dimension, gives 0.01311 and 0.09461 (0.01332 and 0.09465 without collisions): there the
+-- collisions change the rate by -1.5%, so its figures are not the values to reproduce here. The
+-- total energy changes by -8e-13 of itself (1e-4 of twice the initial kinetic energy of the ion
+-- flow).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
@@ -43,6 +51,10 @@ Ti = 0.5 -- Ion temperature.
 gas_gamma = 5.0 / 3.0 -- Adiabatic index of the electron fluid.
 vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 B0 = 1.0 -- Magnetic field along x (sets the field direction b).
+omega_pi = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)) -- Ion plasma frequency.
+nu_ii = 2.0e-4 * omega_pi -- Ion-ion collision frequency.
+nu_ei = 2.0e-3 * omega_pi -- Electron-ion collision frequency.
+nu_ie = (mass_elc / mass_ion) * nu_ei -- Ion-electron collision frequency.
 
 alpha = 1.0e-4 -- Amplitude of the ion density of the wave, relative to n0.
 k0 = 0.05 -- Wave number (k lambda_De = 0.05).
@@ -132,6 +144,24 @@ vlasovApp = Vlasov.App.new {
             return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
         }
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          return nu_ii
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "elc" },
+        collideWithCrossNu = {
+          {
+            crossNu = function (t, xn)
+              return nu_ie
+            end
+          }
+        }
       }
     },
 
@@ -156,7 +186,7 @@ vlasovApp = Vlasov.App.new {
     evolve = true -- Evolve species?
   },
 
-  -- Electrons (adiabatic fluid).
+  -- Electrons (adiabatic fluid): they collide with the ions through the exchange.
   elc = Vlasov.FluidSpecies.new {
     charge = charge_elc, mass = mass_elc,
     equation = Euler.new { gasGamma = gas_gamma },
@@ -174,6 +204,18 @@ vlasovApp = Vlasov.App.new {
 
       return rho, rho * ux, 0.0, 0.0, p / (gas_gamma - 1.0) + 0.5 * rho * ux * ux
     end,
+
+    collisions = {
+      numCrossCollisions = 1,
+      collideWith = { "ion" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return nu_ei
+          end
+        }
+      }
+    }
   },
 
   -- Field.

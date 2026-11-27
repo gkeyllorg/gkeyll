@@ -274,7 +274,12 @@ struct gkyl_vlasov_app {
     *conf_nodal; // conversions to and from the configuration-nodal, velocity-modal form (CPU runs)
   // Cross-species momentum and energy exchange of the species with a fluid aspect.
   struct vm_coll_exchange coll_exchange;
-  bool has_coll_stage; // PKPM species or an exchange: vm_coll_stage_advance runs in every stage
+  // Fluid species with an implicit temperature source, in the order of the app.
+  int num_fluid_temp_source_implicit;
+  struct vlasov_species *fluid_temp_source_implicit[GKYL_MAX_SPECIES];
+  // PKPM species, an exchange or an implicit fluid temperature source: vm_coll_stage_advance runs
+  // in every stage
+  bool has_coll_stage;
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);

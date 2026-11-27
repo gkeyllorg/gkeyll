@@ -1,14 +1,18 @@
 // Parallel ion cyclotron wave with kinetic ions (1x3v) and PKPM electrons, the mixed counterpart of
-// vlasov/creg/rt_vlasov_hybrid_ion_cyclotron_1x3v.c (the same ions with fluid electrons, at mi / me
-// = 100). A left-hand circularly polarized wave propagates along the background magnetic field (x)
-// at k d_i = 1 in a plasma with beta_i = beta_e = 0.1, vA / c = 0.1 and mi / me = 25, and is damped
-// by the cyclotron resonance of the Maxwellian ions. The electrons are a PKPM species: their
-// transverse velocity is in the fluid state, F is a Maxwellian in w = v_par/xi, and the wave turns
-// the field direction, so their first harmonic carries the transverse response. The fluid-field
-// coupling is the staggered operator split: the source step takes the ion current as known and
-// solves the electron momentum with E, the transport step moves the ions with that E.
-// Linear theory (Maxwell's equations with the displacement current, kinetic ions, and cold
-// electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
+// vlasov/creg/rt_vlasov_hybrid_ion_cyclotron_1x3v.c (the same ions with the same LBO
+// self-collisions and Euler fluid electrons, at mi / me = 100; a kinetic species cannot collide
+// with a fluid species, so that test has no ion-electron collisions). A left-hand circularly
+// polarized wave propagates along the background magnetic field (x) at k d_i = 1 in a plasma with
+// beta_i = beta_e = 0.1, vA / c = 0.1 and mi / me = 25, and is damped by the cyclotron resonance of
+// the Maxwellian ions. The electrons are a PKPM species: their transverse velocity is in the fluid
+// state, F is a Maxwellian in w = v_par/xi, and the wave turns the field direction, so their first
+// harmonic carries the transverse response. The fluid-field coupling is the staggered operator
+// split: the source step takes the ion current as known and solves the electron momentum with E,
+// the transport step moves the ions with that E. Both species have LBO collisions with constant
+// frequencies, nu_ii = 1e-3 Omega_ci, nu_ee = nu_ei = 5e-3 Omega_ci and nu_ie = (me / mi) nu_ei;
+// the cross operator of the kinetic ions carries the exchange of the pair.
+// Collisionless linear theory (Maxwell's equations with the displacement current, kinetic ions, and
+// cold electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
 // omega_pi^2 (omega / (sqrt(2) k v_ti)) Z((omega - Omega_ci) / (sqrt(2) k v_ti)) - omega_pe^2 omega
 // / (omega + |Omega_ce|) = 0 gives omega = 0.51471 Omega_ci and a damping rate of 0.05039 Omega_ci.
 // The wave starts with a magnetic field of 1e-4 B0, Maxwellian ions and electrons with transverse
@@ -17,11 +21,12 @@
 // wave number and polarization are not excited (the whistler that propagates the opposite way and
 // two high-frequency electron modes). The Maxwellian is not the kinetic eigenfunction: the rest of
 // the perturbation phase-mixes during the first period, so the figures of merit are taken after it.
-// Figures of merit (16 cells; 16 x 6 x 6 in the ion velocity, 16 in w for the electrons; 1866
+// Figures of merit (16 cells; 16 x 6 x 6 in the ion velocity, 16 in w for the electrons; 1870
 // steps, omega_pe dt = 0.65, |Omega_ce| dt = 0.33): between t = 1 and 2 wave periods the k d_i = 1
-// mode of B_y + i B_z decays at 0.05104 Omega_ci (+1.3%) with omega = 0.51627 Omega_ci (+0.3%); the
-// history of the transverse magnetic energy over the same interval gives 0.05111 Omega_ci (+1.4%).
-// The total energy changes by -5e-13 of itself (7e-5 of the initial magnetic energy of the wave).
+// mode of B_y + i B_z decays at 0.05115 Omega_ci (+1.5%) with omega = 0.51688 Omega_ci (+0.4%); the
+// history of the transverse magnetic energy over the same interval gives 0.05122 Omega_ci (+1.7%).
+// The collisions change the rate by +0.2% and omega by +0.1%. The total energy changes by -5e-13 of
+// itself (7e-5 of the initial magnetic energy of the wave).
 
 #include <math.h>
 #include <stdio.h>
@@ -64,6 +69,10 @@ struct ion_cyclotron_ctx {
   double vti; // Ion thermal velocity.
   double vA; // Alfven speed.
   double omega_ci; // Ion cyclotron frequency.
+  double nu_ee; // Electron-electron collision frequency.
+  double nu_ei; // Electron-ion collision frequency.
+  double nu_ii; // Ion-ion collision frequency.
+  double nu_ie; // Ion-electron collision frequency.
 
   double alpha; // Amplitude of the magnetic field of the wave, relative to B0.
   double k0; // Wave number.
@@ -117,6 +126,10 @@ create_ctx(void)
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double vA = B0 / sqrt(mu0 * n0 * mass_ion); // Alfven speed.
   double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
+  double nu_ee = 5.0e-3 * omega_ci; // Electron-electron collision frequency.
+  double nu_ei = nu_ee; // Electron-ion collision frequency.
+  double nu_ii = 1.0e-3 * omega_ci; // Ion-ion collision frequency.
+  double nu_ie = (mass_elc / mass_ion) * nu_ei; // Ion-electron collision frequency.
   double omega_pi =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
   double di = 1.0 / (sqrt(epsilon0 * mu0) * omega_pi); // Ion inertial length.
@@ -169,6 +182,10 @@ create_ctx(void)
     .vti = vti,
     .vA = vA,
     .omega_ci = omega_ci,
+    .nu_ee = nu_ee,
+    .nu_ei = nu_ei,
+    .nu_ii = nu_ii,
+    .nu_ie = nu_ie,
     .alpha = alpha,
     .k0 = k0,
     .omega_r = omega_r,
@@ -277,6 +294,42 @@ evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[2] = rho * uy;
   fout[3] = rho * uz;
   fout[4] = E;
+}
+
+void
+evalNuEE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_cyclotron_ctx *app = ctx;
+
+  // Set electron-electron collision frequency.
+  fout[0] = app->nu_ee;
+}
+
+void
+evalNuEI(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_cyclotron_ctx *app = ctx;
+
+  // Set electron-ion collision frequency.
+  fout[0] = app->nu_ei;
+}
+
+void
+evalNuII(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_cyclotron_ctx *app = ctx;
+
+  // Set ion-ion collision frequency.
+  fout[0] = app->nu_ii;
+}
+
+void
+evalNuIE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_cyclotron_ctx *app = ctx;
+
+  // Set ion-electron collision frequency.
+  fout[0] = app->nu_ie;
 }
 
 void
@@ -449,6 +502,17 @@ main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonInit, .ctx_func = &ctx},
 
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalNuII,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+        .cross_nu = {evalNuIE},
+        .cross_nu_ctx = {&ctx},
+      },
+
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
@@ -461,6 +525,17 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalNuEE,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+        .cross_nu = {evalNuEI},
+        .cross_nu_ctx = {&ctx},
+      },
   };
 
   struct gkyl_vlasov_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};

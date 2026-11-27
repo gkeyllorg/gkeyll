@@ -4,11 +4,22 @@
 -- that k v_d = omega_pe for the box mode k = 2 pi, vte = 0.02, vti = 0.001, density perturbation
 -- 1e-5 with the electric field from Gauss's law. The ghost current cancels the net current so that
 -- Ampere's law reduces to the periodic Poisson problem (see JE33).
--- Kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425 omega_pe (cold-beam
--- maximum 0.235).
+-- LBO collisions act on both species at the frequencies of the PKPM tests of this problem
+-- (vlasov/luareg/rt_pkpm_buneman_1x.lua and rt_pkpm_buneman_explicit_1x.lua): self-collisions at
+-- nu_ee = 1e-4 omega_pe and nu_ii = nu_ee / sqrt(m_i/m_e), cross collisions at nu_ei = nu_ee and
+-- nu_ie = (m_e/m_i) nu_ei. The friction slows the drift by 0.42% up to t = 40 (rate nu_ei + nu_ie)
+-- and raises the electron temperature by 48%, as dT_e/dt = 2 (m_i/(m_e + m_i)) nu_ei m_e v_d^2
+-- gives: with one velocity dimension the frictional heat goes into one degree of freedom. A PKPM
+-- species has three (2/3 in place of 2: 16% in those tests), so the figures of this test are not
+-- the values the PKPM tests should reproduce.
+-- Collisionless kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425
+-- omega_pe (cold-beam maximum 0.235).
 -- Figures of merit (tensor p3, 16 x 64 cells): the field energy W_E grows as exp(2 gamma t) with
--- gamma = 0.1950 (least-squares fit of ln W_E over t = 20-65) and saturates at t = 72.3 (maximum of
--- W_E, 7.42e-03); electron number conserved to 1e-12.
+-- gamma = 0.1904 (least-squares fit of ln W_E over t = 20-65; 0.1950 without collisions) and
+-- saturates at t = 73.2 (maximum of W_E, 6.92e-03; without collisions 7.42e-03 at t = 72.3);
+-- electron number conserved to 9e-13. Most of the lower rate is the heating of the electrons: over
+-- t = 20-50 the run grows at 0.1936 (0.1977 without collisions), and the collisionless theory with
+-- the drift and the temperatures of the run gives 0.1944.
 
 local Vlasov = G0.Vlasov
 
@@ -34,6 +45,11 @@ alpha = 1.0e-5 -- Applied perturbation amplitude.
 -- Derived physical quantities (using normalized code units).
 Te = (vte * vte) * mass_elc -- Electron temperature.
 Ti = (vti * vti) * mass_ion -- Ion temperature.
+omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
+nu_ee = 1.0e-4 * omega_pe -- Electron-electron collision frequency.
+nu_ei = nu_ee -- Electron-ion collision frequency.
+nu_ii = nu_ee / math.sqrt(mass_ion / mass_elc) -- Ion-ion collision frequency.
+nu_ie = (mass_elc / mass_ion) * nu_ei -- Ion-electron collision frequency.
 
 -- Simulation parameters.
 Nx = 16 -- Cell count (configuration space: x-direction).
@@ -108,6 +124,24 @@ vlasovApp = Vlasov.App.new {
       }
     },
 
+    collisions = {
+      collisionID = G0.Collisions.LBO,
+
+      selfNu = function (t, xn)
+        return nu_ee -- Self-collision frequency.
+      end,
+
+      numCrossCollisions = 1,
+      collideWith = { "ion" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return nu_ei -- Cross-collision frequency.
+          end
+        }
+      }
+    },
+
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
@@ -137,6 +171,24 @@ vlasovApp = Vlasov.App.new {
         driftVelocityInit = function (t, xn)
           return Vx_drift_ion -- Ion drift velocity.
         end
+      }
+    },
+
+    collisions = {
+      collisionID = G0.Collisions.LBO,
+
+      selfNu = function (t, xn)
+        return nu_ii -- Self-collision frequency.
+      end,
+
+      numCrossCollisions = 1,
+      collideWith = { "elc" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return nu_ie -- Cross-collision frequency.
+          end
+        }
       }
     },
 

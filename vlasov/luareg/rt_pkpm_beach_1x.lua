@@ -10,8 +10,9 @@
 -- antenna radiates to each side in free space has a magnetic field of 0.02 B_x, so the magnetic
 -- unit vector changes in time up to the edge. The upper boundary of the field, next to the antenna,
 -- is absorbing (G0.FieldBc.bcAbsorb). The fluid-field coupling is the staggered operator split with
--- the implicit fluid-Maxwell source step, which takes the applied current. The electrons (1 eV)
--- are held about their initial state (the fluid state evaluated at the nodes;
+-- the implicit fluid-Maxwell source step, which takes the applied current. LBO self-collisions at
+-- nu_ee = 0.01 omega_drive act on the electrons. The electrons (1 eV) are held about their initial
+-- state (the fluid state evaluated at the nodes;
 -- First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
 -- along b that holds the parallel pressure gradient, v_te^2 d ln n/dx away from the boundary
 -- cells, and subtracts what the discretization leaves. Without the hold the pressure gradient
@@ -22,9 +23,9 @@
 -- the maximum of |E_perp| = sqrt(E_y^2 + E_z^2) is 2.79e5 V/m at x = 0.6275, 1.74 times the
 -- amplitude mu_0 c J_0 / 800 the antenna radiates to each side in free space; the maxima of |E_y|
 -- and |E_z| are 1.33 and 1.17 times that amplitude. |E_perp| stays below 0.7% of its maximum for x
--- < 0.466, beyond both cutoffs, where |E_x| stays below 0.02 V/m (22 V/m without the hold) and the
--- density changes by less than 1e-8; in the wave E_x reaches 3.2e3 V/m. The norm of the
--- first-harmonic blocks of the distribution is at most 0.42 of that of F (at x = 0.9075), and 0.24
+-- < 0.466, beyond both cutoffs; for x < 0.3 |E_x| stays below 0.02 V/m (22 V/m without the hold)
+-- and the density changes by less than 1e-8; in the wave E_x reaches 3.5e3 V/m. The norm of the
+-- first-harmonic blocks of the distribution is at most 0.31 of that of F (at x = 0.9225), and 0.21
 -- in the cell at the absorbing edge.
 
 local Vlasov = G0.Vlasov
@@ -61,6 +62,7 @@ cfl_frac = 0.9 -- CFL coefficient.
 deltaT = Lx100 / light_speed -- Arbitrary constant, with units of time.
 factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0) -- Numerical factor for calculation of electron number density.
 omega_drive = pi / 10.0 / deltaT -- Drive current angular frequency.
+nu_ee = 0.01 * omega_drive -- Electron-electron collision frequency.
 
 B0 = omega_c_frac * omega_drive * mass_elc / math.abs(charge_elc) -- External magnetic field.
 -- A current sheet of width Lx - x_last_edge radiates B = mu0 J0 (Lx - x_last_edge) / 2 to each
@@ -142,6 +144,14 @@ vlasovApp = Vlasov.App.new {
       background = {
         projectionID = G0.Projection.Func,
         init = elcDist
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          return nu_ee
+        end
       },
 
       bcx = {

@@ -939,10 +939,8 @@ vm_fluid_species_rhs_enabled(
   // fluid-EM coupling the source solve applies them, see vm_fluid_em_coupling.c.
   fluid_species->rhs_force_func(app, fluid_species, fluid_phys, em, rhs);
 
-  // Temperature source (Euler).
-  if (fluid_species->tsrc.is_on) {
-    vm_fluid_species_temp_source_rhs(app, fluid_species, fluid_phys, rhs);
-  }
+  // Explicit temperature source (Euler).
+  vm_fluid_species_temp_source_rhs(app, fluid_species, fluid_phys, rhs);
 
   // Particle loss rate through the absorbing walls, for boundary-flux sources.
   if (fluid_species->has_wall_flux) {

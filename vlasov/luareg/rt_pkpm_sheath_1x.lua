@@ -1,18 +1,22 @@
 -- Sheath formation with the PKPM system of equations (1x, normalized parallel velocity
--- w = v_par/xi), the counterpart of vlasov/creg/rt_vlasov_sheath_1x1v.c.
+-- w = v_par/xi), LBO collisions and a temperature source.
 -- Half domain: symmetry boundary at x = 0 (reflecting species, symmetry-wall field),
 -- absorbing conducting wall at x = Lx. A boundary-flux source replaces the particles lost
 -- to the wall, and a BGK-form temperature source at the source temperature acts upstream
--- (x < L_nu) to hold the pre-sheath plasma at that temperature; the region next to
--- the wall is collisionless. The position map clusters the cells at the wall.
--- Run to t = 1000/omega_pe, when the wall loss is 0.6% below its steady value.
--- Figures of merit at t = 1000 (16 x 16 cells; Vlasov 1x1v in parentheses): midplane-to-wall
--- potential drop e*dphi/Te = 1.929 (1.925), ion wall flux / (n_mid c_s) = 0.506 (0.509), ion speed
--- at the wall / c_s = 1.635 (1.629), with c_s = sqrt((Te + Ti)/mi). Over the presheath (the 13
--- cells upstream of the three sheath cells) the cell averages of the density and the flow velocity
--- of both species are within 1.1% of Vlasov (rms 0.4%), the largest difference being in the cell at
--- the sheath edge; the wall cell has the electron density 2.2% low and the electron velocity 2.0%
--- high.
+-- (x < L_nu) to hold the pre-sheath plasma at that temperature. LBO self-collisions act upstream as
+-- well (nu_ee = 0.2 omega_pe, nu_ii = 0.02 omega_pe for x < L_nu) and electron-ion collisions use
+-- Spitzer frequencies computed from the local moments (nu_ei = 0.043 omega_pe at the reference
+-- density and the source temperatures; their momentum and energy exchange takes one backward-Euler
+-- step in each SSP-RK3 stage). The position map clusters the cells at the wall.
+-- Run to t = 1000/omega_pe, when the wall loss is 0.1% below its value at t = 3000/omega_pe.
+-- Figures of merit at t = 1000 (16 x 16 cells): midplane-to-wall potential drop e*dphi/Te = 1.935,
+-- ion wall flux / (n_mid c_s) = 0.508, ion speed at the wall / c_s = 1.679, with Te the source
+-- temperature and c_s = sqrt((Te + Ti)/mi). At x = 0 the electron temperature is 0.988 and the ion
+-- temperature 0.918 of the source temperature.
+-- The Vlasov test with the same sources and collisions, rt_vlasov_sheath_temp_source_1x1v.c, has
+-- one velocity dimension, and PKPM three velocity degrees of freedom (collisions in one dimension
+-- cannot exchange parallel and perpendicular energy), so its figures are not the values to
+-- reproduce here: it gives 1.786, 0.507, 1.585 and the temperatures 0.966 and 0.783 at x = 0.
 
 local Vlasov = G0.Vlasov
 
@@ -34,6 +38,8 @@ vti = vte / math.sqrt(Te_over_Ti * mass_ion) -- Ion thermal velocity.
 
 lambda_D = math.sqrt(epsilon0 * vte * vte * mass_elc / (n0 * charge_ion * charge_ion)) -- Electron Debye length.
 omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
+nu_ee = vte / (5.0 * lambda_D) -- Electron-electron collision frequency (upstream).
+nu_ii = vti / (5.0 * lambda_D) -- Ion-ion collision frequency (upstream).
 nu_Q_elc = vte / (5.0 * lambda_D) -- Rate of the electron temperature source (upstream).
 nu_Q_ion = vti / (5.0 * lambda_D) -- Rate of the ion temperature source (upstream).
 
@@ -42,7 +48,7 @@ Nx = 16 -- Cell count (configuration space: x-direction).
 Nvx = 16 -- Cell count (velocity space: normalized parallel velocity w).
 Lx = 64.0 * lambda_D -- Domain size (configuration space: x-direction).
 Ls = 40.0 * lambda_D -- Extent of the source region.
-L_nu = 32.0 * lambda_D -- Extent of the temperature-source region.
+L_nu = 32.0 * lambda_D -- Extent of the collisional and temperature-source region.
 map_A = 0.8 -- Amplitude of the position map clustering the cells at the wall.
 vx_max_elc = 5.0 -- Domain boundary (electron velocity space: w = v_par/xi).
 vx_max_ion = 5.0 -- Domain boundary (ion velocity space: w = v_par/xi).
@@ -124,8 +130,23 @@ vlasovApp = Vlasov.App.new {
         }
       },
 
+      -- Self collisions: frequency nu_ee upstream (x < L_nu), vanishing over 6 lambda_D towards the
+      -- region next to the wall. The cross-species frequencies are computed from the local moments.
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          local x = xn[1]
+
+          return nu_ee / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D)))
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "ion" }
+      },
+
       -- Temperature source: rate nu_Q_elc upstream (x < L_nu), vanishing over 6 lambda_D towards
-      -- the collisionless region next to the wall, at the source temperature.
+      -- the region next to the wall, at the source temperature.
       sourceBGK = {
         rateProfile = function (t, xn)
           local x = xn[1]
@@ -228,8 +249,23 @@ vlasovApp = Vlasov.App.new {
         }
       },
 
+      -- Self collisions: frequency nu_ii upstream (x < L_nu), vanishing over 6 lambda_D towards the
+      -- region next to the wall. The cross-species frequencies are computed from the local moments.
+      collisions = {
+        collisionID = G0.Collisions.LBO,
+
+        selfNu = function (t, xn)
+          local x = xn[1]
+
+          return nu_ii / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D)))
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "elc" }
+      },
+
       -- Temperature source: rate nu_Q_ion upstream (x < L_nu), vanishing over 6 lambda_D towards
-      -- the collisionless region next to the wall, at the source temperature.
+      -- the region next to the wall, at the source temperature.
       sourceBGK = {
         rateProfile = function (t, xn)
           local x = xn[1]
