@@ -120,8 +120,9 @@ endif
 # one resident 256-thread block per SM. Capping the whole family at a register-cliff
 # value (128 -> 2 blocks/SM, 64 -> 4 blocks/SM) trades a few spills for occupancy,
 # which these latency-bound kernels need. nvlink requires every function a capped
-# kernel can reach (for an indirect call: every address-taken function with the same
-# PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
+# kernel can reach to fit the cap. Explicit CUDA call-target lists restrict this
+# to the registered family; unconstrained calls can also match unrelated functions
+# with the same PTX prototype. A cap
 # covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
 # kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
 # FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
@@ -134,13 +135,19 @@ endif
 MOM_MAX_REGS ?= 64
 FLUX_MAX_REGS ?= 128
 BINOP_MAX_REGS ?= 64
+# Performance budget for density-weighted radiation drag kernels only. Explicit
+# call-target lists make this independent of MOM_MAX_REGS. Set empty to uncap;
+# rebuild affected objects after changing register caps.
+RAD_MAX_REGS ?= 128
 NVCC_MOM_FLAGS =
 NVCC_FLUX_FLAGS =
 NVCC_BINOP_FLAGS =
+NVCC_RAD_FLAGS =
 ifdef USING_NVCC
 	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
 	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
 	NVCC_BINOP_FLAGS = $(if $(BINOP_MAX_REGS),-maxrregcount=$(BINOP_MAX_REGS))
+	NVCC_RAD_FLAGS = $(if $(RAD_MAX_REGS),-maxrregcount=$(RAD_MAX_REGS))
 endif
 
 CFLAGS += ${HAVE_APP_FLAGS}
@@ -255,7 +262,7 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS NVCC_RAD_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
