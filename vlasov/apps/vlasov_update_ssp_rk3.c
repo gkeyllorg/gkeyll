@@ -1,7 +1,11 @@
 #include <gkyl_vlasov_priv.h>
 
 // Take a time-step with SSP-RK3; the status holds the step taken and the
-// step suggested. With retake, stage 1 takes the step its CFL bound allows
+// step suggested, the smallest of the bounds of the three stages of the step
+// taken: each stage evaluates its bound on its own state, and a step suggested
+// from the last stage alone is retaken wherever an earlier stage allows less
+// (the state after the forward-Euler step of stage 1 is the farthest from the
+// solution). With retake, stage 1 takes the step its CFL bound allows
 // and a smaller bound in stage 2 or 3 restarts from stage 1; without, the
 // function returns at the first stage whose bound is below dt0, with only
 // the stage arrays written and dt_actual < dt0 in the status. What the
@@ -22,6 +26,7 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
 
   double tcurr = app->tcurr, dt = dt0;
+  double dt_suggested = DBL_MAX; // smallest bound of the stages of the step being taken
   while (state != RK_COMPLETE) {
     switch (state) {
       case RK_STAGE_1:
@@ -38,6 +43,7 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
             return st;
           }
 
+          dt_suggested = st.dt_suggested;
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->em1);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
@@ -63,6 +69,7 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
             app->field->emnew, &st
           );
 
+          dt_suggested = fmin(dt_suggested, st.dt_suggested);
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
@@ -114,6 +121,7 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
             app->field->emnew, &st
           );
 
+          dt_suggested = fmin(dt_suggested, st.dt_suggested);
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
@@ -157,6 +165,7 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
             }
             vlasov_field_copy_range(app, app->field->em, app->field->em1); // no-op for null field
 
+            st.dt_suggested = dt_suggested;
             state = RK_COMPLETE;
           }
 
