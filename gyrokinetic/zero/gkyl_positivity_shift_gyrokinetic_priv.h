@@ -83,6 +83,9 @@ struct gkyl_positivity_shift_gyrokinetic {
   bool use_gpu;
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
   struct gkyl_array *shiftedf; // Marks if a shift occured at a given conf-cell.
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  double *max_buffer_dev; // Per-configuration-cell maxima for the deterministic GPU path.
+#endif
 };
 
 #ifdef GKYL_HAVE_CUDA

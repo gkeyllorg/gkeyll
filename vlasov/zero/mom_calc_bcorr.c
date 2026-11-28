@@ -25,6 +25,7 @@ gkyl_mom_calc_bcorr_new(
   up->momt = gkyl_mom_type_acquire(momt);
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->buffer = 0;
   up->on_dev = up;
 
   return up;
@@ -146,6 +147,12 @@ gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr *up)
 {
   gkyl_mom_type_release(up->momt);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
+    if (up->buffer) {
+      if (up->buffer->partial_dev) {
+        gkyl_cu_free(up->buffer->partial_dev);
+      }
+      gkyl_free(up->buffer);
+    }
     gkyl_cu_free(up->on_dev);
   }
   gkyl_free(up);

@@ -206,6 +206,7 @@ gkyl_array_reduce_range_min_cu(
   cudaDeviceSynchronize();
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 template <unsigned int BLOCKSIZE>
 __global__ void
 arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
@@ -265,6 +266,11 @@ arraySum_range_blockRedAtomic_cub(
     array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_array_reduce_deterministic_priv.h>
+#endif
 
 void
 gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
@@ -272,6 +278,9 @@ gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
   if (inp->ncomp == 0) {
     return;
   }
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  array_sum_deterministic_cu<false>(out_d, inp, nullptr);
+#else
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   array_reduce_init_cu_kernel<<<gkyl_int_div_up(inp->ncomp, nthreads), nthreads>>>(
     out_d, inp->ncomp, 0.0
@@ -282,6 +291,7 @@ gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
   }
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
+#endif
 }
 
 void
@@ -292,6 +302,9 @@ gkyl_array_reduce_range_sum_cu(
   if (inp->ncomp == 0) {
     return;
   }
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  array_sum_deterministic_cu<true>(out_d, inp, range);
+#else
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   array_reduce_init_cu_kernel<<<gkyl_int_div_up(inp->ncomp, nthreads), nthreads>>>(
     out_d, inp->ncomp, 0.0
@@ -302,6 +315,7 @@ gkyl_array_reduce_range_sum_cu(
   }
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
+#endif
 }
 
 template <unsigned int BLOCKSIZE>

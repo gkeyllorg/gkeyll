@@ -20,6 +20,7 @@
 // (2) Analytic (tail-truncation limited): the domain-integrated moments are
 //     compared against the continuum analytic mode sums.
 #include <math.h>
+#include <string.h>
 
 #include <acutest.h>
 #include <assert.h>
@@ -573,6 +574,26 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor, bool use_nonun
 #endif
     gkyl_array_copy(mout_ho, mout);
 
+#if defined(GKYL_HAVE_CUDA) && defined(GKYL_DETERMINISTIC_REDUCTIONS_GPU)
+    if (use_gpu) {
+      gkyl_mom_calc_advance(mcalc, &phase_local, &conf_local, Jf, mout);
+      struct gkyl_array *repeat_ho = gkyl_array_new(GKYL_DOUBLE, mout->ncomp, mout->size);
+      gkyl_array_copy(repeat_ho, mout);
+      struct gkyl_range_iter repeat_iter;
+      gkyl_range_iter_init(&repeat_iter, &conf_local);
+      while (gkyl_range_iter_next(&repeat_iter)) {
+        long cloc = gkyl_range_idx(&conf_local, repeat_iter.idx);
+        TEST_CHECK(
+          memcmp(
+            gkyl_array_cfetch(mout_ho, cloc), gkyl_array_cfetch(repeat_ho, cloc),
+            mout->ncomp * sizeof(double)
+          ) == 0
+        );
+      }
+      gkyl_array_release(repeat_ho);
+    }
+#endif
+
     ref_moment(
       mt, &grid, &pbasis, &cbasis, &vbasis, &b1, cdim, vdim, vel_poly, &phase_local, &conf_local,
       &vel_local, vvm, Jf_ho, hamil_ho, ref_ho
@@ -651,6 +672,29 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor, bool use_nonun
   }
 #else
   gkyl_mom_calc_advance(intcalc, &phase_local, &conf_local, Jf, int_mom);
+#endif
+
+#if defined(GKYL_HAVE_CUDA) && defined(GKYL_DETERMINISTIC_REDUCTIONS_GPU)
+  if (use_gpu) {
+    struct gkyl_array *before_ho = gkyl_array_new(GKYL_DOUBLE, int_mom->ncomp, int_mom->size);
+    struct gkyl_array *after_ho = gkyl_array_new(GKYL_DOUBLE, int_mom->ncomp, int_mom->size);
+    gkyl_array_copy(before_ho, int_mom);
+    gkyl_mom_calc_advance(intcalc, &phase_local, &conf_local, Jf, int_mom);
+    gkyl_array_copy(after_ho, int_mom);
+    struct gkyl_range_iter repeat_iter;
+    gkyl_range_iter_init(&repeat_iter, &conf_local);
+    while (gkyl_range_iter_next(&repeat_iter)) {
+      long cloc = gkyl_range_idx(&conf_local, repeat_iter.idx);
+      TEST_CHECK(
+        memcmp(
+          gkyl_array_cfetch(before_ho, cloc), gkyl_array_cfetch(after_ho, cloc),
+          int_mom->ncomp * sizeof(double)
+        ) == 0
+      );
+    }
+    gkyl_array_release(before_ho);
+    gkyl_array_release(after_ho);
+  }
 #endif
 
   double red_mom[GKYL_MAX_DIM + 2], red_mom_ho[GKYL_MAX_DIM + 2];

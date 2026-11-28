@@ -23,6 +23,9 @@ gkyl_mom_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type 
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up; // self-reference on host
   up->use_gpu = use_gpu;
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  up->buffer = 0;
+#endif
 
   return up;
 }
@@ -92,6 +95,12 @@ gkyl_mom_calc_release(gkyl_mom_calc *up)
 {
   gkyl_mom_type_release(up->momt);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+    if (up->buffer->partial_dev) {
+      gkyl_cu_free(up->buffer->partial_dev);
+    }
+    gkyl_free(up->buffer);
+#endif
     gkyl_cu_free(up->on_dev);
   }
   gkyl_free(up);

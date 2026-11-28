@@ -225,13 +225,13 @@ gkyl_dg_calc_sr_vars_GammaV_cu(
   );
 }
 
-__global__ void
-gkyl_dg_calc_sr_vars_pressure_cu_kernel(
+__device__ static void
+dg_calc_sr_vars_pressure_cell(
   struct gkyl_dg_calc_sr_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
   bool use_vmap, const struct gkyl_array *vmap, const struct gkyl_array *gamma,
   const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
   const struct gkyl_array *GammaV, const struct gkyl_array *GammaV_sq, const struct gkyl_array *f,
-  struct gkyl_array *sr_pressure
+  const int *idx, double *mom_local
 )
 {
   int cdim = conf_range.ndim;
@@ -239,52 +239,57 @@ gkyl_dg_calc_sr_vars_pressure_cu_kernel(
 
   double xc[GKYL_MAX_DIM];
   int idx_vel[GKYL_MAX_DIM];
-  int idx[GKYL_MAX_DIM];
+  gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
+  long loc_conf = gkyl_range_idx(&conf_range, idx);
+  long loc_phase = gkyl_range_idx(&phase_range, idx);
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long loc_vel = gkyl_range_idx(&up->vel_range, idx_vel);
 
+  sr_vars_pressure_call(
+    up->sr_pressure, xc, up->phase_grid.dx,
+    use_vmap ? (const double *)gkyl_array_cfetch(vmap, loc_vel) : 0,
+    (const double *)gkyl_array_cfetch(gamma, loc_vel),
+    (const double *)gkyl_array_cfetch(gamma_inv, loc_vel),
+    (const double *)gkyl_array_cfetch(u_i, loc_conf),
+    (const double *)gkyl_array_cfetch(u_i_sq, loc_conf),
+    (const double *)gkyl_array_cfetch(GammaV, loc_conf),
+    (const double *)gkyl_array_cfetch(GammaV_sq, loc_conf),
+    (const double *)gkyl_array_cfetch(f, loc_phase), mom_local
+  );
+}
+
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+__global__ static void
+dg_calc_sr_vars_pressure_cu_kernel(
+  struct gkyl_dg_calc_sr_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
+  bool use_vmap, const struct gkyl_array *vmap, const struct gkyl_array *gamma,
+  const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
+  const struct gkyl_array *GammaV, const struct gkyl_array *GammaV_sq, const struct gkyl_array *f,
+  struct gkyl_array *sr_pressure
+)
+{
+  int idx[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < phase_range.volume;
        linc1 += gridDim.x * blockDim.x) {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
     gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
-    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long loc_conf = gkyl_range_idx(&conf_range, idx);
-    long loc_phase = gkyl_range_idx(&phase_range, idx);
-
-    for (int i = 0; i < pdim - cdim; ++i) {
-      idx_vel[i] = idx[cdim + i];
-    }
-    long loc_vel = gkyl_range_idx(&up->vel_range, idx_vel);
-
-    const double *gamma_d = (const double *)gkyl_array_cfetch(gamma, loc_vel);
-    const double *gamma_inv_d = (const double *)gkyl_array_cfetch(gamma_inv, loc_vel);
-    const double *u_i_d = (const double *)gkyl_array_cfetch(u_i, loc_conf);
-    const double *u_i_sq_d = (const double *)gkyl_array_cfetch(u_i_sq, loc_conf);
-    const double *GammaV_d = (const double *)gkyl_array_cfetch(GammaV, loc_conf);
-    const double *GammaV_sq_d = (const double *)gkyl_array_cfetch(GammaV_sq, loc_conf);
-    const double *f_d = (const double *)gkyl_array_cfetch(f, loc_phase);
-
-    double momLocal[32]; // hard-coded to max confBasis.num_basis (3x p=3 Ser) for now.
-    for (unsigned int k = 0; k < 32; ++k) {
-      momLocal[k] = 0.0;
-    }
-
-    sr_vars_pressure_call(
-      up->sr_pressure, xc, up->phase_grid.dx,
-      use_vmap ? (const double *)gkyl_array_cfetch(vmap, loc_vel) : 0, gamma_d, gamma_inv_d, u_i_d,
-      u_i_sq_d, GammaV_d, GammaV_sq_d, f_d, &momLocal[0]
+    double mom_local[32] = {0.0};
+    dg_calc_sr_vars_pressure_cell(
+      up, conf_range, phase_range, use_vmap, vmap, gamma, gamma_inv, u_i, u_i_sq, GammaV, GammaV_sq,
+      f, idx, mom_local
     );
-
-    // Accumulate output to output array atomically to avoid race conditions
-    double *sr_pressure_d = (double *)gkyl_array_fetch(sr_pressure, loc_conf);
+    double *pressure = (double *)gkyl_array_fetch(sr_pressure, gkyl_range_idx(&conf_range, idx));
     for (unsigned int k = 0; k < sr_pressure->ncomp; ++k) {
-      atomicAdd(&sr_pressure_d[k], momLocal[k]);
+      atomicAdd(&pressure[k], mom_local[k]);
     }
   }
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_dg_calc_sr_vars_deterministic_priv.h>
+#endif
 // Host-side wrapper for rest-frame pressure calculation
 void
 gkyl_dg_calc_sr_vars_pressure_cu(
@@ -295,14 +300,54 @@ gkyl_dg_calc_sr_vars_pressure_cu(
   struct gkyl_array *sr_pressure
 )
 {
+  gkyl_array_clear(sr_pressure, 0.0);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  long num_vel = 1;
+  for (int d = conf_range->ndim; d < phase_range->ndim; ++d) {
+    num_vel *= phase_range->upper[d] - phase_range->lower[d] + 1;
+  }
+  if (conf_range->volume == 0 || num_vel == 0) {
+    return;
+  }
+  long num_tiles = (num_vel + SR_PRESSURE_TILE_SIZE - 1) / SR_PRESSURE_TILE_SIZE;
+  unsigned int ncomp = sr_pressure->ncomp;
+  const long max_partial_values = (64L * 1024 * 1024) / sizeof(double);
+  long batch_conf = max_partial_values / (num_tiles * ncomp);
+  if (batch_conf < 1) {
+    batch_conf = 1;
+  }
+  if (batch_conf > conf_range->volume) {
+    batch_conf = conf_range->volume;
+  }
+  size_t required_bytes = batch_conf * num_tiles * ncomp * sizeof(double);
+  if (required_bytes > up->pressure_buffer_bytes) {
+    if (up->pressure_buffer_dev) {
+      gkyl_cu_free(up->pressure_buffer_dev);
+    }
+    up->pressure_buffer_dev = (double *)gkyl_cu_malloc(required_bytes);
+    up->pressure_buffer_bytes = required_bytes;
+  }
+  for (long start = 0; start < conf_range->volume; start += batch_conf) {
+    long count = conf_range->volume - start < batch_conf ? conf_range->volume - start : batch_conf;
+    long segments = count * ncomp;
+    dg_calc_sr_vars_pressure_partial_cu_kernel<<<count * num_tiles, SR_PRESSURE_TILE_SIZE>>>(
+      up->on_dev, *conf_range, *phase_range, up->use_vmap, up->use_vmap ? up->vmap->on_dev : 0,
+      gamma->on_dev, gamma_inv->on_dev, u_i->on_dev, u_i_sq->on_dev, GammaV->on_dev,
+      GammaV_sq->on_dev, f->on_dev, up->pressure_buffer_dev, start, num_tiles, num_vel, ncomp
+    );
+    dg_calc_sr_vars_pressure_finish_cu_kernel<<<segments, SR_PRESSURE_TILE_SIZE>>>(
+      *conf_range, sr_pressure->on_dev, up->pressure_buffer_dev, start, num_tiles, ncomp
+    );
+  }
+#else
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_array_clear(sr_pressure, 0.0);
-  gkyl_dg_calc_sr_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
+  dg_calc_sr_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, up->use_vmap, up->use_vmap ? up->vmap->on_dev : 0,
     gamma->on_dev, gamma_inv->on_dev, u_i->on_dev, u_i_sq->on_dev, GammaV->on_dev,
     GammaV_sq->on_dev, f->on_dev, sr_pressure->on_dev
   );
+#endif
 }
 
 // CUDA kernel to set device pointers to sr vars kernel functions
@@ -358,6 +403,8 @@ gkyl_dg_calc_sr_vars_cu_dev_new(
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
+  up->pressure_buffer_dev = 0;
+  up->pressure_buffer_bytes = 0;
 
   struct gkyl_dg_calc_sr_vars *up_cu =
     (struct gkyl_dg_calc_sr_vars *)gkyl_cu_malloc(sizeof(*up_cu));

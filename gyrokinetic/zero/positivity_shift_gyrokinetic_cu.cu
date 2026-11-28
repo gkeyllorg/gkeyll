@@ -81,6 +81,7 @@ gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(struct gkyl_arr
   }
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 __global__ static void
 gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_rect_grid grid,
@@ -191,6 +192,11 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
 
   pos_shift_atomicMax_double(ffloor, ffloor_fac * distf_max * cellav_fac);
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_positivity_shift_gyrokinetic_deterministic_priv.h>
+#endif
 
 __global__ static void
 gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
@@ -285,6 +291,22 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(
   );
 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  long num_vel = 1;
+  for (int d = conf_rng->ndim; d < phase_rng->ndim; ++d) {
+    num_vel *= phase_rng->upper[d] - phase_rng->lower[d] + 1;
+  }
+  pos_shift_gk_deterministic_cu_ker<<<conf_rng->volume, POS_SHIFT_GK_BLOCK_SIZE>>>(
+    up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->mass,
+    up->gk_geom->geo_int.bmag->on_dev, up->gk_geom->geo_int.jacobtot->on_dev,
+    up->gk_geom->geo_int.jacobtot_inv->on_dev, up->vel_map->vmap->on_dev,
+    up->vel_map->jacobvel->on_dev, up->shiftedf->on_dev, distf->on_dev, m0->on_dev,
+    delta_m0->on_dev, up->max_buffer_dev, num_vel
+  );
+  pos_shift_gk_update_floor_cu_ker<<<1, 1>>>(
+    up->ffloor, up->max_buffer_dev, conf_rng->volume, up->ffloor_fac, up->cellav_fac
+  );
+#else
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>(
     up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor,
     up->ffloor_fac, up->cellav_fac, up->mass, up->gk_geom->geo_int.bmag->on_dev,
@@ -292,6 +314,7 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(
     up->vel_map->vmap->on_dev, up->vel_map->jacobvel->on_dev, up->shiftedf->on_dev, distf->on_dev,
     m0->on_dev, delta_m0->on_dev
   );
+#endif
 
   // If a shift took place, rescale f so it keeps the same M0.
   gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase>>>(

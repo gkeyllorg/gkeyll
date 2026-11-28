@@ -42,6 +42,9 @@ gkyl_positivity_shift_gyrokinetic_new(
     gkyl_cu_memcpy(up->ffloor, ffloor_zero, sizeof(double[1]), GKYL_CU_MEMCPY_H2D);
 
     up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng_ext->volume);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+    up->max_buffer_dev = gkyl_cu_malloc(conf_rng_ext->volume * sizeof(double));
+#endif
   }
 #endif
 
@@ -299,6 +302,9 @@ gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
     gkyl_cu_free(up->ffloor);
     gkyl_cu_free(up->kernels);
     gkyl_array_release(up->shiftedf);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+    gkyl_cu_free(up->max_buffer_dev);
+#endif
   }
 #endif
   gkyl_free(up);

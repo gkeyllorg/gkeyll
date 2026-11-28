@@ -79,6 +79,19 @@ gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->solverData = (cudssData_t *)gkyl_malloc(nprob * sizeof(cudssData_t));
   for (int i = 0; i < nprob; i++) {
     checkCUDSS(cudssConfigCreate(&prob->solverConfig[i]), status, "cudssConfigCreate");
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+    // cuDSS deterministic mode currently supports only one right-hand side.
+    if (nrhs == 1) {
+      int deterministic_mode = 1;
+      checkCUDSS(
+        cudssConfigSet(
+          prob->solverConfig[i], CUDSS_CONFIG_DETERMINISTIC_MODE, &deterministic_mode,
+          sizeof(deterministic_mode)
+        ),
+        status, "cudssConfigSet deterministic mode"
+      );
+    }
+#endif
     checkCUDSS(cudssDataCreate(prob->handle, &prob->solverData[i]), status, "cudssDataCreate");
   }
 

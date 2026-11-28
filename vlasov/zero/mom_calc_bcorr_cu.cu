@@ -13,6 +13,7 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 __global__ static void
 gkyl_mom_calc_bcorr_advance_cu_ker(
   const struct gkyl_mom_calc_bcorr *bcorr, const struct gkyl_range conf_rng,
@@ -50,6 +51,11 @@ gkyl_mom_calc_bcorr_advance_cu_ker(
     }
   }
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_mom_calc_bcorr_deterministic_priv.h>
+#endif
 
 void
 gkyl_mom_calc_bcorr_advance_cu(
@@ -59,7 +65,9 @@ gkyl_mom_calc_bcorr_advance_cu(
 )
 {
   struct gkyl_range vel_rng;
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
   int nblocks, nthreads;
+#endif
   int vlower_idx[GKYL_MAX_DIM], vupper_idx[GKYL_MAX_DIM] = {0};
   for (int dim = 0; dim < phase_rng->ndim; ++dim) {
     vlower_idx[dim] = phase_rng->lower[dim];
@@ -74,23 +82,31 @@ gkyl_mom_calc_bcorr_advance_cu(
     vlower_idx[conf_rng->ndim + d] = phase_rng->upper[conf_rng->ndim + d];
     vupper_idx[conf_rng->ndim + d] = phase_rng->upper[conf_rng->ndim + d];
     gkyl_sub_range_init(&vel_rng, phase_rng, vlower_idx, vupper_idx);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+    mom_calc_bcorr_advance_edge_cu(bcorr, conf_rng, &vel_rng, edge, fin, out);
+#else
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
     gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(
       bcorr->on_dev, *conf_rng, vel_rng, edge, fin->on_dev, out->on_dev
     );
+#endif
 
     edge = gkyl_vel_edge(d);
     vlower_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
     vupper_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
     gkyl_sub_range_init(&vel_rng, phase_rng, vlower_idx, vupper_idx);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+    mom_calc_bcorr_advance_edge_cu(bcorr, conf_rng, &vel_rng, edge, fin, out);
+#else
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
     gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(
       bcorr->on_dev, *conf_rng, vel_rng, edge, fin->on_dev, out->on_dev
     );
+#endif
 
     // Reset indices for loop over each velocity dimension
     vlower_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
@@ -109,6 +125,12 @@ gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct g
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  up->buffer = (gkyl_mom_calc_bcorr_buffer *)gkyl_malloc(sizeof(gkyl_mom_calc_bcorr_buffer));
+  *up->buffer = {};
+#else
+  up->buffer = 0;
+#endif
 
   gkyl_mom_calc_bcorr *up_cu = (gkyl_mom_calc_bcorr *)gkyl_cu_malloc(sizeof(gkyl_mom_calc_bcorr));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_mom_calc_bcorr), GKYL_CU_MEMCPY_H2D);

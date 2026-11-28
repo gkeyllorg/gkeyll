@@ -265,10 +265,61 @@ test_1x2v(int poly_order, bool use_gpu)
   );
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
 
+#if defined(GKYL_HAVE_CUDA) && defined(GKYL_DETERMINISTIC_REDUCTIONS_GPU)
+  struct gkyl_array *first_distf = NULL, *first_m0 = NULL, *first_delta_m0 = NULL;
+  if (use_gpu) {
+    first_distf = mkarr(false, basis.num_basis, local_ext.volume);
+    first_m0 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    first_delta_m0 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    gkyl_array_copy(first_distf, distf);
+    gkyl_array_copy(first_m0, m0);
+    gkyl_array_copy(first_delta_m0, ps_delta_m0);
+  }
+#endif
+
   // Project distf and apply the positivity shift again (using new ffloor).
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
+
+#if defined(GKYL_HAVE_CUDA) && defined(GKYL_DETERMINISTIC_REDUCTIONS_GPU)
+  if (use_gpu) {
+    struct gkyl_array *again_distf = mkarr(false, basis.num_basis, local_ext.volume);
+    struct gkyl_array *again_m0 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    struct gkyl_array *again_delta_m0 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    gkyl_array_copy(again_distf, distf);
+    gkyl_array_copy(again_m0, m0);
+    gkyl_array_copy(again_delta_m0, ps_delta_m0);
+    struct gkyl_range_iter repeat_iter;
+    gkyl_range_iter_init(&repeat_iter, &local);
+    while (gkyl_range_iter_next(&repeat_iter)) {
+      long cell = gkyl_range_idx(&local, repeat_iter.idx);
+      const double *first = gkyl_array_cfetch(first_distf, cell);
+      const double *again = gkyl_array_cfetch(again_distf, cell);
+      for (int k = 0; k < basis.num_basis; ++k) {
+        TEST_CHECK(first[k] == again[k]);
+      }
+    }
+    gkyl_range_iter_init(&repeat_iter, &confLocal);
+    while (gkyl_range_iter_next(&repeat_iter)) {
+      long cell = gkyl_range_idx(&confLocal, repeat_iter.idx);
+      const double *first_m = gkyl_array_cfetch(first_m0, cell);
+      const double *again_m = gkyl_array_cfetch(again_m0, cell);
+      const double *first_d = gkyl_array_cfetch(first_delta_m0, cell);
+      const double *again_d = gkyl_array_cfetch(again_delta_m0, cell);
+      for (int k = 0; k < confBasis.num_basis; ++k) {
+        TEST_CHECK(first_m[k] == again_m[k]);
+        TEST_CHECK(first_d[k] == again_d[k]);
+      }
+    }
+    gkyl_array_release(first_distf);
+    gkyl_array_release(first_m0);
+    gkyl_array_release(first_delta_m0);
+    gkyl_array_release(again_distf);
+    gkyl_array_release(again_m0);
+    gkyl_array_release(again_delta_m0);
+  }
+#endif
 
   // Compute delta f:
   gkyl_array_accumulate(deltaf, 1.0, distf);

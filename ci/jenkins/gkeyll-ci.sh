@@ -5,6 +5,17 @@ set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+list_slurm_profiles() {
+    local profile_file profile_name
+    echo "Configured Slurm profiles:"
+    for profile_file in "$SCRIPT_DIR"/slurm-clusters/slurm_ci_profile_*.sh; do
+        [[ -f "$profile_file" ]] || continue
+        profile_name="${profile_file##*/}"
+        profile_name="${profile_name#slurm_ci_profile_}"
+        printf '  %s\n' "${profile_name%.sh}"
+    done
+}
+
 usage() {
     cat <<'EOF'
 Usage:
@@ -13,13 +24,13 @@ Usage:
 
 Platforms:
   personal       Local personal-computer Jenkins CI.
-  stellar_cpu    Stellar CPU Slurm Jenkins CI.
-  perlmutter_gpu Perlmutter GPU Slurm Jenkins CI.
+  slurm          Slurm cluster selected by GKEYLL_CI_CLUSTER.
   team           Local team-workstation Jenkins CI.
 
 Commands:
   scan           Discover branches and report scheduled builds (team only).
-  start          Start the Jenkins controller (stellar_cpu, perlmutter_gpu).
+  start          Start a Slurm Jenkins controller.
+  validate       Validate a Slurm profile and show submission arguments.
   run            Queue a pull-request or candidate/baseline comparison build.
   active         List queued and running work.
   recent         List retained builds.
@@ -31,9 +42,11 @@ Commands:
 
 Examples:
   gkeyll-ci.sh personal run --pr 1128 --follow
-  gkeyll-ci.sh stellar_cpu recent
-  gkeyll-ci.sh perlmutter_gpu status --queue 42
-  gkeyll-ci.sh stellar_cpu info --build 6
+  export GKEYLL_CI_CLUSTER=stellar_cpu
+  gkeyll-ci.sh slurm recent
+  gkeyll-ci.sh slurm status --queue 42
+  gkeyll-ci.sh slurm info --build 6
+  GKEYLL_CI_CLUSTER=perlmutter_gpu gkeyll-ci.sh slurm validate
   gkeyll-ci.sh personal artifact --build 6 --fetch --only ci-regression-summary.txt
   gkeyll-ci.sh team scan
 
@@ -42,6 +55,7 @@ Use `gkeyll-ci.sh <command> -h` for flags shared by CI platforms, or
 This wrapper forwards platform-qualified commands and environment variables
 unchanged to the selected client.
 EOF
+    list_slurm_profiles
 }
 
 command_usage() {
@@ -126,11 +140,18 @@ Flags:
 Specify a platform to cancel the build: gkeyll-ci.sh <platform> abort ...
 EOF
         ;;
+        validate) cat <<'EOF'
+Usage: gkeyll-ci.sh slurm validate
+
+Validate the reviewed profile selected by GKEYLL_CI_CLUSTER and display resolved settings and allocations.
+This command does not contact Jenkins or submit Slurm jobs.
+EOF
+        ;;
         start) cat <<'EOF'
 Usage: gkeyll-ci.sh start
 
-This command takes no flags and is available on stellar_cpu and perlmutter_gpu.
-Specify a platform: gkeyll-ci.sh <platform> start
+This command takes no flags and is available on every configured Slurm profile.
+Select a profile with GKEYLL_CI_CLUSTER, then run: gkeyll-ci.sh slurm start
 EOF
         ;;
         scan) cat <<'EOF'
@@ -151,9 +172,9 @@ die() {
 main() {
     (($# > 0)) || { usage >&2; exit 2; }
 
-    local platform="$1"
+    local platform="$1" client cluster
     case "$platform" in
-        scan|start|run|active|recent|info|artifact|status|follow|abort)
+        scan|start|validate|run|active|recent|info|artifact|status|follow|abort)
             if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
                 command_usage "$platform"
                 return
@@ -167,10 +188,22 @@ main() {
             return
             ;;
         personal) client='jenkins-personal.sh' ;;
-        stellar_cpu) client='jenkins-stellar_cpu.sh' ;;
-        perlmutter_gpu) client='jenkins-perlmutter_gpu.sh' ;;
         team) client='jenkins-team-workstation.sh' ;;
-        *) usage >&2; die "unknown CI platform: $platform" ;;
+        slurm)
+            shift
+            if (($# == 1)) && [[ "$1" == -h || "$1" == --help || "$1" == help ]]; then
+                usage
+                return
+            fi
+            (($# > 0)) || die 'provide a command (try: gkeyll-ci.sh slurm --help)'
+            cluster="${GKEYLL_CI_CLUSTER:-}"
+            [[ -n "$cluster" ]] || {
+                list_slurm_profiles >&2
+                die 'set GKEYLL_CI_CLUSTER to a profile ID, e.g. export GKEYLL_CI_CLUSTER=stellar_cpu'
+            }
+            exec "$SCRIPT_DIR/jenkins-slurm_cluster.sh" "$cluster" "$@"
+            ;;
+        *) usage >&2; die "unknown CI platform: $platform (use slurm for Slurm clusters)" ;;
     esac
     shift
 

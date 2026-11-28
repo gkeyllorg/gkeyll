@@ -62,6 +62,7 @@ mom_gk_choose_kernel_cu(
   gkyl_cu_free(num_mom_dev);
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 __global__ static void
 gkyl_mom_gk_advance_cu_ker(
   double mass, double charge, struct gkyl_mom_gyrokinetic_kernels *kernels,
@@ -111,6 +112,11 @@ gkyl_mom_gk_advance_cu_ker(
     }
   }
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_mom_gyrokinetic_deterministic_priv.h>
+#endif
 
 void
 gkyl_mom_gyrokinetic_advance_cu(
@@ -119,8 +125,6 @@ gkyl_mom_gyrokinetic_advance_cu(
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout
 )
 {
-  int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
-
   gkyl_array_clear_range(mout, 0.0, conf_rng);
 
   if (phase_rng->volume == 0 || conf_rng->volume == 0) {
@@ -132,9 +136,21 @@ gkyl_mom_gyrokinetic_advance_cu(
     phi_on_dev = phi->on_dev;
   }
 
-  gkyl_mom_gk_advance_cu_ker<<<nblocks, nthreads>>>(
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  long num_vel = 1;
+  for (int d = conf_rng->ndim; d < phase_rng->ndim; ++d) {
+    num_vel *= phase_rng->upper[d] - phase_rng->lower[d] + 1;
+  }
+  mom_gk_advance_deterministic_cu_ker<<<conf_rng->volume, MOM_GK_BLOCK_SIZE>>>(
+    up->mass, up->charge, up->kernels, up->phase_grid, *conf_rng, up->vel_map->local_vel,
+    *phase_rng, up->gk_geom->geo_corn.bmag->on_dev, up->vel_map->vmap->on_dev, phi_on_dev,
+    fin->on_dev, mout->on_dev, num_vel
+  );
+#else
+  gkyl_mom_gk_advance_cu_ker<<<phase_rng->nblocks, phase_rng->nthreads>>>(
     up->mass, up->charge, up->kernels, up->phase_grid, *conf_rng, up->vel_map->local_vel,
     *phase_rng, up->gk_geom->geo_corn.bmag->on_dev, up->vel_map->vmap->on_dev, phi_on_dev,
     fin->on_dev, mout->on_dev
   );
+#endif
 }

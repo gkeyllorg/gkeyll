@@ -9,6 +9,7 @@ return {
          "rt_gk_multib_nstx_solonly_3x2v_p1",
          "rt_gk_multib_tcv_x21_3x2v_p1",
          "rt_gk_sheath_cons_3x2v_p1",
+         "rt_gk_multib_step_2x2v_p1",
       },
       gpu = {
          "rt_gk_ltx_iwl_num_miller_3x2v_p1",
@@ -16,6 +17,7 @@ return {
          "rt_gk_multib_nstx_solonly_3x2v_p1",
          "rt_gk_multib_sheath_1x2v_p1",
          "rt_gk_multib_step_sol_1x2v_p1",
+         "rt_gk_multib_step_2x2v_p1",
          "rt_gk_multib_tcv_x21_3x2v_p1",
          "rt_gk_sheath_cons_3x2v_p1",
       },

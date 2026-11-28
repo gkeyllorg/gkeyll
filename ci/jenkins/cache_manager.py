@@ -17,8 +17,8 @@ import urllib.parse
 import urllib.request
 
 
-PLATFORMS = {"personal", "team-workstation", "stellar-cpu", "perlmutter-gpu"}
-SLURM_PLATFORMS = {"stellar-cpu", "perlmutter-gpu"}
+LOCAL_PLATFORMS = {"personal", "team-workstation"}
+NAMESPACE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 TAG = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
 WORKSPACE_SUFFIX = re.compile(r"(?:tmp|script|\d+(?:@tmp)?)\Z")
@@ -46,7 +46,13 @@ class CacheManager:
     def __init__(self, args):
         self.root = Path(args.root).absolute()
         require(self.root != Path("/") and ".." not in self.root.parts, "unsafe CI root")
-        require(args.platform in PLATFORMS, "invalid platform")
+        require(NAMESPACE.fullmatch(args.platform), "invalid platform")
+        scheduler = getattr(args, "scheduler", "")
+        require(scheduler or args.platform in LOCAL_PLATFORMS, "new platforms require --scheduler")
+        self.scheduler = scheduler or "none"
+        require(self.scheduler in ("none", "slurm"), "invalid scheduler")
+        self.config_hash = getattr(args, "config_hash", "")
+        require(not self.config_hash or re.fullmatch(r"[0-9a-f]{64}", self.config_hash), "invalid config hash")
         require(TAG.fullmatch(args.tag) is not None and ".." not in args.tag, "invalid build tag")
         require(args.number.isdecimal() and int(args.number) > 0, "invalid build number")
         require(args.job and all(part not in ("", ".", "..") for part in args.job.split("/")), "invalid job name")
@@ -99,15 +105,17 @@ class CacheManager:
             data = json.loads(path.read_text())
             require(data.get("tag") == tag and isinstance(data.get("job"), str)
                     and str(data.get("number", "")).isdecimal(), f"invalid run record: {path}")
+            require(data.get("scheduler", self.scheduler) == self.scheduler,
+                    "cache namespace belongs to a different scheduler")
             return data
-        # Pre-migration cluster workspaces have no run record.
+        # Bootstrap can create a workspace before registering the run.
         prefix = f"jenkins-{self.job.replace('/', '-')}-"
         if tag.startswith(prefix) and tag[len(prefix):].isdecimal():
             return {"tag": tag, "job": self.job, "number": tag[len(prefix):]}
         return None
 
     def active_slurm_directories(self):
-        if self.platform not in SLURM_PLATFORMS:
+        if self.scheduler != "slurm":
             return set()
         if self.slurm_dirs is None:
             result = subprocess.run(
@@ -171,9 +179,8 @@ class CacheManager:
             require(TAG.fullmatch(latest) is not None, "invalid latest run marker")
         for path in paths:
             tag = path.name
-            if SHA.fullmatch(tag):
-                # Legacy cache has one candidate per platform. Do not remove it
-                # while a pre-migration Slurm allocation may still use it.
+            if SHA.fullmatch(tag) and self.scheduler == "none":
+                # Personal/team caches previously kept one candidate per platform.
                 require(not self.active_slurm_directories(), f"legacy candidate may be active: {path}")
                 manifest = path / "candidate-manifest.txt"
                 require(manifest.is_file() and "result=building" not in manifest.read_text(),
@@ -201,6 +208,8 @@ class CacheManager:
         values = dict(line.split("=", 1) for line in manifest.read_text().splitlines() if "=" in line)
         if values.get("format_version") != "1" or values.get("platform") != self.platform or values.get("baseline_commit") != sha:
             return False
+        if self.config_hash and values.get("config_hash") != self.config_hash:
+            return False
         if not (path / "gkeyll" / ".git").is_dir() or not os.access(path / "gkylsoft" / "gkeyll" / "bin" / "gkeyll", os.X_OK):
             return False
         for layer in ("moments", "vlasov", "gyrokinetic", "pkpm"):
@@ -210,14 +219,14 @@ class CacheManager:
         result = subprocess.run(["git", "-C", str(path / "gkeyll"), "rev-parse", "HEAD"], capture_output=True, text=True)
         return result.returncode == 0 and result.stdout.strip() == sha
 
-    def baseline_users(self):
+    def baseline_users(self, exclude=""):
         users = set()
         if self.runs.is_dir():
             for path in self.runs.glob("*.json"):
                 if path.is_symlink():
                     raise RuntimeError(f"run record is a symlink: {path}")
                 record = self.read_record(path.stem)
-                if record.get("baseline") and (self.slurm_uses_tag(path.stem)
+                if path.stem != exclude and record.get("baseline_ready", True) and record.get("baseline") and (self.slurm_uses_tag(path.stem)
                     if record.get("state") == "finished" else self.is_live(path.stem)):
                     users.add(record["baseline"])
         return users
@@ -238,7 +247,7 @@ class CacheManager:
                 remove_tree(path)
 
     def prune_workspaces(self):
-        if self.platform not in SLURM_PLATFORMS or not self.workspaces.is_dir():
+        if self.scheduler != "slurm" or not self.workspaces.is_dir():
             return
         require(not self.workspaces.is_symlink(), "workspace root is a symlink")
         for path in self.workspaces.iterdir():
@@ -268,7 +277,7 @@ class CacheManager:
             self.runs.mkdir(parents=True, exist_ok=True)
             require(not self.record_path.exists(), f"run already registered: {self.tag}")
             write_json(self.record_path, {"tag": self.tag, "job": self.job, "number": self.number,
-                                          "state": "building", "started_ns": time.time_ns()})
+                                          "state": "building", "scheduler": self.scheduler, "started_ns": time.time_ns()})
             write_json(self.latest_path, {"tag": self.tag})
             self.active_slurm_directories()
             self.prune_candidates()
@@ -283,15 +292,22 @@ class CacheManager:
             record = self.read_record(self.tag)
             require(record is not None, "run is not registered")
             record["baseline"] = sha
+            record["baseline_ready"] = False
             write_json(self.record_path, record)
             self.baselines.mkdir(parents=True, exist_ok=True)
             self.active_slurm_directories()
             path = self.baselines / sha
             if self.baseline_valid(path, sha):
+                record["baseline_ready"] = True
+                write_json(self.record_path, record)
                 os.utime(path, None)
                 self.prune_baselines(sha)
                 return "hit"
             if path.exists():
+                # A configuration change must not replace a published baseline
+                # while another run still uses its binaries or accepted output.
+                if sha in self.baseline_users(exclude=self.tag):
+                    return "wait"
                 owner = path / "cache-owner.txt"
                 if owner.is_file() and self.is_live(owner.read_text().strip()):
                     return "wait"
@@ -299,6 +315,8 @@ class CacheManager:
             self.prune_baselines(keep_previous=False)
             (path / "gkeyll").mkdir(parents=True)
             (path / "cache-owner.txt").write_text(self.tag + "\n")
+            record["baseline_ready"] = True
+            write_json(self.record_path, record)
             return "build"
         return self.locked(operation)
 
@@ -342,6 +360,8 @@ def main():
     parser.add_argument("command", choices=("begin", "claim-baseline", "publish-baseline", "abort-baseline", "finish"))
     parser.add_argument("--root", required=True)
     parser.add_argument("--platform", required=True)
+    parser.add_argument("--scheduler", choices=("none", "slurm"), default="")
+    parser.add_argument("--config-hash", default="")
     parser.add_argument("--tag", required=True)
     parser.add_argument("--job", required=True)
     parser.add_argument("--number", required=True)

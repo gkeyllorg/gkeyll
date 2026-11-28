@@ -1,4 +1,5 @@
 /* -*- c++ -*- */
+
 extern "C" {
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_spectrum_priv.h>
@@ -24,6 +25,7 @@ gkyl_bc_emission_spectrum_set_exterm_params_cu_ker(
   yield_model->mass = mass_in;
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 __global__ static void
 gkyl_bc_emission_spectrum_advance_cu_weight_ker(
   int cdim, int dir, enum gkyl_edge_loc edge, const struct gkyl_array *bflux,
@@ -63,12 +65,37 @@ gkyl_bc_emission_spectrum_advance_cu_weight_ker(
     }
   }
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_bc_emission_spectrum_deterministic_priv.h>
+#endif
+
+__global__ static void
+gkyl_bc_emission_spectrum_advance_cu_normalize_ker(
+  const struct gkyl_array *weight, struct gkyl_array *k, const struct gkyl_array *flux,
+  const struct gkyl_range impact_cbuff_r, struct gkyl_emission_spectrum_model *spectrum_model
+)
+{
+  int cidx[GKYL_MAX_CDIM];
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < impact_cbuff_r.volume;
+       tid += blockDim.x * gridDim.x) {
+    gkyl_sub_range_inv_idx(&impact_cbuff_r, tid, cidx);
+    long lincC = gkyl_range_idx(&impact_cbuff_r, cidx);
+
+    const double *w = (const double *)gkyl_array_cfetch(weight, lincC);
+    const double *boundary_flux = (const double *)gkyl_array_cfetch(flux, lincC);
+    double *fac = (double *)gkyl_array_fetch(k, lincC);
+    // With no incident flux there is nothing to emit (and the mean yield is 0/0).
+    double effective_delta = w[1] != 0.0 ? w[0] / w[1] : 0.0;
+    spectrum_model->normalization(fac, spectrum_model, boundary_flux, effective_delta);
+  }
+}
 
 __global__ static void
 gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
-  const struct gkyl_array *spectrum, struct gkyl_array *f_emit, struct gkyl_array *weight,
-  struct gkyl_array *k, const struct gkyl_array *flux, const struct gkyl_range emit_buff_r,
-  const struct gkyl_range impact_cbuff_r, struct gkyl_emission_spectrum_model *spectrum_model
+  const struct gkyl_array *spectrum, struct gkyl_array *f_emit, const struct gkyl_array *k,
+  const struct gkyl_range emit_buff_r, const struct gkyl_range impact_cbuff_r
 )
 {
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -86,13 +113,8 @@ gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
     long lincP = gkyl_range_idx(&emit_buff_r, pidx);
 
     const double *inp = (const double *)gkyl_array_cfetch(spectrum, lincP);
-    const double *w = (const double *)gkyl_array_cfetch(weight, lincC);
-    const double *boundary_flux = (const double *)gkyl_array_cfetch(flux, lincC);
-    double *fac = (double *)gkyl_array_fetch(k, lincC);
+    const double *fac = (const double *)gkyl_array_cfetch(k, lincC);
     double *out = (double *)gkyl_array_fetch(f_emit, lincP);
-    // With no incident flux there is nothing to emit (and the mean yield is 0/0).
-    double effective_delta = w[1] != 0.0 ? w[0] / w[1] : 0.0;
-    spectrum_model->normalization(fac, spectrum_model, boundary_flux, effective_delta);
 
     for (int c = 0; c < spectrum->ncomp; ++c) {
       out[c] += fac[0] * inp[c];
@@ -118,17 +140,33 @@ gkyl_bc_emission_spectrum_advance_cu(
   struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k
 )
 {
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
   int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
+#endif
 
   // The weighted-mean numerator and denominator are accumulated with atomics, so they
   // must start from zero on every call (as on the host); otherwise the effective yield
   // becomes a running average over all previous stages.
   gkyl_array_clear_range(weight, 0.0, impact_cbuff_r);
 
-  // Calculate weighted mean numerator and denominator
+  // Calculate weighted mean numerator and denominator.
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  bc_emission_spectrum_advance_weight_cu(up, impact_buff_r, impact_cbuff_r, bflux, yield, weight);
+#else
   gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(
     up->cdim, up->dir, up->edge, bflux->on_dev, weight->on_dev, *up->grid, yield->on_dev,
     *impact_buff_r, *impact_cbuff_r
+  );
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  int nblocks = impact_cbuff_r->nblocks, nthreads = impact_cbuff_r->nthreads;
+#else
+  nblocks = impact_cbuff_r->nblocks;
+  nthreads = impact_cbuff_r->nthreads;
+#endif
+  gkyl_bc_emission_spectrum_advance_cu_normalize_ker<<<nblocks, nthreads>>>(
+    weight->on_dev, k->on_dev, flux->on_dev, *impact_cbuff_r, up->spectrum_model->on_dev
   );
 
   nblocks = emit_buff_r->nblocks;
@@ -136,7 +174,6 @@ gkyl_bc_emission_spectrum_advance_cu(
 
   // Finish weighted mean calculation and accumulate to buffer
   gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(
-    spectrum->on_dev, f_emit->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *emit_buff_r,
-    *impact_cbuff_r, up->spectrum_model->on_dev
+    spectrum->on_dev, f_emit->on_dev, k->on_dev, *emit_buff_r, *impact_cbuff_r
   );
 }

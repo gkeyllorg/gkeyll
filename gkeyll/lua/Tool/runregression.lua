@@ -1371,6 +1371,71 @@ local function diffMagnitudes(diff)
    return absD, relD
 end
 
+-- Retry only recognized gyrokinetic diagnostics. Companion files must come
+-- from the accepted baseline and match the same grid, species and frame.
+local function scaledMomentRetry(f1, g1, a1, a2, tol)
+   if not f1:find("/gyrokinetic/", 1, true) then return nil end
+   local kind
+   if f1:match("[_%-]M1_%d+%.gkyl$") then kind = "M1"
+   elseif f1:match("[_%-]M3par_%d+%.gkyl$") then kind = "M3par"
+   elseif f1:match("[_%-]M3perp_%d+%.gkyl$") then kind = "M3perp"
+   elseif f1:match("BiMaxwellianMoments_%d+%.gkyl$") then kind = "BiMaxwellian"
+   elseif f1:match("MaxwellianMoments_%d+%.gkyl$") then kind = "Maxwellian"
+   else return nil end
+
+   local function companion(moment)
+      local path = f1:gsub(kind .. "_(%d+)%.gkyl$", moment .. "_%1.gkyl")
+      if path == f1 or not lfs.attributes(path) then return nil end
+      local grid, array = G0.Zero.arrayNewFromFile(path)
+      if not grid or not G0.Zero.rectGridCmp(g1, grid) then return nil end
+      return array
+   end
+   local m0, mp, mt
+   if kind == "M1" or kind == "M3par" or kind == "M3perp" then
+      m0, mp = companion("M0"), companion("M2par")
+      if not mp and kind == "M1" then mp = companion("M2") end
+      if kind == "M3perp" then mt = companion("M2perp") end
+      if not m0 or not mp or (kind == "M3perp" and not mt) then
+         return nil, "missing or incompatible baseline companion"
+      end
+   end
+   local passed, ratio = G0.Zero.scaledMomentDiff(a1, a2, kind, tol, m0, mp, mt, g1)
+   if passed == nil then return nil, "invalid baseline scale or array layout" end
+   return passed, ratio
+end
+
+-- The rt_vlasov family uses standard or SR velocity moments. Other Vlasov
+-- Hamiltonians need their own characteristic scales.
+local function vlasovScaleEligible(path)
+   return path:match("/vlasov/creg%-accepted/[^/]+/rt_vlasov_[^/]+/") ~= nil
+end
+
+local function scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
+   if not vlasovScaleEligible(f1) then return nil end
+   local kind, frame = f1:match("%-elc_(M1)_(%d+)%.gkyl$")
+   if not kind then kind, frame = f1:match("%-[^/]+_(M1)_(%d+)%.gkyl$") end
+   if not kind then kind, frame = f1:match("%-[^/]+_(LTEMoments)_(%d+)%.gkyl$") end
+   if not kind then return nil end
+   local function companion(name)
+      local path = f1:gsub(kind .. "_" .. frame .. "%.gkyl$", name .. "_" .. frame .. ".gkyl")
+      if path == f1 or not lfs.attributes(path) then return nil end
+      local grid, array = G0.Zero.arrayNewFromFile(path)
+      if not grid or not G0.Zero.rectGridCmp(g1, grid) then return nil end
+      return array
+   end
+   local m0 = companion("M0")
+   local sr = f1:match("/rt_vlasov_sr_[^/]+/") ~= nil
+   local energy = kind == "M1" and not sr and companion("M2") or nil
+   local lte = kind == "M1" and sr and companion("LTEMoments") or nil
+   if not m0 or (kind == "M1" and not energy and not lte) then
+      return nil, "missing or incompatible Vlasov baseline companion"
+   end
+   local passed, ratio = G0.Zero.scaledVlasovMomentDiff(
+      a1, a2, kind == "M1" and "M1" or "LTE", relTol, absTol, m0, energy, lte, g1)
+   if passed == nil then return nil, "invalid Vlasov baseline scale or array layout" end
+   return passed, ratio
+end
+
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1398,18 +1463,37 @@ local function compareFiles(f1, f2, absTol, relTol)
       end
 
       if f1type == "dynvector" then
-         local diff = G0.Zero.dynvecDiff(f1, f2)
+         if f1:find("/gyrokinetic/", 1, true) and
+            f1:match("[_%-]integrated_moms%.gkyl$") and not f1:find("fdot_") then
+            local scaled, ratio = G0.Zero.scaledIntegratedM1Diff(f1, f2, relTol)
+            if scaled == false and ratio == math.huge then
+               return false, "nonfinite integrated moment"
+            end
+         end
+         local diff = G0.Zero.dynvecDiff(f1, f2, absTol, relTol)
          if not diff.is_compatible then
             verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
             return false, "dynvec not compatible"
          end
-         -- Combined tolerance: fail only when BOTH absolute and relative
-         -- thresholds are exceeded.  This avoids false failures for near-zero
-         -- values (tiny abs but large rel%) and for large values (large abs but
-         -- tiny rel%).  A zero absolute difference passes even if the
-         -- relative difference is large.
+         -- Both thresholds must be exceeded by the same data component.
          local absD, relD = diffMagnitudes(diff)
-         if absD > absTol and relD > relTol then
+         if not diff.within_combined_tol then
+            if vlasovScaleEligible(f1) and f1:match("%-[^/]+%-imom%.gkyl$") then
+               local scaled, ratio = G0.Zero.scaledVlasovIntegratedDiff(f1, f2, relTol, absTol)
+               if scaled then return true end
+               if scaled == false then
+                  return false, string.format("Vlasov integrated M1 scale-aware max_ratio=%.3g", ratio)
+               end
+               verboseLog("    ... Vlasov integrated retry unavailable: invalid baseline scale or layout\n")
+            end
+            if f1:find("/gyrokinetic/", 1, true) and
+               f1:match("[_%-]integrated_moms%.gkyl$") and not f1:find("fdot_") then
+               local scaled, ratio = G0.Zero.scaledIntegratedM1Diff(f1, f2, relTol)
+               if scaled then return true end
+               if scaled == false then
+                  return false, string.format("integrated M1 scale-aware max_ratio=%.3g", ratio)
+               end
+            end
             verboseLog(string.format(
                "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
                absD, absTol, relD, relTol))
@@ -1457,6 +1541,9 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- candidate output. A baseline-only failure can be acknowledged narrowly.
       if not g2 then return false, "candidate array read failed" end
       if not g1 then return false, "baseline array read failed (candidate readable)" end
+      if not G0.Zero.arrayFinite(a1) or not G0.Zero.arrayFinite(a2) then
+         return false, "nonfinite array data"
+      end
 
       if not G0.Zero.rectGridCmp(g1, g2) then
          return false, "grid mismatch"
@@ -1466,18 +1553,24 @@ local function compareFiles(f1, f2, absTol, relTol)
       local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
       local r2, er2 = G0.Zero.createGridRanges(g2, nghost)
 
-      local diff = G0.Zero.arrayDiff(a1, a2, r1)
+      local diff = G0.Zero.arrayDiff(a1, a2, r1, absTol, relTol)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
-      -- Combined tolerance: fail only when BOTH absolute and relative thresholds
-      -- are exceeded.  Near-zero values naturally have large relative differences
-      -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
-      -- large values can have large absolute differences but tiny relative
-      -- differences.  Failing on either alone produces false positives.
-      -- A zero absolute difference passes even if the relative difference is
-      -- large.
+      -- Both thresholds must be exceeded by the same data component.
       local absD, relD = diffMagnitudes(diff)
-      if absD > absTol and relD > relTol then
+      if not diff.within_combined_tol then
+         local vlasovScaled, vlasovRatio = scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
+         if vlasovScaled then return true end
+         if vlasovScaled == false then
+            return false, string.format("Vlasov scale-aware max_ratio=%.3g", vlasovRatio)
+         end
+         if vlasovRatio then verboseLog("    ... Vlasov scale-aware retry unavailable: " .. vlasovRatio .. "\n") end
+         local scaled, ratio = scaledMomentRetry(f1, g1, a1, a2, relTol)
+         if scaled then return true end
+         if scaled == false then
+            return false, string.format("scale-aware max_ratio=%.3g", ratio)
+         end
+         if ratio then verboseLog("    ... scale-aware retry unavailable: " .. ratio .. "\n") end
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
             absD, absTol, relD, relTol))

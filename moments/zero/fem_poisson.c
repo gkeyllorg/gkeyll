@@ -387,6 +387,17 @@ gkyl_fem_poisson_new(
   return up;
 }
 
+void
+gkyl_fem_poisson_set_use_superlu_system_memory(gkyl_fem_poisson *up)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    return;
+  }
+#endif
+  gkyl_superlu_prob_set_use_system_memory(up->prob);
+}
+
 // Subtract the volume average of the first DG field in arr from arr.
 static void
 fem_poisson_subtract_vol_avg(gkyl_fem_poisson *up, struct gkyl_array *arr)

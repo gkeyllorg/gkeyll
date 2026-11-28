@@ -10,6 +10,7 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+#ifndef GKYL_DETERMINISTIC_REDUCTIONS_GPU
 __global__ static void
 gkyl_mom_calc_advance_cu_ker(
   const gkyl_mom_calc *mcalc, const struct gkyl_range phase_range,
@@ -49,6 +50,11 @@ gkyl_mom_calc_advance_cu_ker(
     }
   }
 }
+#endif
+
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+#include <gkyl_mom_calc_deterministic_priv.h>
+#endif
 
 void
 gkyl_mom_calc_advance_cu(
@@ -57,11 +63,47 @@ gkyl_mom_calc_advance_cu(
   struct gkyl_array *GKYL_RESTRICT mout
 )
 {
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  long num_vel = 1;
+  for (int d = conf_range->ndim; d < phase_range->ndim; ++d) {
+    num_vel *= phase_range->upper[d] - phase_range->lower[d] + 1;
+  }
+  long num_tiles = (num_vel + MOM_CALC_TILE_SIZE - 1) / MOM_CALC_TILE_SIZE;
+  unsigned int ncomp = mout->ncomp;
+  if (conf_range->volume == 0 || num_vel == 0) {
+    return;
+  }
+  const long max_partial_values = (64L * 1024 * 1024) / sizeof(double);
+  long batch_conf = max_partial_values / (num_tiles * ncomp);
+  if (batch_conf < 1) {
+    batch_conf = 1;
+  }
+  if (batch_conf > conf_range->volume) {
+    batch_conf = conf_range->volume;
+  }
+  gkyl_mom_calc_buffer *buffer = mcalc->buffer;
+  mom_calc_reserve(
+    &buffer->partial_dev, &buffer->partial_bytes, batch_conf * num_tiles * ncomp * sizeof(double)
+  );
+  gkyl_array_clear_range(mout, 0.0, conf_range);
+  for (long start = 0; start < conf_range->volume; start += batch_conf) {
+    long count = conf_range->volume - start < batch_conf ? conf_range->volume - start : batch_conf;
+    long segments = count * ncomp;
+    mom_calc_partial_cu_ker<<<count * num_tiles, MOM_CALC_TILE_SIZE>>>(
+      mcalc->on_dev, *phase_range, *conf_range, fin->on_dev, buffer->partial_dev, start, num_tiles,
+      num_vel, ncomp
+    );
+    mom_calc_finish_cu_ker<<<segments, MOM_CALC_TILE_SIZE>>>(
+      *conf_range, mout->on_dev, buffer->partial_dev, start, num_tiles, ncomp
+    );
+  }
+#else
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
   gkyl_array_clear_range(mout, 0.0, conf_range);
   gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads>>>(
     mcalc->on_dev, *phase_range, *conf_range, fin->on_dev, mout->on_dev
   );
+#endif
 }
 
 gkyl_mom_calc *
@@ -75,6 +117,10 @@ gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mo
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  up->buffer = (gkyl_mom_calc_buffer *)gkyl_malloc(sizeof(gkyl_mom_calc_buffer));
+  *up->buffer = {};
+#endif
 
   gkyl_mom_calc *up_cu = (gkyl_mom_calc *)gkyl_cu_malloc(sizeof(gkyl_mom_calc));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_mom_calc), GKYL_CU_MEMCPY_H2D);

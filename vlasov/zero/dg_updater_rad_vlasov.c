@@ -31,9 +31,9 @@ gkyl_dg_updater_rad_vlasov_new(
     up_dirs[d] = d + phase_basis->ndim - vdim;
   }
 
-  int zero_flux_flags[GKYL_MAX_DIM] = {0};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0};
   for (int d = cdim; d < pdim; ++d) {
-    zero_flux_flags[d] = 1;
+    zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1;
   }
 
   up->drag = gkyl_hyper_dg_new(

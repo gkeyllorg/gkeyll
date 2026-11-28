@@ -204,6 +204,9 @@ gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
   }
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
+    if (up->pressure_buffer_dev) {
+      gkyl_cu_free(up->pressure_buffer_dev);
+    }
     gkyl_cu_free(up->on_dev);
   }
   gkyl_free(up);

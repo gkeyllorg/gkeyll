@@ -1,0 +1,769 @@
+// One Slurm Jenkinsfile for bootstrap and the candidate/baseline workflow.
+// Configure the job from reviewed SCM, never from the PR under test.
+// The first pass pins trusted sources and loads this same file from that snapshot.
+// CI_SLURM_BOOTSTRAPPED makes the loaded copy run the workflow directly, once.
+if (env.CI_SLURM_BOOTSTRAPPED != 'true') {
+    // Load from reviewed SCM, never from the PR under test.
+    def cluster = env.GKEYLL_CI_CLUSTER?.trim()
+    if (!(cluster ==~ /[A-Za-z0-9][A-Za-z0-9_-]*/) || cluster in ['personal', 'team', 'slurm']) {
+        error('Set GKEYLL_CI_CLUSTER to a reviewed Slurm profile ID.')
+    }
+    def label = env.SLURM_CI_NODE_LABEL?.trim() ?: cluster
+
+    def bootstrap = {
+        dir('_trusted_slurm') {
+            def ref = env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
+            if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.contains('//')) {
+                error('Invalid GKEYLL_CI_TRUSTED_REF')
+            }
+            def sha = ref ==~ /[0-9a-fA-F]{40}/
+            checkout([$class: 'GitSCM', branches: [[name: 'refs/remotes/origin/trusted']],
+                extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]],
+                userRemoteConfigs: [[url: 'https://github.com/gkeyllorg/gkeyll.git',
+                    refspec: "+${sha ? ref : 'refs/heads/' + ref}:refs/remotes/origin/trusted"]]])
+            def revision = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+            withEnv(["GKEYLL_CI_CLUSTER=${cluster}", "CI_TRUSTED_CI_COMMIT=${revision}"]) {
+                sh '''#!/bin/bash
+                    set -euo pipefail
+                    python3 ci/jenkins/slurm_config.py resolve "$GKEYLL_CI_CLUSTER" \
+                        --revision "$CI_TRUSTED_CI_COMMIT" --output ci-slurm-profile.json --env-output ci-slurm-profile.env
+                '''
+            }
+            // Scalars contain no newlines; arrays stay in the JSON snapshot used by the
+            // submission helper. This needs no extra Jenkins parsing plugin/approval.
+            def config = [:]
+            readFile('ci-slurm-profile.env').readLines().each { line ->
+                def split = line.indexOf('=')
+                if (split < 1) error('Invalid resolved profile')
+                config[line.substring(0, split)] = line.substring(split + 1)
+            }
+            if (!config.ROOT) error('Set GKEYLL_CI_ROOT to shared storage before building.')
+            def credential = env.SLURM_CI_GITHUB_CREDENTIAL_ID?.trim()
+            if (!credential) error('Set SLURM_CI_GITHUB_CREDENTIAL_ID to the Jenkins GitHub credential ID.')
+            // Scheduler work may outlive Jenkins. Keep its reviewed files on shared
+            // storage in a per-build directory, untouched by the next SCM checkout.
+            def trusted = "${config.ROOT}/cache-control/${env.BUILD_TAG}/trusted"
+            withEnv(["CI_TRUSTED_SNAPSHOT=${trusted}"]) {
+                sh '''#!/bin/bash
+                    set -euo pipefail
+                    test ! -e "$CI_TRUSTED_SNAPSHOT"
+                    mkdir -p "$CI_TRUSTED_SNAPSHOT"
+                    git archive HEAD | tar -xf - -C "$CI_TRUSTED_SNAPSHOT"
+                    cp ci-slurm-profile.json "$CI_TRUSTED_SNAPSHOT/"
+                '''
+            }
+            def values = ["GKEYLL_CI_ROOT=${config.ROOT}", "GKEYLL_CI_CLUSTER=${cluster}",
+                "CI_TRUSTED_DIR=${trusted}", "CI_TRUSTED_CI_COMMIT=${revision}",
+                "CI_SLURM_CONFIG=${trusted}/ci-slurm-profile.json", 'CI_SLURM_BOOTSTRAPPED=true',
+                "SLURM_CI_GITHUB_CREDENTIAL_ID=${credential}"]
+            config.each { key, value ->
+                if (value instanceof String) values.add("SLURM_CI_${key}=${value}")
+            }
+            withEnv(values) {
+                load "${trusted}/ci/jenkins/jenkinsfile.slurm_cluster"
+            }
+        }
+    }
+    if (env.CI_SLURM_ENTRY_NODE == 'true') {
+        bootstrap()
+    } else {
+        node(label) { bootstrap() }
+    }
+    return
+}
+
+// Run within the agent and resolved environment established by the bootstrap.
+properties([
+    buildDiscarder(logRotator(
+        numToKeepStr: '20',
+        artifactNumToKeepStr: '20'
+    )),
+    parameters([
+        string(
+            name: 'CANDIDATE_PR',
+            defaultValue: '',
+            trim: true,
+            description: 'GitHub pull-request number. Set exactly one of CANDIDATE_PR or CANDIDATE_REF.'
+        ),
+        string(
+            name: 'CANDIDATE_REF',
+            defaultValue: '',
+            trim: true,
+            description: 'Candidate branch name or full 40-character commit SHA. Requires BASELINE_REF.'
+        ),
+        string(
+            name: 'BASELINE_REF',
+            defaultValue: '',
+            trim: true,
+            description: 'Baseline branch name or full 40-character commit SHA for CANDIDATE_REF runs.'
+        ),
+        booleanParam(
+            name: 'ALLOW_BEHIND_CANDIDATE',
+            defaultValue: false,
+            description: 'Allow a candidate that does not contain the baseline commit.'
+        )
+    ])
+])
+
+def requireValue(String name, String value) {
+    value = value?.trim()
+    if (!value) {
+        error("${name} is not configured. See ci/jenkins/README.slurm_cluster.md.")
+    }
+    return value
+}
+
+def prepareTrustedCacheTools(String root) {
+    def control = "${root}/cache-control/${env.BUILD_TAG}"
+    withEnv(["CI_CONTROL_DIR=${control}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            mkdir -p "$CI_CONTROL_DIR"
+            cp "$CI_TRUSTED_DIR/ci/jenkins/cache_manager.py" "$CI_CONTROL_DIR/"
+            cp "$CI_TRUSTED_DIR/ci/jenkins/baseline_cache.sh" "$CI_CONTROL_DIR/"
+            printf '. "%s/%s"\n' "$CI_TRUSTED_DIR" "$SLURM_CI_ENV_SCRIPT" > "$CI_CONTROL_DIR/module_load.sh"
+            chmod +x "$CI_CONTROL_DIR/baseline_cache.sh"
+        '''
+    }
+    env.CI_CACHE_MANAGER = "${control}/cache_manager.py"
+    env.CI_BASELINE_CACHE_TOOL = "${control}/baseline_cache.sh"
+}
+
+def cacheManager(String command, String sha = '') {
+    withEnv(["CI_CACHE_COMMAND=${command}", "CI_CACHE_SHA=${sha}"]) {
+        return sh(returnStdout: true, script: '''#!/bin/bash -l
+            set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            if [[ "$CI_CACHE_COMMAND" == begin ]]; then python3 --version >&2; fi
+            python3 "$CI_CACHE_MANAGER" "$CI_CACHE_COMMAND" \
+                --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
+                --scheduler slurm --config-hash "$SLURM_CI_CONFIG_HASH" \
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
+                --url "$BUILD_URL" --controller-url "${CI_JENKINS_LOCAL_URL:-http://127.0.0.1:8080}" \
+                --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
+                --sha "${CI_CACHE_SHA:-}"
+        ''').trim()
+    }
+}
+
+def positiveInteger(String name, String value) {
+    if (!(value ==~ /[1-9][0-9]*/)) {
+        error("${name} must be a positive integer, got '${value}'.")
+    }
+    return value
+}
+
+def serialRegressionJobs() {
+    return positiveInteger(
+        'SLURM_CI_SERIAL_JOBS',
+        (env.SLURM_CI_SERIAL_JOBS ?: '4').trim()
+    )
+}
+
+def serialRegressionTestTimeout() {
+    return positiveInteger(
+        'SLURM_CI_SERIAL_TEST_TIMEOUT',
+        (env.SLURM_CI_SERIAL_TEST_TIMEOUT ?: '900').trim()
+    )
+}
+
+def isCommitSha(String value) {
+    return value ==~ /[0-9a-fA-F]{40}/
+}
+
+def shortRef(String ref) {
+    return isCommitSha(ref) ? ref.take(7) : ref
+}
+
+def validateBranchName(String name, String value) {
+    if (!(value ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/)
+        || value.contains('..') || value.contains('//')
+        || value.endsWith('/') || value.endsWith('.') || value.endsWith('.lock')) {
+        error("${name} must be a safe branch name or a full 40-character commit SHA, got '${value}'.")
+    }
+    return value
+}
+
+def validateRefSelector(String name, String value) {
+    value = requireValue(name, value)
+    return isCommitSha(value) ? value.toLowerCase() : validateBranchName(name, value)
+}
+
+def checkoutPullRequest(String prNumber) {
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/candidate"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: "+refs/pull/${prNumber}/head:refs/remotes/origin/candidate",
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def checkoutRef(String selector, String localRef) {
+    def refspec = isCommitSha(selector)
+        ? "+${selector}:refs/remotes/origin/${localRef}"
+        : "+refs/heads/${selector}:refs/remotes/origin/${localRef}"
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/${localRef}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: refspec,
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def resolveRefCommit(String selector) {
+    if (isCommitSha(selector)) return selector.toLowerCase()
+    def commit = sh(returnStdout: true, script: "git ls-remote https://github.com/gkeyllorg/gkeyll.git refs/heads/${selector} | cut -f1 | head -n 1").trim()
+    if (!(commit ==~ /[0-9a-f]{40}/)) error("Could not resolve baseline ref '${selector}' to a commit SHA.")
+    return commit
+}
+
+def baselineBehindCount(String statusCredentialsId, String baseline, String candidate) {
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv(["CI_BASELINE_COMMIT=${baseline}", "CI_CANDIDATE_COMMIT=${candidate}"]) {
+            return sh(returnStdout: true, script: '''#!/bin/bash -l
+                set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header "Authorization: Bearer $GITHUB_STATUS_TOKEN" \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/compare/$CI_BASELINE_COMMIT...$CI_CANDIDATE_COMMIT" \
+                    | python3 -c 'import json,sys; print(json.load(sys.stdin)["behind_by"])'
+            ''').trim().toInteger()
+        }
+    }
+}
+
+def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
+    def baseRef = ''
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv(["GITHUB_PR_NUMBER=${prNumber}"]) {
+            baseRef = sh(returnStdout: true, script: '''#!/bin/bash -l
+                set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header 'X-GitHub-Api-Version: 2022-11-28' \
+                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/pulls/${GITHUB_PR_NUMBER}" \
+                    | python3 -c '
+import json
+import sys
+
+pull = json.load(sys.stdin)
+base_ref = (pull.get("base") or {}).get("ref") or ""
+if not isinstance(base_ref, str):
+    raise SystemExit("GitHub pull-request base ref is not a string")
+print(base_ref)
+'
+            ''').trim()
+        }
+    }
+    return validateBranchName('GitHub PR base branch', baseRef)
+}
+
+def publishGitHubCommitStatus(String statusCredentialsId, String commit, String state, String description) {
+    if (!(commit ==~ /[0-9a-f]{40}/)) {
+        error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
+    }
+    if (!['pending', 'success', 'failure', 'error'].contains(state)) {
+        error("Invalid GitHub commit-status state '${state}'.")
+    }
+
+    // Bind the token only for this trusted API request, never while a shell
+    // command from the PR checkout is running.
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv([
+            "GITHUB_STATUS_COMMIT=${commit}",
+            "GITHUB_STATUS_STATE=${state}",
+            "GITHUB_STATUS_DESCRIPTION=${description}"
+        ]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+
+                payload="$(python3 -c 'import json,os; print(json.dumps(dict(state=os.environ["GITHUB_STATUS_STATE"], context=os.environ["SLURM_CI_STATUS_CONTEXT"], description=os.environ["GITHUB_STATUS_DESCRIPTION"])))')"
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --request POST \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header 'X-GitHub-Api-Version: 2022-11-28' \
+                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
+                    --header 'Content-Type: application/json' \
+                    --data "$payload" \
+                    --output /dev/null --write-out 'GitHub Slurm status: %{http_code}\\n' \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/${GITHUB_STATUS_COMMIT}"
+            '''
+        }
+    }
+}
+
+def trustedReportScript() {
+    return "${env.CI_TRUSTED_DIR}/ci/jenkins/github_report.py"
+}
+
+def prepareTrustedRegressionChecker() {
+    sh '''#!/bin/bash
+        set -euo pipefail
+        cp "$CI_TRUSTED_DIR/ci/jenkins/check_regression_results.lua" _trusted_check_regression_results.lua
+        printf '%s\n' "$CI_TRUSTED_CI_COMMIT" > ci-trusted-checker-commit.txt
+    '''
+}
+
+def buildGitHubReport(String state, String candidatePr) {
+    withEnv(["CI_REPORT_CONTEXT=${env.SLURM_CI_STATUS_CONTEXT}", "CI_REPORT_PLATFORM=${env.GKEYLL_CI_CLUSTER}",
+             "CI_REPORT_RESULT=${state}", "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_SCRIPT=${trustedReportScript()}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            python3 "$CI_REPORT_SCRIPT" build --platform "$CI_REPORT_PLATFORM" --context "$CI_REPORT_CONTEXT" --result "$CI_REPORT_RESULT" --pr "${CI_REPORT_PR:-}" --output ci-report.md
+        '''
+    }
+}
+
+def publishGitHubReport(String statusCredentialsId, String commit, String state, String candidatePr) {
+    buildGitHubReport(state, candidatePr)
+    withEnv(["CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}",
+             "CI_REPORT_CONTEXT=${env.SLURM_CI_STATUS_CONTEXT}", "CI_REPORT_SCRIPT=${trustedReportScript()}"]) {
+        withCredentials([usernamePassword(
+            credentialsId: statusCredentialsId,
+            usernameVariable: 'GITHUB_USERNAME',
+            passwordVariable: 'GITHUB_TOKEN'
+        )]) {
+            sh '''#!/bin/bash -l
+                set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+                python3 "$CI_REPORT_SCRIPT" publish --report ci-report.md --commit "$CI_REPORT_COMMIT" --context "$CI_REPORT_CONTEXT" --pr "${CI_REPORT_PR:-}"
+            '''
+        }
+    }
+}
+
+def submitSlurmJob(String kind, String lane, List<String> extraExports = []) {
+    // Jenkins permits environment properties; bracket access invokes a rejected getAt.
+    def payload = env.getProperty("SLURM_CI_${lane}_SCRIPT".toString())
+    withEnv([
+        "CI_WORKSPACE=${env.WORKSPACE}", "CI_SLURM_LANE=${lane}",
+        "CI_SLURM_JOB_KIND=${kind}", "CI_SLURM_JOB_ID_FILE=slurm-${kind}-job-id.txt",
+        "CI_SLURM_JOB_STATUS_FILE=slurm-${kind}-job-status.txt",
+        "CI_SLURM_PAYLOAD=${env.CI_TRUSTED_DIR}/${payload}",
+        "CI_SLURM_OUTPUT=slurm-${kind}-%j.out",
+        "CI_SLURM_CPUS_PER_TASK=${env.getProperty("SLURM_CI_${lane}_CPUS_PER_TASK".toString())}",
+        "CI_SLURM_GPUS_PER_TASK=${env.getProperty("SLURM_CI_${lane}_GPUS_PER_TASK".toString())}"
+    ] + extraExports) {
+        sh 'bash -l "$CI_TRUSTED_DIR/ci/jenkins/slurm-submit.sh"'
+    }
+}
+
+def submitUnitTests(String candidateDir) {
+    submitSlurmJob('unit', 'UNIT', ["CI_CANDIDATE_DIR=${candidateDir}/gkeyll"])
+}
+
+def submitRegressionTests(String lane, String mode, String baselineDir, String candidateDir) {
+    if (!(lane in ['SERIAL', 'PARALLEL'])) error("Invalid regression lane: ${lane}")
+    submitSlurmJob("${lane.toLowerCase()}-regression", lane, [
+        "CI_BASELINE_DIR=${baselineDir}/gkeyll", "CI_BASELINE_PREFIX=${baselineDir}/gkylsoft",
+        "CI_CANDIDATE_DIR=${candidateDir}/gkeyll", "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
+        "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
+        "CI_REGRESSION_MODE=${mode}", "CI_SERIAL_REGRESSION_JOBS=${serialRegressionJobs()}",
+        "CI_SERIAL_REGRESSION_TEST_TIMEOUT=${serialRegressionTestTimeout()}"
+    ])
+}
+
+def buildOperation(String label, String tree, String action) {
+    withEnv(["CI_BUILD_SOURCE=${tree}/gkeyll", "CI_BUILD_PREFIX=${tree}/gkylsoft",
+             "CI_BUILD_ACTION=${action}", "CI_BUILD_LABEL=${label}", "CI_WORKSPACE=${env.WORKSPACE}",
+             "CI_BUILD_HELPER=${env.CI_TRUSTED_DIR}/ci/jenkins/slurm-build.sh"]) {
+        if (env.SLURM_CI_BUILD_LOCATION == 'slurm') {
+            submitSlurmJob("build-${label}-${action}", 'BUILD')
+        } else {
+            sh 'bash -l "$CI_BUILD_HELPER"'
+        }
+    }
+}
+
+def finalizeUnfinishedSlurmJob() {
+    // Use the same ownership recovery and cancellation checks as the submitter.
+    // This also recovers an allocation accepted before sbatch returned its ID.
+    withEnv(["CI_WORKSPACE=${env.WORKSPACE}"]) {
+        sh 'bash -l "$CI_TRUSTED_DIR/ci/jenkins/slurm-submit.sh" cleanup'
+    }
+}
+
+def writeCiTimingSummary() {
+    sh '''#!/bin/bash -l
+        set -euo pipefail
+
+        metric() {
+            local file="$1"
+            local key="$2"
+            if [[ -f "$file" ]]; then
+                local value
+                if [[ "$key" == '__file__' ]]; then
+                    value="$(tr -d '[:space:]' < "$file")"
+                else
+                    value="$(sed -n -E "s/^${key}=//p" "$file" | tail -n 1)"
+                fi
+                if [[ -n "$value" ]]; then
+                    printf '%s' "$value"
+                    return
+                fi
+            fi
+            printf 'not-recorded'
+        }
+
+        candidate_serial_compile="$(metric candidate-serial-c-compile-seconds.txt __file__)"
+        baseline_serial_compile="$(metric baseline-serial-c-compile-seconds.txt __file__)"
+        candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt __file__)"
+        baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt __file__)"
+        candidate_install="$(metric candidate-install-seconds.txt __file__)"
+        baseline_install="$(metric baseline-install-seconds.txt __file__)"
+        candidate_unit_build="$(metric candidate-unit-build-seconds.txt __file__)"
+        baseline_unit_build="$(metric baseline-unit-build-seconds.txt __file__)"
+        candidate_unit_test="$(metric unit-test-seconds.txt __file__)"
+        baseline_unit_test='not-recorded'
+        serial_regression_create="$(metric baseline-serial-c-regression-create-seconds.txt __file__)"
+        serial_regression_check="$(metric candidate-serial-c-regression-check-seconds.txt __file__)"
+        parallel_regression_create="$(metric baseline-parallel-c-regression-create-seconds.txt __file__)"
+        parallel_regression_check="$(metric candidate-parallel-c-regression-check-seconds.txt __file__)"
+        unit_elapsed="$(metric slurm-unit-job-status.txt elapsed_seconds)"
+        serial_regression_elapsed="$(metric slurm-serial-regression-job-status.txt elapsed_seconds)"
+        parallel_regression_elapsed="$(metric slurm-parallel-regression-job-status.txt elapsed_seconds)"
+        serial_c_passed="$(metric ci-serial-regression-summary.txt c_regression_passed)"
+        serial_c_acknowledged="$(metric ci-serial-regression-summary.txt c_regression_acknowledged)"
+        serial_c_unacknowledged="$(metric ci-serial-regression-summary.txt c_regression_unacknowledged)"
+        baseline_cache_status="$(awk -F= '$1 == "status" {print $2; exit}' ci-baseline-cache.txt 2>/dev/null || true)"
+        baseline_cache_status="${baseline_cache_status:-not-recorded}"
+
+        serial_compile_total='not-recorded'
+        if [[ "$candidate_serial_compile" =~ ^[0-9]+$ && "$baseline_serial_compile" =~ ^[0-9]+$ ]]; then
+            serial_compile_total="$((candidate_serial_compile + baseline_serial_compile))"
+        fi
+
+        {
+            printf 'baseline_cache_status=%s\n' "$baseline_cache_status"
+            printf 'candidate_serial_c_compile_seconds=%s\n' "$candidate_serial_compile"
+            printf 'baseline_serial_c_compile_seconds=%s\n' "$baseline_serial_compile"
+            printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
+            printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
+            printf 'serial_c_compile_seconds=%s\n' "$serial_compile_total"
+            printf 'candidate_install_seconds=%s\n' "$candidate_install"
+            printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_unit_build_seconds=%s\n' "$candidate_unit_build"
+            printf 'baseline_unit_build_seconds=%s\n' "$baseline_unit_build"
+            printf 'candidate_unit_test_seconds=%s\n' "$candidate_unit_test"
+            printf 'baseline_unit_test_seconds=%s\n' "$baseline_unit_test"
+            printf 'baseline_serial_c_regression_create_seconds=%s\n' "$serial_regression_create"
+            printf 'candidate_serial_c_regression_check_seconds=%s\n' "$serial_regression_check"
+            printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
+            printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
+            printf 'unit_slurm_elapsed_seconds=%s\n' "$unit_elapsed"
+            printf 'serial_regression_slurm_elapsed_seconds=%s\n' "$serial_regression_elapsed"
+            printf 'parallel_regression_slurm_elapsed_seconds=%s\n' "$parallel_regression_elapsed"
+            printf 'serial_c_regression_passed=%s\n' "$serial_c_passed"
+            printf 'serial_c_regression_acknowledged=%s\n' "$serial_c_acknowledged"
+            printf 'serial_c_regression_unacknowledged=%s\n' "$serial_c_unacknowledged"
+        } > ci-timing-summary.txt
+        cat ci-timing-summary.txt
+    '''
+}
+
+def timingMetric(String key) {
+    if (!fileExists('ci-timing-summary.txt')) {
+        return 'n/a'
+    }
+    def expression = '(?m)^' + java.util.regex.Pattern.quote(key) + '=([^\\r\\n]+)$'
+    def match = readFile('ci-timing-summary.txt') =~ expression
+    return match.find() ? match.group(1) : 'n/a'
+}
+
+def timingStatusDescription(String status) {
+    def serialPassed = timingMetric('serial_c_regression_passed')
+    def serialAcknowledged = timingMetric('serial_c_regression_acknowledged')
+    def serialUnacknowledged = timingMetric('serial_c_regression_unacknowledged')
+    def candidateSerialCompile = timingMetric('candidate_serial_c_compile_seconds')
+    def baselineSerialCompile = timingMetric('baseline_serial_c_compile_seconds')
+    def unitElapsed = timingMetric('unit_slurm_elapsed_seconds')
+    def serialRegressionElapsed = timingMetric('serial_regression_slurm_elapsed_seconds')
+    def outcome = status == 'success' ? 'passed' : (status == 'error' ? 'errored' : 'failed')
+    def description = "Slurm CI ${outcome}: serial C ${serialPassed}/${serialAcknowledged}/${serialUnacknowledged}; comp C/B ${candidateSerialCompile}/${baselineSerialCompile}s; Slurm U/S ${unitElapsed}/${serialRegressionElapsed}s"
+    return description.take(140)
+}
+
+def candidatePr = params.CANDIDATE_PR?.trim()
+def candidateRef = params.CANDIDATE_REF?.trim()
+def requestedBaselineRef = params.BASELINE_REF?.trim()
+if (!!candidatePr == !!candidateRef) {
+    error('Set exactly one of CANDIDATE_PR or CANDIDATE_REF.')
+}
+if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) {
+    error("CANDIDATE_PR must be a positive integer, got '${candidatePr}'.")
+}
+if (candidatePr && requestedBaselineRef) {
+    error('BASELINE_REF must be empty with CANDIDATE_PR; the GitHub PR base branch is used automatically.')
+}
+if (candidateRef) {
+    candidateRef = validateRefSelector('CANDIDATE_REF', candidateRef)
+    requestedBaselineRef = validateRefSelector('BASELINE_REF', requestedBaselineRef)
+}
+def allowBehindCandidate = params.ALLOW_BEHIND_CANDIDATE || env.CI_ALLOW_BEHIND_CANDIDATE == 'true'
+
+def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
+def workspaceRoot = "${gkeyllCiRoot}/workspaces"
+def statusCredentialsId = requireValue('SLURM_CI_GITHUB_CREDENTIAL_ID', env.SLURM_CI_GITHUB_CREDENTIAL_ID)
+def candidateSelector = ''
+def baselineSelector = ''
+def baselineCommit = ''
+def candidateCommit = ''
+def candidateDir = ''
+def terminalStatus = 'failure'
+def terminalDescription = 'Slurm CI failed.'
+def failureMessage = ''
+def baselineDir = ''
+def baselineStage = ''
+def baselineCacheHit = false
+def baselinePublished = false
+def cacheStarted = false
+env.CI_CACHE_PLATFORM = env.SLURM_CI_CACHE_NAMESPACE
+env.CI_JENKINS_READ_AUTH_FILE = env.CI_JENKINS_READ_AUTH_FILE == null
+    ? "${gkeyllCiRoot}/jenkins_home/jenkins-cli.auth" : env.CI_JENKINS_READ_AUTH_FILE.trim()
+
+def ciStage(String stageName, Closure body) {
+    env.CI_FAILURE_STAGE = stageName
+    stage(stageName) { body.call() }
+}
+
+def writeCiFailureSummary(String result, String stageName, String message) {
+    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
+    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
+}
+
+def runSlurmPipeline = {
+    // Slurm compute nodes must see this path. Configure the root on a shared
+    // filesystem such as the project's /scratch/gpfs location, never /tmp.
+    ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
+        try {
+            ciStage('Prepare trusted cache tools') { prepareTrustedCacheTools(gkeyllCiRoot) }
+            ciStage('Clean inactive CI caches') { cacheManager('begin'); cacheStarted = true }
+            ciStage('Resolve candidate and baseline') {
+                currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
+                if (candidatePr) {
+                    candidateSelector = "PR #${candidatePr}"
+                    baselineSelector = resolvePullRequestBase(statusCredentialsId, candidatePr)
+                } else {
+                    candidateSelector = candidateRef
+                    baselineSelector = requestedBaselineRef
+                }
+                echo "Candidate selector: ${candidateSelector}"
+                echo "Baseline selector: ${baselineSelector}"
+                currentBuild.description = "${shortRef(candidateSelector)} vs ${shortRef(baselineSelector)}"
+            }
+            ciStage('Checkout candidate') {
+                deleteDir()
+                if (candidatePr) {
+                    checkoutPullRequest(candidatePr)
+                } else {
+                    checkoutRef(candidateRef, 'candidate')
+                }
+                candidateCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                writeFile file: 'ci-candidate-commit.txt', text: "${candidateCommit}\n"
+                currentBuild.description += " @ ${candidateCommit.take(7)}"
+                sh 'git status --short'
+            }
+            ciStage('Verify candidate contains baseline') {
+                baselineCommit = resolveRefCommit(baselineSelector)
+                def behind = baselineBehindCount(statusCredentialsId, baselineCommit, candidateCommit)
+                writeFile file: 'ci-baseline-preflight.txt', text: "candidate_commit=${candidateCommit}\nbaseline_selector=${baselineSelector}\nbaseline_commit=${baselineCommit}\nbehind_by=${behind}\noverride=${allowBehindCandidate}\n"
+                writeFile file: 'ci-selection.txt', text: "candidate_selector=${candidateSelector}\nbaseline_selector=${baselineSelector}\ncandidate_commit=${candidateCommit}\nbaseline_commit=${baselineCommit}\nallow_behind=${allowBehindCandidate}\n"
+                if (behind > 0 && !allowBehindCandidate) {
+                    error("Candidate ${candidateCommit.take(7)} is behind baseline ${baselineCommit.take(7)} by ${behind} commit(s); merge or rebase the baseline, or set ALLOW_BEHIND_CANDIDATE for an intentional historical comparison.")
+                }
+                if (behind > 0) echo("WARNING: allowing candidate behind baseline by ${behind} commit(s).")
+            }
+            ciStage('Prepare candidate build') {
+                candidateDir = sh(returnStdout: true, script: "'${env.CI_BASELINE_CACHE_TOOL}' prepare-candidate '${gkeyllCiRoot}' '${env.CI_CACHE_PLATFORM}' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+            }
+            ciStage('Resolve baseline cache') {
+                baselineDir = sh(returnStdout: true, script: "'${env.CI_BASELINE_CACHE_TOOL}' baseline-path '${gkeyllCiRoot}' '${env.CI_CACHE_PLATFORM}' '${baselineCommit}'").trim()
+                def disposition = ''
+                timeout(time: 12, unit: 'HOURS') {
+                    while (!(disposition in ['hit', 'build'])) {
+                        disposition = cacheManager('claim-baseline', baselineCommit)
+                        if (disposition == 'wait') sleep time: 15, unit: 'SECONDS'
+                    }
+                }
+                baselineCacheHit = disposition == 'hit'
+                if (!baselineCacheHit) baselineStage = baselineDir
+                writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=${env.CI_CACHE_PLATFORM}\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
+            }
+            ciStage('Report pending to GitHub') {
+                publishGitHubCommitStatus(
+                    statusCredentialsId,
+                    candidateCommit,
+                    'pending',
+                    'Slurm candidate CI is running.'
+                )
+            }
+            ciStage('Build dependencies') { buildOperation('candidate', candidateDir, 'deps') }
+            ciStage('Configure') { buildOperation('candidate', candidateDir, 'configure') }
+            ciStage('Build unit tests') { buildOperation('candidate', candidateDir, 'unit') }
+            ciStage('Run unit tests (SLURM)') { submitUnitTests(candidateDir) }
+            ciStage('Install candidate for C regression') { buildOperation('candidate', candidateDir, 'install') }
+            ciStage('Compile candidate serial C regressions') { buildOperation('candidate', candidateDir, 'serial-compile') }
+            if (!baselineCacheHit) {
+                ciStage('Checkout baseline') {
+                    dir("${baselineStage}/gkeyll") { checkoutRef(baselineCommit, 'baseline') }
+                }
+                ciStage('Build baseline') {
+                    buildOperation('baseline', baselineStage, 'deps')
+                    buildOperation('baseline', baselineStage, 'configure')
+                }
+                ciStage('Install baseline') { buildOperation('baseline', baselineStage, 'install') }
+                ciStage('Compile baseline serial C regressions') { buildOperation('baseline', baselineStage, 'serial-compile') }
+                ciStage('Run baseline serial C regressions (SLURM)') { submitRegressionTests('SERIAL', 'baseline-create', baselineStage, candidateDir) }
+                ciStage('Compile baseline parallel C regressions') { buildOperation('baseline', baselineStage, 'parallel-compile') }
+                ciStage('Run baseline parallel C regressions (SLURM)') { submitRegressionTests('PARALLEL', 'baseline-create', baselineStage, candidateDir) }
+                ciStage('Publish baseline cache') {
+                    writeFile file: "${baselineStage}/cache-manifest.txt", text: """format_version=1
+platform=${env.CI_CACHE_PLATFORM}
+baseline_commit=${baselineCommit}
+config_hash=${env.SLURM_CI_CONFIG_HASH}
+serial_c_results=present
+parallel_c_4_results=present
+"""
+                    cacheManager('publish-baseline', baselineCommit)
+                    baselinePublished = true
+                    writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=${env.CI_CACHE_PLATFORM}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
+                }
+            }
+            ciStage('Record baseline cache') { sh "git -C '${baselineDir}/gkeyll' rev-parse HEAD | tee ci-baseline-commit.txt" }
+            ciStage('Prepare trusted regression checker') { prepareTrustedRegressionChecker() }
+            ciStage('Run candidate serial C regressions (SLURM)') { submitRegressionTests('SERIAL', 'candidate-check', baselineDir, candidateDir) }
+            ciStage('Compile candidate parallel C regressions') { buildOperation('candidate', candidateDir, 'parallel-compile') }
+            ciStage('Run candidate parallel C regressions (SLURM)') { submitRegressionTests('PARALLEL', 'candidate-check', baselineDir, candidateDir) }
+            terminalStatus = 'success'
+            terminalDescription = 'Slurm unit and C regression tests passed.'
+        } catch (err) {
+            failureMessage = err.toString()
+            if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
+                terminalStatus = 'error'
+                terminalDescription = 'Slurm CI was aborted.'
+            }
+            throw err
+        } finally {
+            // Every cleanup step gets a chance to run, even when timing, reporting,
+            // archival or another cleanup step fails. Rethrow after finalization.
+            def finalizationError = null
+            def recordFinalizationFailure = { String stageName, String description, err ->
+                terminalStatus = 'error'
+                terminalDescription = description
+                failureMessage = err.toString()
+                env.CI_FAILURE_STAGE = stageName
+                if (finalizationError == null) finalizationError = err
+                echo "WARNING: ${description} ${err}"
+            }
+            try {
+                finalizeUnfinishedSlurmJob()
+            } catch (err) {
+                recordFinalizationFailure('Finalize SLURM job', 'Slurm CI cleanup failed.', err)
+            }
+            try {
+                writeCiTimingSummary()
+                terminalDescription = timingStatusDescription(terminalStatus)
+            } catch (err) {
+                recordFinalizationFailure('Write CI timing summary', 'Slurm CI timing summary failed.', err)
+            }
+            try {
+                if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
+                // Include the resolved configuration in retained candidate artifacts too.
+                sh 'cp "$CI_SLURM_CONFIG" ci-slurm-profile.json'
+                if (candidateDir) sh "'${env.CI_BASELINE_CACHE_TOOL}' stage-candidate-artifacts '${gkeyllCiRoot}' '${env.CI_CACHE_PLATFORM}' '${candidateCommit}' '${env.WORKSPACE}'"
+                archiveArtifacts allowEmptyArchive: true,
+                    artifacts: 'ci-slurm-profile.json,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-serial-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-id.txt.owner,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            } catch (err) {
+                recordFinalizationFailure('Archive artifacts', 'Slurm CI artifact archival failed.', err)
+            }
+            try {
+                if (cacheStarted && baselineStage && !baselinePublished) cacheManager('abort-baseline', baselineCommit)
+            } catch (err) {
+                recordFinalizationFailure('Abort baseline cache', 'Slurm CI baseline cleanup failed.', err)
+            }
+            try {
+                if (candidateDir && baselineCommit) {
+                    sh "'${env.CI_BASELINE_CACHE_TOOL}' finalize-candidate '${gkeyllCiRoot}' '${env.CI_CACHE_PLATFORM}' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                }
+            } catch (err) {
+                recordFinalizationFailure('Finalize candidate cache', 'Slurm CI candidate cleanup failed.', err)
+            }
+            try {
+                if (cacheStarted) cacheManager('finish')
+            } catch (err) {
+                recordFinalizationFailure('Finish cache run', 'Slurm CI cache cleanup failed.', err)
+            }
+            // Cache diagnostics were copied before finish could release/delete the
+            // candidate. Build the authoritative report only from workspace copies,
+            // after all cleanup outcomes are known; never reopen the candidate here.
+            try {
+                if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
+                if (candidateCommit) {
+                    try {
+                        publishGitHubReport(statusCredentialsId, candidateCommit, terminalStatus, candidatePr ?: '')
+                    } catch (err) {
+                        if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
+                            recordFinalizationFailure('Publish GitHub report', 'Slurm CI was aborted while reporting.', err)
+                            writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage)
+                            // Preserve the abort result locally even if the interrupted
+                            // network publication left GitHub with an older report.
+                            buildGitHubReport(terminalStatus, candidatePr ?: '')
+                        } else {
+                            echo "WARNING: could not publish the GitHub CI report: ${err}"
+                            terminalDescription = "${terminalDescription} (report not posted)".take(140)
+                        }
+                    }
+                }
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-report.md,ci-failure-summary.txt'
+            } catch (err) {
+                recordFinalizationFailure('Archive final report', 'Slurm CI final report archival failed.', err)
+            }
+            try {
+                if (candidateCommit) {
+                    publishGitHubCommitStatus(statusCredentialsId, candidateCommit, terminalStatus, terminalDescription)
+                }
+            } catch (err) {
+                recordFinalizationFailure('Publish final status', 'Slurm CI final status publication failed.', err)
+            }
+            // A later cleanup checks Jenkins and Slurm before deleting this workspace.
+            echo 'Workspace retained for activity-checked cache cleanup.'
+            if (finalizationError != null) throw finalizationError
+        }
+
+    }
+}
+
+runSlurmPipeline()

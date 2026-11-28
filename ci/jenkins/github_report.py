@@ -8,7 +8,7 @@ pull request). Standard library only.
 
 `build` reads the summary files the Jenkinsfiles already write into the
 workspace root (ci-selection.txt, ci-candidate-commit.txt, ci-failure-summary.txt,
-ci-regression-summary.txt, ...). `publish` needs GITHUB_TOKEN in the environment
+ci-serial-regression-summary.txt, ...). `publish` needs GITHUB_TOKEN in the environment
 and updates the previous report comment for the same context in place, so each
 CI machine owns exactly one comment per pull request or commit.
 
@@ -22,6 +22,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import socket
 import sys
 import urllib.error
@@ -293,6 +294,16 @@ def timing_section():
     return "<details><summary>Timings</summary>\n\n" + "\n".join(body) + "\n\n</details>"
 
 
+def artifact_command(platform, build_number):
+  """Use public CLI modes; cluster report names select a Slurm profile."""
+  command = "./ci/jenkins/gkeyll-ci.sh"
+  if platform in ("personal", "team"):
+    command += " " + platform
+  else:
+    command = "GKEYLL_CI_CLUSTER={} {} slurm".format(shlex.quote(platform), command)
+  return "{} artifact --build {} --fetch".format(command, shlex.quote(str(build_number)))
+
+
 def build_report(args):
     selection = read_kv("ci-selection.txt")
     preflight = read_kv("ci-baseline-preflight.txt")
@@ -351,8 +362,12 @@ def build_report(args):
             parts.append("<details><summary>Failure detail</summary>\n\n"
                          + fenced(truncate(detail, DETAIL_LIMIT)) + "\n\n</details>")
 
-    for title, path in (("Serial C regressions", "ci-regression-summary.txt"),
-                        ("Parallel C regressions", "ci-parallel-regression-summary.txt")):
+    # Personal/team and retained older runs still use the original serial name.
+    serial_summary = ("ci-serial-regression-summary.txt" if os.path.isfile("ci-serial-regression-summary.txt")
+                      else "ci-regression-summary.txt")
+    regression_summaries = [("Serial C regressions", serial_summary),
+                            ("Parallel C regressions", "ci-parallel-regression-summary.txt")]
+    for title, path in regression_summaries:
         section = regression_section(title, path)
         if section:
             parts.append(section)
@@ -362,7 +377,7 @@ def build_report(args):
         parts.append(timings)
 
     parts.append("_Logs and regression databases stay on that machine; its owner can fetch them with "
-                 "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number))
+                 "`{}`._".format(artifact_command(args.platform, build_number)))
 
     report = "\n\n".join(parts) + "\n"
     report = truncate(report, COMMENT_LIMIT)
@@ -370,7 +385,7 @@ def build_report(args):
         f.write(report)
     print("Wrote {} ({} characters)".format(args.output, len(report)))
     line = status_description(args.result, stage, unit_fail, unit_failing,
-                              ["ci-regression-summary.txt", "ci-parallel-regression-summary.txt"])
+                              [path for _, path in regression_summaries])
     with open("ci-status-description.txt", "w", encoding="utf-8") as f:
         f.write(line + "\n")
     print("Status description: " + line)

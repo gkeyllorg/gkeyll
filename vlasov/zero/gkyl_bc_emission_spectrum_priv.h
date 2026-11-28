@@ -8,6 +8,11 @@
 #include <assert.h>
 #include <gkyl_alloc.h>
 
+typedef struct {
+  double *partial_dev;
+  size_t partial_bytes;
+} gkyl_bc_emission_spectrum_buffer;
+
 // Primary struct for the updater
 struct gkyl_bc_emission_spectrum {
   int dir, cdim, vdim;
@@ -20,6 +25,7 @@ struct gkyl_bc_emission_spectrum {
   proj_on_basis_c2p_t c2p_impact; // computational-to-physical map of the impacting phase space
   void *c2p_impact_ctx;
   bool use_gpu;
+  gkyl_bc_emission_spectrum_buffer *buffer; // Host-owned GPU reduction buffer.
 };
 
 // Function to calculate the weighted mean of the SE yield

@@ -106,6 +106,17 @@ gkyl_bc_emission_spectrum_new(
   up->edge = edge;
   up->use_gpu = use_gpu;
   up->grid = impact_grid;
+#ifdef GKYL_DETERMINISTIC_REDUCTIONS_GPU
+  if (use_gpu) {
+    up->buffer = gkyl_malloc(sizeof(gkyl_bc_emission_spectrum_buffer));
+    up->buffer->partial_dev = 0;
+    up->buffer->partial_bytes = 0;
+  } else {
+    up->buffer = 0;
+  }
+#else
+  up->buffer = 0;
+#endif
 
   int ghost[GKYL_MAX_DIM];
   for (int d = 0; d < cdim; ++d) {
@@ -229,6 +240,12 @@ gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 {
   gkyl_emission_spectrum_model_release(up->spectrum_model);
   gkyl_emission_yield_model_release(up->yield_model);
+  if (up->buffer) {
+    if (up->buffer->partial_dev) {
+      gkyl_cu_free(up->buffer->partial_dev);
+    }
+    gkyl_free(up->buffer);
+  }
   // Release updater memory.
   gkyl_free(up);
 }
