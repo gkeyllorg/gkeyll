@@ -5,14 +5,12 @@
 // In the Euler limit the pulse returns unchanged to its starting position. With collisions at nu =
 // 100 the heat flux relaxes at nu, so the gas conducts heat with thermal diffusivity chi = T/(m nu)
 // and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t), k^2 =
-// pi^2; the measured decay beyond it is the numerical diffusion of the scheme. The BGK term is part
-// of the explicit SSP-RK3 update.
+// pi^2; the measured amplitude stays above this estimate. The BGK term is part of the explicit
+// SSP-RK3 update.
 // Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
 // error below 1e-4 rad) with amplitude 0.836, against exp(-chi k^2 t) = 0.821 for chi = T/(m nu)
-// (0.841 at 0.88 chi k^2). The PKPM conduction along b converges to 0.88 chi k^2 (Nx 16-64, Nv
-// 16/32, cfl 1/0.5), against 0.998 chi k^2 from exact linear 3V BGK theory, so the measured decay
-// combines that deficit with the numerical diffusion of the scheme at this resolution. Particle
-// number is conserved to 1e-13.
+// (exact linear 3V BGK theory gives the decay rate 0.998 chi k^2). Particle number is conserved to
+// 1e-13.
 
 #include <math.h>
 #include <stdio.h>

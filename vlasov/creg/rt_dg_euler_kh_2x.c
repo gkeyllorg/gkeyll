@@ -3,11 +3,11 @@
 // with gamma = 1.4, after Section 4 of M. Sementilli, R. Zangeneh and J. Chen, Fluids 9 (2024) 52,
 // on a periodic unit box; a deterministic multi-mode velocity perturbation of amplitude 0.01 seeds
 // the shear layers and the run follows the instability into its nonlinear roll-up. Figures of merit
-// (serendipity p1, 64 x 64 cells): the y-directed kinetic energy density grows from 5.4e-4 to a
-// peak of 0.135 at t = 3.9 and ends at 0.087 (the incompressible vortex-sheet rate of the m = 1
-// mode, k du sqrt(rho_in rho_out)/(rho_in + rho_out) = 2.96, sets the time scale; the multi-mode
-// seed has no single-mode linear phase to fit); kinetic energy 0.1886 -> 0.1660 is converted into
-// internal energy 6.2500 -> 6.2726 while mass, x-momentum and total energy are conserved to 6e-13.
+// (serendipity p1, 64 x 64 cells): the y-directed kinetic energy density grows from 5.4e-4 to 0.084
+// at the end (the incompressible vortex-sheet rate of the m = 1 mode, k du sqrt(rho_in
+// rho_out)/(rho_in + rho_out) = 2.96, sets the time scale; the multi-mode seed has no single-mode
+// linear phase to fit); kinetic energy 0.1886 -> 0.1665 is converted into internal energy 6.2500 ->
+// 6.2720 while mass, x-momentum and total energy are conserved to 6e-13.
 
 #include <math.h>
 #include <stdio.h>

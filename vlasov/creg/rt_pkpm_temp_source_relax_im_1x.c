@@ -5,8 +5,8 @@
 // Two homogeneous neutral species start as drifting bi-Maxwellians at T = 1 with T_par/T = 1.4 and
 // T_perp/T = 0.8. The source of the first has T_Q = 10 (heating, T_Q/T = 10 initially) and that of
 // the second T_Q = 0.1 (cooling). A static magnetic field along x sets the field direction. Source
-// rate 100 and collision frequency nu_c = 100 for both species, with nu_Q dt between 1.59 and 1.73
-// (0.97 in the two shortened final steps; the explicit update starts at nu_Q dt = 0.09). The
+// rate 100 and collision frequency nu_c = 100 for both species, with nu_Q dt between 1.60 and 1.73
+// (0.85 in the two shortened final steps; the explicit twin starts at nu_Q dt = 0.032). The
 // collisions are self-collisions only: the two species are independent cases sharing a run, and the
 // kinetic implicit BGK of the Vlasov partner takes no cross collisions.
 // vlasov/creg/rt_vlasov_temp_source_relax_im_1x2v.c is the same case with the Vlasov solver in two

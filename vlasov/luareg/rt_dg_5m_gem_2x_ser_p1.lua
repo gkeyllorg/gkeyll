@@ -12,18 +12,18 @@
 -- (limit_em) and divergence cleaning of the magnetic field (mgnErrorSpeedFactor = 1).
 --
 -- Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
--- reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1311 (the moments
+-- reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1310 (the moments
 -- finite-volume solution on 128 x 64 cells: 0.0200 to 0.1167; the explicit variant,
--- rt_dg_5m_gem_explicit_2x: 0.1204). The out-of-plane field reaches |B_z| = 0.011 and the electron
--- speed 0.16 (cell averages); the cell averages of the correction potential stay below 8.1e-4, the
--- field energy falls from 1.511 to 1.268, and the total energy (field plus fluid kinetic and
+-- rt_dg_5m_gem_explicit_2x: 0.1184). The out-of-plane field reaches |B_z| = 0.013 and the electron
+-- speed 0.18 (cell averages); the cell averages of the correction potential stay below 8.7e-4, the
+-- field energy falls from 1.511 to 1.267, and the total energy (field plus fluid kinetic and
 -- internal energy) rises by 0.16%. The run amplifies round-off, so the late-time figures agree
 -- between runs only to several percent (the final field of the C and Lua inputs to 6% of its
--- maximum, the reconnected flux to 6%). For the same reason the mirror symmetry of the problem
+-- maximum, the reconnected flux to 0.2%). For the same reason the mirror symmetry of the problem
 -- about the midplane y = 0, kept to round-off at first, is lost: at the end the electron z-momentum
--- departs from it by 28% of its maximum (1.4% of the current in the moments solution). At the end
--- B_y changes sign three times along the midplane (also three times in the explicit variant, once
--- in the moments solution).
+-- departs from it by 26% of its maximum (1.4% of the current in the moments solution). At the end
+-- B_y changes sign three times along the midplane (once in the explicit variant and in the moments
+-- solution).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

@@ -5,10 +5,9 @@
 -- zeta)^2, E = 1/2 int (n^2 + |grad phi|^2), Gamma_n = -kappa int n d_y phi and Gamma_alpha = alpha
 -- int (phi - n)^2. Figures of merit (serendipity p2, 40 x 40 cells, alpha = 1), from the time
 -- series of the fluctuation kinetic energy int |grad phi|^2: it starts at 3.14, grows as exp(0.155
--- t) over t = 10-30 (least-squares fit of its logarithm) and saturates, averaging 8.0e3 over t =
--- 100-200 (a turbulent statistic: CPU, GPU and MPI runs differ by a few percent). The time step is
--- capped by the adiabatic response rate alpha (1 + k_min^2)/k_min^2 = 41.5 of the longest box mode
--- (dt <= 1/41.5; 0.0224 at t = 0).
+-- t) over t = 10-30 (least-squares fit of its logarithm) and saturates, averaging 8.2e3 over t =
+-- 100-200 (a turbulent statistic). The time step is capped by the adiabatic response rate alpha (1
+-- + k_min^2)/k_min^2 = 41.5 of the longest box mode (dt <= 1/41.5; 0.0224 at t = 0).
 local Vlasov = G0.Vlasov
 local HasegawaWakatani = G0.Vlasov.Eq.HasegawaWakatani
 

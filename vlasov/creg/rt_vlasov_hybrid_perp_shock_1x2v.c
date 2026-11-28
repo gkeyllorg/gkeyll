@@ -17,9 +17,9 @@
 // = 1.680 and T_e2 / T_e1 = 1.327.
 //
 // Figures of merit at t = 10 / Omega_ci (tensor p1 with the hybrid phase basis, 128 x 16 x 14
-// cells, 2261 steps; omega_pi dt falls from 0.05, the limit of the light wave, to 0.043, that of
-// the ions): the shock (B_z through the mean of its upstream and downstream values) moves at 1.4053
-// vA between t = 4 and 10 / Omega_ci (-1.1%), and at 1.315, 1.346, 1.422 and 1.448 vA between
+// cells, 2262 steps; omega_pi dt falls from 0.05, the limit of the light wave, to 0.043, that of
+// the ions): the shock (B_z through the mean of its upstream and downstream values) moves at 1.4054
+// vA between t = 4 and 10 / Omega_ci (-1.1%), and at 1.316, 1.346, 1.422 and 1.448 vA between
 // successive frames. Averages over 2 < x / d_i < 9.9, behind the shock: compression 1.5298 (ions),
 // 1.5299 (electrons) and 1.5301 (B_z), +0.13% to +0.15%, with a wave train of 6% rms in the density
 // and 5% in B_z; T_i2 / T_i1 = 1.631 (-2.9%), T_e2 / T_e1 = 1.330 (+0.3%). The total energy (field,

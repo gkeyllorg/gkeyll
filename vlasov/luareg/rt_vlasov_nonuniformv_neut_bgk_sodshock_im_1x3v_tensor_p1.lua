@@ -9,8 +9,8 @@
 -- Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 -- velocity 0.841.
 -- The shock and contact positions agree to within a cell; the post-shock plateau is three cells
--- wide and the two cells inside it have the exact density to 2% and 4%; the density L1 error is
--- 0.009.
+-- wide and the two cells inside it have the exact density to 2% and 4%; the density L1 error
+-- against the exact solution is 0.009.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

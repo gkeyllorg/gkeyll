@@ -7,8 +7,8 @@
 -- Stiff collisions, nu = 2.5e9 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.
 -- Figures of merit (100 x 16 cells) at t = 0.035, with nu dt = 9200 on average: the L1 differences
--- of the cell averages from the Euler solution (adiabatic index 5/3) are 1.3% (density), 0.56%
--- (velocity) and 0.38% (pressure), and the density between 5.992 and 22.85.
+-- of the cell averages from the exact Euler solution (adiabatic index 5/3) are 1.3% (density),
+-- 0.56% (velocity) and 0.38% (pressure), and the density between 5.992 and 22.85.
 
 local Vlasov = G0.Vlasov
 

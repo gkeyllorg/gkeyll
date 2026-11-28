@@ -13,8 +13,7 @@
 -- (First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
 -- that holds it, v_te^2 d ln n/dx away from the boundary cells, and subtracts what the
 -- discretization leaves. Without the hold the pressure gradient pushes the electrons until their
--- space charge stops them, and E_x rings about the ambipolar field -(T_e/e) d ln n/dx at the local
--- plasma frequency, up to 56 V/m.
+-- space charge stops them.
 --
 -- Figures of merit at t = 5e-9 (200 cells, serendipity p1, 1000 steps), from the cell averages: on
 -- 0.3 < x < 0.95, E_y is the moments finite-volume solution (400 cells, without the uniform

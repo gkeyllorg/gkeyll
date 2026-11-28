@@ -10,12 +10,12 @@
 -- merit at t = 600 / omega_pe (tensor p1, hybrid basis of the ions, 192 x 32 cells, 9000 steps),
 -- with those of the kinetic test measured the same way in parentheses. The front (where the ion
 -- density crosses the mean of its values 4 to 16 lambda_D behind and ahead of it) is at x = 25.2
--- lambda_D and moves at 0.43 c_s between t = 300 and t = 600 (66.7 lambda_D; 1.11 c_s). The ion
--- density is 2.62 n0 behind and 1.77 n0 ahead of it (2.20, 1.27). The potential jump across it is e
--- dphi / Te = 1.09 (3.20), which is 5/2 of the jump of the electron temperature (1.90 Te behind,
--- 1.46 Te ahead), the momentum balance of a massless adiabatic fluid; p / n^(5/3) of the electrons
--- stays within 0.3% of its inflow value. Ions moving away from the wall ahead of the front: 0.67 n0
--- at 2.15 c_s (0.24 n0 at 3.46 c_s).
+-- lambda_D and moves at 0.43 c_s between t = 300 and t = 600 (67.6 lambda_D, a mean speed x / t =
+-- 1.13 c_s). The ion density is 2.62 n0 behind and 1.77 n0 ahead of it (2.19, 1.26). The potential
+-- jump across it is e dphi / Te = 1.09 (3.22), which is 5/2 of the jump of the electron temperature
+-- (1.90 Te behind, 1.46 Te ahead), the momentum balance of a massless adiabatic fluid; p / n^(5/3)
+-- of the electrons stays within 0.3% of its inflow value. Ions moving away from the wall ahead of
+-- the front: 0.67 n0 at 2.15 c_s (0.24 n0 at 3.49 c_s).
 --
 -- The step is omega_pe dt = 0.067, the CFL limit of the light wave of the field (c = 5 vte;
 -- omega_pi dt = 0.011 at the largest density).

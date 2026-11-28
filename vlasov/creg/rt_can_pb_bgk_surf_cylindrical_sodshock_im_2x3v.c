@@ -4,13 +4,10 @@
 // states (n, T) = (1, 1) and (0.125, 0.8) are at rest on either side of the jump; with collision
 // frequency 1000.0 the solution is the Euler one with gamma = 5/3. The driver runs the tensor p = 1
 // hybrid basis (p = 2 in velocity space) and must reproduce the 1x3v driver at the same radial
-// resolution. The reference is a quasi-1D finite-volume Euler solution with the metric determinant
-// as area factor (reflecting walls), and the exact planar Riemann solution bounds the early-time
-// profile. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x 6 x 6 cells, 140 steps): L1 density
-// error 0.0350 against the quasi-1D reference (0.0339 against the planar exact solution), shock at
-// r = 1.2031 (reference 1.1821) within one cell, contact at 1.0469 (reference 1.0839); the density
-// profile matches the 1x3v flow on the same grid and basis to 2.1e-6 in relative L1; mass conserved
-// to round-off and energy to 3e-13.
+// resolution. The exact planar Riemann solution bounds the early-time profile. Figures of merit
+// (tensor p1 hybrid, 16 x 1 x 6 x 6 x 6 cells, 140 steps): L1 density error 0.0339 against the
+// planar exact solution, shock at r = 1.2031, contact at 1.0469; mass conserved to round-off and
+// energy to 3e-13.
 
 #include <math.h>
 #include <stdio.h>

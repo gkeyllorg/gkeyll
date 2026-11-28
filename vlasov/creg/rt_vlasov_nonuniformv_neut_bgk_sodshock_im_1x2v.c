@@ -9,8 +9,9 @@
 // Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204,
 // velocity 0.760.
 // The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1
-// error is 0.005.
-// The density differs from the explicit run at the same collision frequency by 0.03% at most.
+// error against the exact solution is 0.005.
+// The density differs from the explicit test at the same collision frequency,
+// rt_vlasov_nonuniformv_neut_bgk_sodshock_1x2v, by 0.03% at most.
 
 #include <math.h>
 #include <stdio.h>

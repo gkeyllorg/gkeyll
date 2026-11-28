@@ -3,11 +3,9 @@
 -- vectors, jump at r = 1 on 0.5 < r < 1.5) (1x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are
 -- at rest on either side of the jump; with collision frequency 2000 the solution is the Euler one
 -- with gamma = 2. This variant runs rt_triad_bgk_annulus_sodshock_1x2v_ser_p2.lua with the tensor
--- p1 basis. The reference is a quasi-1D finite-volume Euler solution with the metric determinant as
--- area factor (reflecting walls), and the exact planar Riemann solution is quoted for contrast.
--- Figures of merit (tensor p1, 64 x 12 x 12 cells): density L1 error 0.0104 against the quasi-1D
--- reference (0.0139 against the planar exact solution); shock at 1.1992 (reference 1.1934); mass
--- and energy conserved to round-off.
+-- p1 basis. The exact planar Riemann solution is quoted for comparison. Figures of merit (tensor
+-- p1, 64 x 12 x 12 cells): density L1 error 0.0139 against the planar exact solution; shock at
+-- 1.1992; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

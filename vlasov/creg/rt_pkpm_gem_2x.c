@@ -12,7 +12,7 @@
 // dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 1.188 at t =
 // 22/Omega_ci. The rate is 0.016 to 0.031 B0 vA from 6 to 13/Omega_ci and 0.043 from 13 to
 // 15/Omega_ci, rises from 15/Omega_ci on (onset), peaks at 0.129 B0 vA between 18 and 19/Omega_ci
-// and is 0.073 between 21 and 22/Omega_ci. The onset time depends on the mesh at this resolution.
+// and is 0.073 between 21 and 22/Omega_ci.
 
 #include <math.h>
 #include <stdio.h>

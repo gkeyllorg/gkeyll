@@ -16,9 +16,9 @@
 --
 -- Figures of merit at t = 4 pi / omega_pe (64 cells, serendipity p1, 77 steps, omega_pe dt =
 -- 0.163): the cell averages of E_x differ from the cold local solution by 1.1e-2 in L2, and by
--- 7.3e-3 with the leapfrog frequency (2 / dt) asin(omega_p dt / 2) of the split in it (1.7e-2 at
--- 32 cells and 3.3e-3 at 128); those of u_x differ by 1.7e-2. The density changes by at most
--- 3.1e-4 of itself, the compression of the oscillation.
+-- 7.3e-3 with the leapfrog frequency (2 / dt) asin(omega_p dt / 2) of the split in it; those of u_x
+-- differ by 1.7e-2. The density changes by at most 3.1e-4 of itself, the compression of the
+-- oscillation.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

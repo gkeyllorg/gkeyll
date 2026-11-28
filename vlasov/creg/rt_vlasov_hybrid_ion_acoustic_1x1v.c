@@ -21,10 +21,8 @@
 // gives omega = 0.09466 omega_pi and a damping rate of 0.01314 omega_pi. Figures of merit (tensor
 // p1 with the hybrid phase basis, 32 x 48 cells, omega_pe dt = 1.01): between t = 1 and 3 wave
 // periods the ion density wave decays at 0.01307 omega_pi (-0.5% against the theory with
-// collisions) with omega = 0.09448 omega_pi (-0.2%). Without collisions the run gives 0.01328 and
-// 0.09451: the collisions change the rate by -1.5% (theory -1.4%) and omega by -0.04% (theory
-// -0.04%). The total energy changes by -5e-13 (4e-5 of twice the initial kinetic energy of the ion
-// flow).
+// collisions) with omega = 0.09448 omega_pi (-0.2%). The total energy changes by -5e-13 (4e-5 of
+// twice the initial kinetic energy of the ion flow).
 
 #include <complex.h>
 #include <math.h>

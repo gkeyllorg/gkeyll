@@ -1,12 +1,9 @@
 -- Sod shock tube on an annulus run through the 2x2v canonical Poisson-bracket solver with a single
 -- periodic angular cell (2x2v). Same problem as the 1x2v annulus test (polar metric diag(1, r^2),
 -- jump at r = 1, implicit BGK at collision frequency 2000.0); the angular direction is uniform, so
--- the 2x2v kernels must reproduce the 1x2v run, and the reference is the same quasi-1D Euler
--- solution. Figures of merit (serendipity p2, 32 x 1 x 8 x 12 cells, 262 steps): L1 density error
--- 0.0103 against the quasi-1D reference (0.0130 against the planar exact solution), shock at r =
--- 1.1927 (reference 1.1934), contact at 1.0781 (reference 1.0756); mass and energy conserved to
--- round-off. The density profile matches the 1x2v run on the same grid to 2e-6
--- (relative L1 5.0e-7).
+-- the 2x2v kernels must reproduce the 1x2v run. Figures of merit (serendipity p2, 32 x 1 x 8 x 12
+-- cells, 262 steps): L1 density error 0.0130 against the planar exact solution, shock at r =
+-- 1.1927, contact at 1.0781; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -3,12 +3,8 @@
 // at r = 1 on 0.5 < r < 1.5 (2x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are at rest on
 // either side of the jump; with collision frequency 2000 the solution is the Euler one with gamma =
 // 2. The solution must stay azimuthally uniform and reproduce the 1x2v driver run at the same
-// radial resolution. The reference is a quasi-1D finite-volume Euler solution with the metric
-// determinant as area factor (reflecting walls), and the exact planar Riemann solution is quoted
-// for contrast. Figures of merit (serendipity p2, 32 x 1 x 12 x 12 cells, 214 steps): density L1
-// error 0.0101 against the quasi-1D reference; shock at 1.1927 (reference 1.1934), contact at
-// 1.0781 (reference 1.0756); the solution is azimuthally uniform to round-off and agrees with the
-// 1x2v driver at 32 radial cells to 1.5e-6 in density (relative L1 2.8e-7); mass and energy
+// radial resolution. Figures of merit (serendipity p2, 32 x 1 x 12 x 12 cells, 214 steps): shock at
+// 1.1927, contact at 1.0781; the solution is azimuthally uniform to round-off; mass and energy
 // conserved to round-off.
 
 #include <math.h>

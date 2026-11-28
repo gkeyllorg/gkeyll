@@ -2,8 +2,8 @@
 -- equations (1x, normalized parallel velocity w = v_par/xi), the counterpart of
 -- vlasov/creg/rt_vlasov_bgk_cross_relax_1x3v.c.
 -- Homogeneous neutral electrons (T = 1, drifting along the magnetic field at half the ion thermal
--- speed) and ions (mass 100, T = 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1,
--- nu_ii = 0.1 and nu_ie = (m_e / m_i) nu_ei, so that m_e n_e nu_ei = m_i n_i nu_ie. Both species
+-- speed) and ions (mass 100, T = 0.5, at rest) with constant collision frequencies nu_ee = nu_ei =
+-- 1, nu_ii = 0.1 and nu_ie = (m_e / m_i) nu_ei, so that m_e n_e nu_ei = m_i n_i nu_ie. Both species
 -- start with T_perp / T_par = 1.3. Run for 5 electron collision times.
 -- The pair exchanges momentum and energy through the fluid states, in one backward-Euler step in
 -- each SSP-RK3 stage, as in rt_pkpm_lbo_cross_relax_1x.c, and the distributions relax to the unit
@@ -16,7 +16,7 @@
 -- The temperature difference decays at 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured
 -- 0.0395). The pressure anisotropy decays at nu_ee + nu_ei = 2 for the electrons and at
 -- nu_ii + nu_ie = 0.11 for the ions (measured 2.0001 and 0.1100), half the LBO rates. Vlasov 1x3v
--- measures 1.02, 0.0395, 2.09 and 0.110.
+-- measures 1.010, 0.0396, 2.01 and 0.111.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

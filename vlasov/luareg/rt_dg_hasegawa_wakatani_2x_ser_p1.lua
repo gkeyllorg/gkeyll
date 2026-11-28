@@ -5,8 +5,8 @@
 -- zeta)^2, E = 1/2 int (n^2 + |grad phi|^2), Gamma_n = -kappa int n d_y phi and Gamma_alpha = alpha
 -- int (phi - n)^2. Figures of merit (serendipity p1, 40 x 40 cells, alpha = 1), from the time
 -- series of the fluctuation kinetic energy int |grad phi|^2: it starts at 2.96, grows as exp(0.139
--- t) over t = 10-30 (least-squares fit of its logarithm) and saturates, averaging 1.3e4 over t =
--- 100-200 (a turbulent statistic: CPU, GPU and MPI runs differ by a few percent).
+-- t) over t = 10-30 (least-squares fit of its logarithm) and saturates, averaging 1.2e4 over t =
+-- 100-200 (a turbulent statistic).
 local Vlasov = G0.Vlasov
 local HasegawaWakatani = G0.Vlasov.Eq.HasegawaWakatani
 

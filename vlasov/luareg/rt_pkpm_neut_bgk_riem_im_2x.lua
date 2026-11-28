@@ -7,16 +7,14 @@
 -- left state. The states are symmetric about the diagonal x = y, and a static uniform magnetic
 -- field along that diagonal sets the field direction b, at 45 degrees to the grid; the charge is
 -- zero, so the field only names the direction of the kinetic velocity.
--- The collision frequency puts the mean free path below 1/400 of a cell, so the solution follows
--- the Euler solution of a gas with adiabatic index 5/3. The BGK relaxation takes one
--- backward-Euler step in each SSP-RK3 stage (nu dt = 1.7).
--- Figures of merit (24 x 24 x 8 cells) at t = 0.3, against the Euler solution of the moments app
--- (HLLC, adiabatic index 5/3, 400 x 400 cells) averaged over the cells of this grid: the L1 errors
--- of the cell averages are 1.6% (density) and 2.1% (pressure); the largest cell average of the
--- density is 1.578 against 1.579, in the same cell; the smallest cell averages of the density and
--- the pressure are 0.1379 and 0.02897 (initial 0.138 and 0.029). The solution is symmetric about
--- the diagonal to round-off (density 8e-15, momentum 1e-14), the momentum along z stays zero, and
--- the first-harmonic blocks, driven by the flow gradients across b, reach 5e-3 of F.
+-- The collision frequency puts the mean free path below 1/400 of a cell, the Euler limit of a gas
+-- with adiabatic index 5/3. The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage
+-- (nu dt = 1.7).
+-- Figures of merit (24 x 24 x 8 cells) at t = 0.3: the largest cell average of the density is
+-- 1.578; the smallest cell averages of the density and the pressure are 0.1379 and 0.02897 (initial
+-- 0.138 and 0.029). The solution is symmetric about the diagonal to round-off (density 8e-15,
+-- momentum 1e-14), the momentum along z stays zero, and the first-harmonic blocks, driven by the
+-- flow gradients across b, reach 5e-3 of F.
 
 local Vlasov = G0.Vlasov
 

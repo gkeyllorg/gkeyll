@@ -14,10 +14,9 @@
 -- v_te) are held about their initial state
 -- (First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
 -- that holds them and subtracts what the discretization leaves. Without the hold the pressure
--- gradient pushes the electrons until their space charge stops them, and E_x rings about the
--- ambipolar field -(T_e/e) d ln n/dx at the local plasma frequency, up to 54 V/m. The response is
--- linear in the antenna current: J_0 = 1 A/m^3 (1e-12 in the 5-moment beach) puts the electron
--- drift at 2.4e-5 v_te, above the round-off of the current of a distribution function.
+-- gradient pushes the electrons until their space charge stops them. The response is linear in the
+-- antenna current: J_0 = 1 A/m^3 (1e-12 in the 5-moment beach) puts the electron drift at 2.4e-5
+-- v_te, above the round-off of the current of a distribution function.
 --
 -- Figures of merit at t = 5e-9 (100 x 8 x 8 cells, serendipity p2, 4062 steps), from the cell
 -- averages: on 0.3 < x < 0.95, E_y is that of the 5-moment beach, per unit antenna current, times
@@ -26,8 +25,7 @@
 -- |E_y| is 0.992 V/m at x = 0.625, 2.11 times the amplitude mu_0 c J_0 / 800 the antenna radiates
 -- to each side in free space (1.90 times that of the projected current, as in the 5-moment beach),
 -- and |E_y| stays below 0.3% of the maximum for x < 0.485, beyond the cutoff. |E_x| stays below
--- 1e-7 V/m, the density at its initial value to 6e-11 and |u_x| below 3e-11 v_te. 12 x 12
--- velocity cells give the same E_y to four digits.
+-- 1e-7 V/m, the density at its initial value to 6e-11 and |u_x| below 3e-11 v_te.
 
 local Vlasov = G0.Vlasov
 

@@ -10,8 +10,9 @@
 // velocity 0.841.
 // Figures of merit (128 x 16 cells): the shock sits at 0.684 and the contact, smoothed by the
 // collisional diffusion, at 0.576; the post-shock plateau has density 0.233 and velocity 0.845 (2%
-// and 0.5% above the Euler values); the density L1 error is 0.013 (Vlasov 1x1v, serendipity p2,
-// against its adiabatic index 3 solution: 0.013).
+// and 0.5% above the exact Euler values); the density L1 error against the exact solution is 0.013
+// (rt_vlasov_neut_lbo_sodshock_1x1v, serendipity p2, against its exact adiabatic index 3 solution:
+// 0.013).
 
 #include <math.h>
 #include <stdio.h>

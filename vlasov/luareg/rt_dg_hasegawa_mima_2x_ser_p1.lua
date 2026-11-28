@@ -5,7 +5,7 @@
 -- centroid moves in y at exactly -kappa. Figures of merit (serendipity p1, 128 x 128 cells): int
 -- zeta' is conserved to round-off (relative change below 5e-14 in the time series), and over the
 -- turbulent run to t = 200 the energy E, computed from the phi frames at t = 0 and 200, falls by
--- 4.2% (the time-series component int |grad phi|^2 by 6.6%) and the enstrophy W by 4.9% through
+-- 4.1% (the time-series component int |grad phi|^2 by 6.6%) and the enstrophy W by 4.8% through
 -- grid-scale dissipation.
 local Vlasov = G0.Vlasov
 local HasegawaMima = G0.Vlasov.Eq.HasegawaMima

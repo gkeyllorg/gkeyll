@@ -10,9 +10,9 @@
 // kick-drift-kick split between the SSP-RK3 transport steps.
 //
 // Figures of merit (32 cells, serendipity p1, t = 10, 87 steps): a fit of ln int |grad phi_g|^2
-// over t = 1-8 gives 2 gamma = 1.7268 (-0.30%; -0.08% at 64 cells and -0.02% at 128). The total
-// energy (fluid energy minus half the field-grav-energy file, int |grad phi_g|^2 / alpha_g) changes
-// by 8.2e-4 of the final gravitational energy; mass is conserved to 5e-15.
+// over t = 1-8 gives 2 gamma = 1.7268 (-0.30%). The total energy (fluid energy minus half the
+// field-grav-energy file, int |grad phi_g|^2 / alpha_g) changes by 8.2e-4 of the final
+// gravitational energy; mass is conserved to 5e-15.
 
 #include <math.h>
 #include <stdio.h>

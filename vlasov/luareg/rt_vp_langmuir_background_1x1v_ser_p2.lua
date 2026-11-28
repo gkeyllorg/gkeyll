@@ -15,7 +15,7 @@
 -- rt_dg_5m_poisson_langmuir_background_1x_ser_p1.lua and
 -- rt_pkpm_poisson_langmuir_background_1x.lua are the same problem with fluid and PKPM electrons.
 --
--- Figures of merit at t = 4 pi / omega_pe (64 x 16 cells, serendipity p2, velocity grid +-6 vt, 99
+-- Figures of merit at t = 4 pi / omega_pe (64 x 16 cells, serendipity p2, velocity grid +-6 vt, 100
 -- steps): the cell averages of E_x differ from the cold local solution by 8.7e-3 in L2 and those
 -- of u_x by 1.1e-2. The density changes by at most 3.1e-4 of itself, the compression of the
 -- oscillation.

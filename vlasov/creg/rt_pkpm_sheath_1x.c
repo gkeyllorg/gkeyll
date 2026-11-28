@@ -8,7 +8,7 @@
 // Spitzer frequencies computed from the local moments (nu_ei = 0.043 omega_pe at the reference
 // density and the source temperatures; their momentum and energy exchange takes one backward-Euler
 // step in each SSP-RK3 stage). The position map clusters the cells at the wall.
-// Run to t = 1000/omega_pe, when the wall loss is 0.1% below its value at t = 3000/omega_pe.
+// Run to t = 1000/omega_pe.
 // Figures of merit at t = 1000 (16 x 16 cells): midplane-to-wall potential drop e*dphi/Te = 1.935,
 // ion wall flux / (n_mid c_s) = 0.508, ion speed at the wall / c_s = 1.679, with Te the source
 // temperature and c_s = sqrt((Te + Ti)/mi). At x = 0 the electron temperature is 0.988 and the ion

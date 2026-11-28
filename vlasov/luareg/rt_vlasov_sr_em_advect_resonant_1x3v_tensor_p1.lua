@@ -3,13 +3,13 @@
 -- hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html), rotated so that the oscillating electric field
 -- E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x; omega = 1.0
 -- Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the resonant case. The fields are
--- external and the species does not feed back on them; the 3V setup mirrors the PKPM test of the
--- same name. Momenta are in units of mc and the temperature is 0.25 mc^2. As the drive accelerates
--- the bulk, the relativistic cyclotron frequency Omega_c / gamma detunes it, so the bulk speed
--- |<v>| = |M1| / M0 from the integrated moments does not grow secularly: it peaks at 0.781 at t =
--- 4.7 (1 / sqrt(1 - |<v>|^2) = 1.60) and then oscillates. <v> follows the relativistic
--- single-particle characteristics (a quadrature over the initial Maxwell-Juttner) to 0.0006 c over
--- the run (at t = 10, <v_y> = 0.273 and <v_z> = -0.029 against 0.274 and -0.029).
+-- external and the species does not feed back on them. Momenta are in units of mc and the
+-- temperature is 0.25 mc^2. As the drive accelerates the bulk, the relativistic cyclotron
+-- frequency Omega_c / gamma detunes it, so the bulk speed |<v>| = |M1| / M0 from the integrated
+-- moments does not grow secularly: it peaks at 0.781 at t = 4.7 (1 / sqrt(1 - |<v>|^2) = 1.60) and
+-- then oscillates. <v> follows the relativistic single-particle characteristics (a quadrature over
+-- the initial Maxwell-Juttner) to 0.0006 c over the run (at t = 10, <v_y> = 0.273 and <v_z> =
+-- -0.029 against 0.274 and -0.029).
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

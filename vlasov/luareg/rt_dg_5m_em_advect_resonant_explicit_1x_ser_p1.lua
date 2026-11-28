@@ -13,7 +13,7 @@
 -- The uniform fluid follows the exact single-particle solution u_y = (q / m) Omega_c t sin(omega t)
 -- / (2 omega), u_z = (q / m) (sin(omega t) / omega + t cos(omega t)) / 2, whose amplitude grows
 -- linearly in time: at t = 100, u_y = -25.318282 and u_z = -42.862761. Figures of merit (2 cells,
--- serendipity p1, cfl_frac = 0.1, 28779 steps): u_y = -25.318174 and u_z = -42.862720, errors
+-- serendipity p1, cfl_frac = 0.1, 28798 steps): u_y = -25.318174 and u_z = -42.862721, errors
 -- 1.1e-4 and 4.0e-5 (2.3e-6 of the speed, 49.8). The time-step falls from 0.087 to 0.002 as the
 -- gyrating fluid speeds up (its acceleration grows with its speed while its thermal speed does
 -- not). The internal energy rises by 1.2e-4 of its initial value (the implicit variant,

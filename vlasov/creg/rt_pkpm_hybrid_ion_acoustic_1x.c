@@ -21,11 +21,10 @@
 // Te / me): omega = 0.09470 omega_pi, damping rate 0.01333 omega_pi.
 // Figures of merit (32 cells, 48 in w, 1962 steps, omega_pe dt = 1.014 rising to 1.016 with the
 // falling sound speed of the electron fluid): between t = 1 and 3 wave periods the ion density wave
-// decays at 0.01324 omega_pi (-0.6%) with omega = 0.09439 omega_pi (-0.3%). The collisions change
-// the rate by -0.2% and omega by -0.1%. The kinetic test, with its one velocity dimension, gives
-// 0.01307 and 0.09448 (0.01328 and 0.09451 without collisions): there the collisions change the
-// rate by -1.5%, so its figures are not the values to reproduce here. The total energy changes by
-// -5e-13 of itself (7e-5 of twice the initial kinetic energy of the ion flow).
+// decays at 0.01324 omega_pi (-0.6%) with omega = 0.09439 omega_pi (-0.3%). The kinetic test, with
+// its one velocity dimension, gives 0.01307 and 0.09448, so its figures are not the values to
+// reproduce here. The total energy changes by -5e-13 of itself (7e-5 of twice the initial kinetic
+// energy of the ion flow).
 
 #include <complex.h>
 #include <math.h>

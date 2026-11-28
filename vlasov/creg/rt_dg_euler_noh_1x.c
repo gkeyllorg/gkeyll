@@ -7,7 +7,7 @@
 // the centre at speed 1/3 and the gas between them is at rest with density 4 and pressure 4/3. The
 // reference is the exact Riemann solution.
 //
-// Figures of merit (serendipity p1, 100 cells, 367 steps): L1 errors of the cell averages of 0.50%
+// Figures of merit (serendipity p1, 100 cells, 369 steps): L1 errors of the cell averages of 0.50%
 // (density, of the mean density), 0.31% (velocity, of the largest |u| + c_s) and 0.74% (pressure,
 // of the mean pressure); shocks at x = 0.1675 and 0.8325 (exact 0.1667 and 0.8333). More than three
 // cells from the shocks and the centre the density is within 0.04 of 4 and the pressure within 0.02

@@ -6,12 +6,11 @@
 // source replaces the particles lost to the wall, and a temperature source (the moments of the
 // BGK-form source of the kinetic tests) at the source temperature acts upstream (x < L_nu) to hold
 // the pre-sheath plasma at that temperature. The position map clusters the cells at the wall.
-// Run to t = 1000/omega_pe, when the ion wall flux is 0.2% below its steady value.
+// Run to t = 1000/omega_pe.
 // Figures of merit at t = 1000 (16 cells): midplane-to-wall potential drop e*dphi/Te = 2.129, ion
 // wall flux / (n_mid c_s) = 0.493, ion speed at the wall / c_s = 1.749, with c_s = sqrt((Te + Ti)/mi)
 // (rt_vp_sheath_1x1v.c: 1.925, 0.509, 1.629). Both species lose particles at the same rate, so the
-// total charge stays constant. A uniform mesh of 128 cells gives 2.127, 0.497, 1.751 at ten times
-// the cost.
+// total charge stays constant.
 
 #include <math.h>
 #include <stdio.h>

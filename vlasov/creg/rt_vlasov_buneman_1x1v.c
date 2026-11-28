@@ -4,22 +4,31 @@
 // that k v_d = omega_pe for the box mode k = 2 pi, vte = 0.02, vti = 0.001, density perturbation
 // 1e-5 with the electric field from Gauss's law. The ghost current cancels the net current so that
 // Ampere's law reduces to the periodic Poisson problem (see JE33).
-// LBO collisions act on both species at the frequencies of the PKPM tests of this problem
-// (vlasov/creg/rt_pkpm_buneman_1x.c and rt_pkpm_buneman_explicit_1x.c): self-collisions at nu_ee =
-// 1e-4 omega_pe and nu_ii = nu_ee / sqrt(m_i/m_e), cross collisions at nu_ei = nu_ee and nu_ie =
-// (m_e/m_i) nu_ei. The friction slows the drift by 0.42% up to t = 40 (rate nu_ei + nu_ie) and
-// raises the electron temperature by 48%, as dT_e/dt = 2 (m_i/(m_e + m_i)) nu_ei m_e v_d^2 gives:
-// with one velocity dimension the frictional heat goes into one degree of freedom. A PKPM species
-// has three (2/3 in place of 2: 16% in those tests), so the figures of this test are not the values
-// the PKPM tests should reproduce.
+// LBO collisions act on both species, self- and cross-collisions, at the frequencies the app
+// computes from the local moments (Spitzer: nu_sr = nu_frac alpha_E (m_s + m_r) / (2 m_s) n_r /
+// (vtsq_s + vtsq_r)^(3/2), so that m_e n_e nu_ei = m_i n_i nu_ie at every point), with nu_frac =
+// 1.8046e-8 as in the PKPM tests of this problem (vlasov/creg/rt_pkpm_buneman_1x.c and
+// rt_pkpm_buneman_explicit_1x.c). At t = 0 the formula gives nu_ei = 1.000e-4 omega_pe, nu_ie =
+// (m_e/m_i) nu_ei, nu_ee = 5.93e-5 and nu_ii = 3.33e-4; the kinetic operator floors vtsq at dv^2/6
+// of the velocity grid when it forms the frequencies, and the ion cells are 4 vti wide (without the
+// floor, as in the PKPM tests, the formula gives nu_ei = 1.006e-4 and nu_ii = 1.45e-3). The
+// friction slows the drift by 0.32% up to t = 40 (it decays at 8.93e-5 over t <= 20; by the formula
+// nu_ei + nu_ie falls from 1.040e-4 as the electrons heat, to nu_ei = 6.22e-5 with the temperatures
+// of the run at t = 40) and raises the electron temperature by 37.4%, as the formulas d(u_e -
+// u_i)/dt = -(nu_ei + nu_ie) (u_e - u_i) and dT_e/dt = 2 (m_i/(m_e + m_i)) nu_ei m_e (u_e - u_i)^2
+// integrated with these rates give (0.32%, 8.93e-5 and 37.4%): with one velocity dimension the
+// frictional heat goes into one degree of freedom. A PKPM species has three (2/3 in place of 2:
+// 14.6% in those tests), so the figures of this test are not the values the PKPM tests should
+// reproduce.
 // Collisionless kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425
 // omega_pe (cold-beam maximum 0.235).
 // Figures of merit (serendipity p2, 16 x 64 cells): the field energy W_E grows as exp(2 gamma t)
-// with gamma = 0.1904 (least-squares fit of ln W_E over t = 20-65; 0.1950 without collisions) and
-// saturates at t = 73.1 (maximum of W_E, 6.81e-03; without collisions 6.95e-03 at t = 72.1);
-// electron number conserved to 4e-13. Most of the lower rate is the heating of the electrons: over
-// t = 20-50 the run grows at 0.1936 (0.1977 without collisions), and the collisionless theory with
-// the drift and the temperatures of the run gives 0.1944.
+// with gamma = 0.1916 (least-squares fit of ln W_E over t = 20-65) and saturates at t = 72.9
+// (maximum of W_E, 7.01e-03); electron number conserved to 4e-13. Most of the difference from the
+// linear theory is the heating of the electrons: over t = 20-50 the run grows at 0.1946, and the
+// collisionless theory with the drift and the temperatures of the run gives 0.1951. The total
+// energy (field and both species, from the histories) has changed by +1.1e-11 of itself at t = 60
+// and by +1.4e-4 at t = 80, after the saturation.
 
 #include <math.h>
 #include <stdio.h>
@@ -61,15 +70,11 @@ struct buneman_ctx {
   double vti; // Ion thermal velocity.
 
   double alpha; // Applied perturbation amplitude.
+  double nu_frac; // Scaling of the computed (Spitzer) collision frequencies.
 
   // Derived physical quantities (using normalized code units).
   double Te; // Electron temperature.
   double Ti; // Ion temperature.
-  double omega_pe; // Electron plasma frequency.
-  double nu_ee; // Electron-electron collision frequency.
-  double nu_ei; // Electron-ion collision frequency.
-  double nu_ii; // Ion-ion collision frequency.
-  double nu_ie; // Ion-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -111,16 +116,11 @@ create_ctx(void)
   double vti = 0.001; // Ion thermal velocity.
 
   double alpha = 1.0e-5; // Applied perturbation amplitude.
+  double nu_frac = 1.8046e-8; // Scaling of the computed (Spitzer) collision frequencies.
 
   // Derived physical quantities (using normalized code units).
   double Te = (vte * vte) * mass_elc; // Electron temperature.
   double Ti = (vti * vti) * mass_ion; // Ion temperature.
-  double omega_pe =
-    sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
-  double nu_ee = 1.0e-4 * omega_pe; // Electron-electron collision frequency.
-  double nu_ei = nu_ee; // Electron-ion collision frequency.
-  double nu_ii = nu_ee / sqrt(mass_ion / mass_elc); // Ion-ion collision frequency.
-  double nu_ie = (mass_elc / mass_ion) * nu_ei; // Ion-electron collision frequency.
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
@@ -157,13 +157,9 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .alpha = alpha,
+    .nu_frac = nu_frac,
     .Te = Te,
     .Ti = Ti,
-    .omega_pe = omega_pe,
-    .nu_ee = nu_ee,
-    .nu_ei = nu_ei,
-    .nu_ii = nu_ii,
-    .nu_ie = nu_ie,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -241,42 +237,6 @@ evalIonVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 
   // Set ion drift velocity.
   fout[0] = app->Vx_drift_ion;
-}
-
-void
-evalNuEE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct buneman_ctx *app = ctx;
-
-  // Set electron-electron collision frequency.
-  fout[0] = app->nu_ee;
-}
-
-void
-evalNuEI(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct buneman_ctx *app = ctx;
-
-  // Set electron-ion collision frequency.
-  fout[0] = app->nu_ei;
-}
-
-void
-evalNuII(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct buneman_ctx *app = ctx;
-
-  // Set ion-ion collision frequency.
-  fout[0] = app->nu_ii;
-}
-
-void
-evalNuIE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct buneman_ctx *app = ctx;
-
-  // Set ion-electron collision frequency.
-  fout[0] = app->nu_ie;
 }
 
 void
@@ -466,12 +426,9 @@ main(int argc, char **argv)
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNuEE,
-        .self_nu_ctx = &ctx,
+        .nu_frac = ctx.nu_frac,
         .num_cross_collisions = 1,
         .collide_with = {"ion"},
-        .cross_nu = {evalNuEI},
-        .cross_nu_ctx = {&ctx},
       },
 
     .num_diag_moments = 3,
@@ -500,12 +457,9 @@ main(int argc, char **argv)
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNuII,
-        .self_nu_ctx = &ctx,
+        .nu_frac = ctx.nu_frac,
         .num_cross_collisions = 1,
         .collide_with = {"elc"},
-        .cross_nu = {evalNuIE},
-        .cross_nu_ctx = {&ctx},
       },
 
     .num_diag_moments = 3,

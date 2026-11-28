@@ -23,15 +23,15 @@
 // opposite way (omega = -1.566 Omega_ci) and two high-frequency electron modes. The amplitude
 // relations of the wave itself start the whistler, which is not damped, at 4.5% of the field. The
 // Maxwellian is not the kinetic eigenfunction: the rest of the perturbation phase-mixes during the
-// first period, which leaves the wave 0.985 of the initial field, so the figures of merit are taken
+// first period, which leaves the wave 0.978 of the initial field, so the figures of merit are taken
 // after it.
 //
 // Figures of merit (tensor p1 with the hybrid phase basis, 16 x 16 x 6 x 6 cells, 2327 steps,
 // omega_pi dt = 0.131, omega_pe dt = |Omega_ce| dt = 1.31, set by the light wave): between t = 1
 // and 2.5 wave periods the k d_i = 1 mode of B_y + i B_z decays at 0.05150 Omega_ci (+1.0%) with
 // omega = 0.51714 Omega_ci (+0.3%); the history of the transverse magnetic energy over the same
-// interval gives 0.05153 Omega_ci (+1.1%). The collisions change the rate and omega by +0.1% each.
-// The total energy changes by -4e-13 (5e-5 of the initial magnetic energy of the wave).
+// interval gives 0.05153 Omega_ci (+1.1%). The total energy changes by -4e-13 (5e-5 of the initial
+// magnetic energy of the wave).
 
 #include <math.h>
 #include <stdio.h>

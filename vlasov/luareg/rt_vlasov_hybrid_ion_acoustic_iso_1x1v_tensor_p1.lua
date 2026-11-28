@@ -18,10 +18,8 @@
 -- 0.01994 omega_pi. Figures of merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, 1727
 -- steps, omega_pe dt = 1.31): between t = 1 and 3 wave periods the ion density wave decays at
 -- 0.01986 omega_pi (-0.4% against the theory with collisions) with omega = 0.08306 omega_pi
--- (-0.5%). Without collisions the run gives 0.02009 and 0.08295: the collisions change the rate by
--- -1.2% (theory -1.5%) and omega by +0.13% (theory +0.10%). The total energy (field, ions, and
--- (1/2) rho u^2 + v_t^2 rho ln rho of the electrons) changes by +3e-11 (6.1e-4 of twice the initial
--- kinetic energy of the ion flow).
+-- (-0.5%). The total energy (field, ions, and (1/2) rho u^2 + v_t^2 rho ln rho of the electrons)
+-- changes by +3e-11 (6.1e-4 of twice the initial kinetic energy of the ion flow).
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler
 

@@ -7,8 +7,9 @@
 -- 0.1533 omega_pe.
 -- Figures of merit (tensor p1 (hybrid), 16 x 16 x 4 x 4 cells): the field-energy peaks over t =
 -- 0.5-12 decay at gamma = 0.1461 and recur at omega = 1.390; the field energy at t = 20 is 0.00057
--- of its initial value. The rate differs from the 1x1v value 0.123 because the 3V collisions also
--- scatter into the perpendicular directions and relax the isotropic temperature.
+-- of its initial value. The rate differs from the 1x1v value 0.123
+-- (rt_vlasov_landau_damping_lbo_1x1v_tensor_p1) because the 3V collisions also scatter into the
+-- perpendicular directions and relax the isotropic temperature.
 
 local Vlasov = G0.Vlasov
 

@@ -16,7 +16,7 @@
 // the field energy W_E grows as exp(2 gamma t) with gamma = 0.131 (least-squares fit of ln W_E over
 // t = 28-47) and saturates at t = 73.3 (maximum of W_E, 0.282); at t = 85 the integrated electron
 // particle flux (M1) and energy (integral of gamma f) are 0.976 and 1.29 of their initial values
-// (instability heating); number conserved to 6e-14.
+// (instability heating); number conserved to 7e-14.
 
 #include <math.h>
 #include <stdio.h>

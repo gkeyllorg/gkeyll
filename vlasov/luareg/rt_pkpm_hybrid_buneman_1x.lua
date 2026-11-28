@@ -10,10 +10,16 @@
 -- Maxwellian in w = v_par/xi; a uniform magnetic field along x sets the field direction. The ions
 -- are a fluid (gamma = 5/3, HLLC flux) with the temperature of the kinetic test. The ghost current
 -- of each species cancels its mean current, so that Ampere's law equals the periodic Poisson solve.
--- LBO self-collisions act on the electrons at nu_ee = 1e-4 omega_pe; the electrons and the ion
--- fluid exchange momentum and energy at nu_ei = nu_ee and nu_ie = (m_e/m_i) nu_ei. The friction
--- slows the drift by 0.4% up to t = 40 (rate nu_ei + nu_ie) and raises the electron temperature by
--- 16% (dT_e/dt = (2/3) (m_i/(m_e + m_i)) nu_ei m_e v_d^2).
+-- LBO self-collisions act on the electrons, and the electrons and the ion fluid exchange momentum
+-- and energy, at the frequencies the app computes from the local moments (Spitzer: nu_sr = nu_frac
+-- alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2), so that m_e n_e nu_ei = m_i n_i
+-- nu_ie at every point), with nu_frac = 1.8046e-8 on both species: at t = 0 the formula gives nu_ee
+-- = 5.93e-5 omega_pe, nu_ei = 1.006e-4 and nu_ie = (m_e/m_i) nu_ei. The friction slows the drift by
+-- 0.38% up to t = 40 (it decays at 9.88e-5 over t <= 20; by the formula nu_ei + nu_ie falls from
+-- 1.047e-4 as the electrons heat, to nu_ei = 8.21e-5 with the temperatures of the run at t = 40)
+-- and raises the electron temperature by 14.6%, as the formulas d(u_e - u_i)/dt = -(nu_ei + nu_ie)
+-- (u_e - u_i) and dT_e/dt = (2/3) (m_i/(m_e + m_i)) nu_ei m_e (u_e - u_i)^2 integrated with these
+-- rates give (0.38%, 9.88e-5 and 14.6%).
 -- The fluid-field coupling is the staggered operator split with the implicit fluid-Maxwell source
 -- step, which solves the momenta of both species with E and the ghost current that keeps the mean
 -- of E_x over the step; rt_pkpm_hybrid_buneman_explicit_1x.lua is the same problem with the
@@ -21,13 +27,13 @@
 -- Collisionless linear theory with kinetic electrons and the adiabatic ion fluid at k = 2 pi: gamma
 -- = 0.19764 omega_pe, omega_r = 0.14251 omega_pe (0.19758 and 0.14254 with kinetic ions).
 -- Figures of merit (16 cells, 64 in w): the field-energy history int E_x^2 dx grows at gamma =
--- 0.1875 over t = 20-65 (0.1895 without collisions; both species PKPM: 0.1874; the test with
--- kinetic electrons and the same ion fluid, which has no friction and no frictional heating:
--- 0.1946). It peaks at 3.5e-3 at t = 72.2 (both PKPM: 3.4e-3 at t = 72.3) and is 1.8e-3 at t = 80.
--- Electron and ion number are conserved to 1.2e-12. The total energy (field and the fluid energies
--- of both species from the histories) changes by at most 5e-13 of itself up to t = 40 and by at
--- most 6e-12 up to t = 80. The mean of E_x is at round-off (1e-15) at t = 80, where the largest
--- cell average of E_x is 0.085.
+-- 0.1876 over t = 20-65 (both species PKPM: 0.1876; the test with kinetic electrons and the same
+-- ion fluid, which has no friction and no frictional heating: 0.1946). It peaks at 3.5e-3 at t =
+-- 72.2 (both PKPM: 3.4e-3 at t = 72.2) and is 1.8e-3 at t = 80; the growth rate and the peak are
+-- figures of this w grid (64 cells from -8 to 8). Electron and ion number are conserved to 1.2e-12.
+-- The total energy (field and the fluid energies of both species from the histories) changes by at
+-- most 5e-13 of itself up to t = 40 and by at most 6e-12 up to t = 80. The mean of E_x is at
+-- round-off (1e-15) at t = 80, where the largest cell average of E_x is 0.087.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
@@ -51,13 +57,11 @@ vti = 0.001 -- Ion thermal velocity.
 gas_gamma = 5.0 / 3.0 -- Adiabatic index of the ion fluid.
 alpha = 1.0e-5 -- Applied perturbation amplitude.
 B0 = 1.0 -- Magnetic field along x (sets the field direction b).
+nu_frac = 1.8046e-8 -- Scaling of the computed (Spitzer) collision frequencies.
 
 Lx = 1.0 -- Domain size (configuration space: x-direction).
 kx = 2.0 * pi / Lx -- Perturbed wave number (x-direction).
 omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
-nu_ee = 1.0e-4 * omega_pe -- Electron-electron collision frequency.
-nu_ei = nu_ee -- Electron-ion collision frequency.
-nu_ie = (mass_elc / mass_ion) * nu_ei -- Ion-electron collision frequency.
 
 -- Simulation parameters.
 Nx = 16 -- Cell count (configuration space: x-direction).
@@ -128,20 +132,10 @@ vlasovApp = Vlasov.App.new {
 
       collisions = {
         collisionID = G0.Collisions.LBO,
-
-        selfNu = function (t, xn)
-          return nu_ee
-        end,
+        nuFrac = nu_frac,
 
         numCrossCollisions = 1,
-        collideWith = { "ion" },
-        collideWithCrossNu = {
-          {
-            crossNu = function (t, xn)
-              return nu_ei
-            end
-          }
-        }
+        collideWith = { "ion" }
       }
     },
 
@@ -177,15 +171,10 @@ vlasovApp = Vlasov.App.new {
     end,
 
     collisions = {
+      nuFrac = nu_frac,
+
       numCrossCollisions = 1,
-      collideWith = { "elc" },
-      collideWithCrossNu = {
-        {
-          crossNu = function (t, xn)
-            return nu_ie
-          end
-        }
-      }
+      collideWith = { "elc" }
     }
   },
 

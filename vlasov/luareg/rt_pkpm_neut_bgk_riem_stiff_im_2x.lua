@@ -7,9 +7,7 @@
 -- direction b, at 45 degrees to the grid.
 -- Stiff collisions, nu = 5.0e7 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.
--- Figures of merit (24 x 24 x 8 cells) at t = 0.3, with nu dt = 7900 on average: against the Euler
--- solution of the moments app (400 x 400 cells) averaged over the cells of this grid the L1
--- differences of the cell averages are 1.6% (density) and 2.1% (pressure); the density stays
+-- Figures of merit (24 x 24 x 8 cells) at t = 0.3, with nu dt = 7900 on average: the density stays
 -- between 0.1379 and 1.5786, and the solution is symmetric about the diagonal to round-off.
 
 local Vlasov = G0.Vlasov

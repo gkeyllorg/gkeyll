@@ -6,7 +6,7 @@
 -- rarefaction expands to the right behind a contact and a shock in the low-density gas; the
 -- reference is the exact Riemann solution.
 --
--- Figures of merit (serendipity p1, 512 cells, 494 steps): L1 errors of the cell averages of 0.073%
+-- Figures of merit (serendipity p1, 512 cells, 495 steps): L1 errors of the cell averages of 0.073%
 -- (density, of the mean density), 2.7% (velocity, of the largest |u| + c_s) and 0.086% (pressure,
 -- of the mean pressure); shock at x = 1.007 (exact 1.048) and contact at x = 0.979 (exact 0.989),
 -- with velocity 4.83 (exact 4.78) and pressure 3.00e-5 (exact 2.95e-5) between them. The density

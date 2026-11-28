@@ -8,10 +8,8 @@
 -- operator. A static magnetic field along x sets the field direction. Collision frequency 1, run
 -- for 5 collision times.
 -- Figures of merit (2 x 72 cells, to t = 5): density, momentum and energy are conserved to 1e-10.
--- The LBO relaxes the Hermite modes of the parallel distribution at k nu: fitted while above the
--- discretization floor, the heat flux decays at 3.000 nu and the kurtosis at 4.000 nu (Vlasov 1x1v:
--- 3.00 and 4.00). The discontinuous waterbag projects with p_par 1.6% below p_perp; the collisions
--- remove that anisotropy.
+-- The LBO relaxes the Hermite modes of the parallel distribution at k nu. The discontinuous
+-- waterbag projects with p_par 1.6% below p_perp; the collisions remove that anisotropy.
 
 local Vlasov = G0.Vlasov
 

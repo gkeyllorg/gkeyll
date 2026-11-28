@@ -6,7 +6,7 @@
 -- Moderate collisions advanced explicitly, nu = 300.0: the mean free path of the hottest gas is
 -- 0.12 cells. rt_pkpm_neut_lbo_noh_1x has the same collision frequency and grid.
 -- Figures of merit (64 x 16 cells) at t = 1, with nu dt = 0.018 on average: the L1 differences of
--- the cell averages from the Euler solution (adiabatic index 5/3) are 0.79% (density), 3.5%
+-- the cell averages from the exact Euler solution (adiabatic index 5/3) are 0.79% (density), 3.5%
 -- (velocity) and 1% (pressure), and the density between 1 and 4.101.
 
 local Vlasov = G0.Vlasov

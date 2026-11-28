@@ -6,14 +6,13 @@
 -- at x = Lx holds the upstream state fixed (reservoir). Ions slower than the shock potential are
 -- reflected ahead of it. A uniform magnetic field along x sets the field direction. LBO
 -- self-collisions act on both species (nu_ee = 0.002 omega_pe); they exchange parallel and
--- perpendicular energy, so the reference is Vlasov with three velocity dimensions (the 1x1v run has
--- one and a faster front, 0.89 c_s).
--- Figures of merit at t_end (96 cells, 16 electron and 32 ion velocity cells; a Vlasov 1x3v run,
--- serendipity p2, 4 x 4 perpendicular cells, in parentheses), the front being where the potential
--- crosses half its jump: front at x = 48.8 lambda_D, speed 0.81 c_s (45.2, 0.75); downstream
--- density 2.55 n0 (2.60); potential jump across the front e*dphi/Te = 1.43 (1.54); density ahead of
--- the front 1.41 n0 with mean flow -0.66 c_s (1.41, -0.67); downstream temperatures 1.56 Te for the
--- electrons (1.57) and 0.68 Te for the ions (0.64).
+-- perpendicular energy, as in Vlasov with three velocity dimensions (rt_vlasov_es_shock_lbo_1x1v
+-- has one, and its front, located the same way, is faster: 0.89 c_s).
+-- Figures of merit at t_end (96 cells, 16 electron and 32 ion velocity cells), the front being
+-- where the potential crosses half its jump: front at x = 48.8 lambda_D, speed 0.81 c_s; downstream
+-- density 2.55 n0; potential jump across the front e*dphi/Te = 1.43; density ahead of the front
+-- 1.41 n0 with mean flow -0.66 c_s; downstream temperatures 1.56 Te for the electrons and 0.68 Te
+-- for the ions.
 
 local Vlasov = G0.Vlasov
 

@@ -4,15 +4,15 @@
 // pressure 1 left of x = 0.3; density 1/8 and pressure 1/10 at rest on the right. The collision
 // frequency puts the mean free path at 1/500 of a cell, so the solution follows the Euler solution
 // of a gas with adiabatic index 5/3. A static magnetic field along x sets the field direction.
-// The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 1.8).
+// The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 2.1 on average).
 // Exact solution at t = 0.2: the rarefaction passes through the sonic point, contact at x = 0.558,
 // shock at 0.760, density 0.285, velocity 1.291 and pressure 0.471 between them.
 // Figures of merit (100 x 16 cells): the contact at 0.558 and the shock at 0.760 (where the cell
 // averages of the density cross the middle of each jump) lie within 0.1 cells of the Euler
 // positions; the 18 cells between them average density 0.284, velocity 1.293 and pressure 0.472;
 // the L1 errors of the cell averages are 0.75% (density), 0.22% (velocity) and 0.43% (pressure).
-// The density error is smooth across the sonic point (0.005 to 0.007 over the four cells around
-// it). Mass, momentum and energy change by the boundary fluxes to 1e-12.
+// The density error is smooth across the sonic point (0.004 to 0.007 over the four cells around
+// it). Mass, momentum and energy change by the boundary fluxes to 3e-12.
 
 #include <math.h>
 #include <stdio.h>

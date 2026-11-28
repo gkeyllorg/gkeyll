@@ -13,7 +13,7 @@
 // (q_s/m_s) (rho u)_s in units of n0 e c, with lengths in d_e: int |J|^2 dA is 0.945 initially,
 // 2.245 at t = 20/Omega_ci and 2.440 at 25/Omega_ci, still rising (both species PKPM: 1.882 and
 // 2.058; the electron fluid has no collisions or hyperdiffusion to broaden the sheets). The largest
-// |J_z| rises from 0.0170 to 0.0408 at 21/Omega_ci and is 0.0415 at 25/Omega_ci (both PKPM: 0.0372
+// |J_z| rises from 0.0170 to 0.0408 at 21/Omega_ci and is 0.0415 at 25/Omega_ci (both PKPM: 0.0373
 // and 0.0348).
 
 #include <math.h>

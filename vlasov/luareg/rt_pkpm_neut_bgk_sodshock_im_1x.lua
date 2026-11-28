@@ -10,10 +10,10 @@
 -- Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 -- velocity 0.841.
 -- Figures of merit (32 x 16 cells): the shock at 0.686 and the contact at 0.581 (where the cell
--- averages of the density cross the middle of each jump) lie within 0.1 cells of the Euler
+-- averages of the density cross the middle of each jump) lie within 0.1 cells of the exact Euler
 -- positions; over the three cells between them the density averages 0.230 and the velocity 0.827,
 -- with 0.874 (3.9% high) in the cell behind the shock; the L1 error of the cell averages of the
--- density is 0.0069. The constraints hold to round-off.
+-- density against the exact solution is 0.0069. The constraints hold to round-off.
 
 local Vlasov = G0.Vlasov
 

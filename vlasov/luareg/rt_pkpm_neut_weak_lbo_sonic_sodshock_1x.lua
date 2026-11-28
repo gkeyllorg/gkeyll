@@ -6,7 +6,7 @@
 -- Weak collisions: the collision frequency nu = 1.0 makes the domain one mean free path long (the
 -- thermal speed sqrt(p/rho) of the hottest gas is 1). The collisions are advanced explicitly.
 -- Figures of merit (100 x 16 cells) at t = 0.2, with nu dt = 0.00019 on average: the L1 differences
--- of the cell averages from the Euler solution (adiabatic index 5/3) are 10% (density), 19%
+-- of the cell averages from the exact Euler solution (adiabatic index 5/3) are 10% (density), 19%
 -- (velocity) and 18% (pressure), and the density between 0.1278 and 0.9934.
 
 local Vlasov = G0.Vlasov

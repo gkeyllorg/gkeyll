@@ -5,12 +5,9 @@
 -- near x = 0.7. The collision frequency puts the mean free path at 1/400 of a cell in the hot
 -- gas (adiabatic index 5/3). A static magnetic field along x sets the field direction.
 -- The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 3).
--- Figures of merit (160 x 16 cells) at t = 0.038, against a second-order finite-volume Euler
--- solution (MUSCL, HLLE) on 6400 cells averaged over the cells of this grid: the L1 errors of the
--- cell averages are 5.6% (density), 0.6% (velocity) and 2.2% (pressure); the density peaks at 4.14
--- at x = 0.791 (reference 4.15 at 0.784) and has its minimum at 0.170 (0.186); the pressure peaks
--- at 328 at x = 0.616 (319 at 0.616) and the velocity at 13.23 at x = 0.891 (13.17 at 0.897). Mass
--- and energy are conserved to 1e-11 (the walls exchange momentum).
+-- Figures of merit (160 x 16 cells) at t = 0.038: the density peaks at 4.14 at x = 0.791 and has
+-- its minimum at 0.170; the pressure peaks at 328 at x = 0.616 and the velocity at 13.23 at x =
+-- 0.891. Mass and energy are conserved to 1e-11 (the walls exchange momentum).
 
 local Vlasov = G0.Vlasov
 

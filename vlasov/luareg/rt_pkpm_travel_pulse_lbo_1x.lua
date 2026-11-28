@@ -5,12 +5,10 @@
 -- In the Euler limit the pulse returns unchanged to its starting position. With collisions at nu =
 -- 100 the heat flux relaxes at 3 nu, so the gas conducts heat with thermal diffusivity chi = T/(m 3
 -- nu) and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t),
--- k^2 = pi^2; the measured decay beyond it is the numerical diffusion of the scheme.
+-- k^2 = pi^2; the measured amplitude stays above this estimate.
 -- Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
--- error 1.3e-4 rad) with amplitude 0.938, against exp(-chi k^2 t) = 0.936 for chi = T/(3 m nu)
--- (0.944 at 0.88 chi k^2). The PKPM conduction along b converges to 0.88 chi k^2 (Nx 16-64, Nv
--- 16/32, cfl 1/0.5), so the measured decay combines that deficit with the numerical diffusion of
--- the scheme at this resolution. Particle number is conserved to 1e-12.
+-- error 1.3e-4 rad) with amplitude 0.938, against exp(-chi k^2 t) = 0.936 for chi = T/(3 m nu).
+-- Particle number is conserved to 1e-12.
 
 local Vlasov = G0.Vlasov
 

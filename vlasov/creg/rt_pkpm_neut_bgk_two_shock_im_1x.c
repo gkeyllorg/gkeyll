@@ -10,11 +10,12 @@
 // 8.56 and pressure 1842 between the shocks, density 12.74 left of the contact and 21.93 right of
 // it.
 // Figures of merit (100 x 16 cells): the shocks at 0.357 and 0.895 (where the cell averages of the
-// density cross the middle of each jump) lie within 0.1 cells of the Euler positions and the
+// density cross the middle of each jump) lie within 0.1 cells of the exact Euler positions and the
 // contact at 0.703 within 0.4 cells; the plateaus average density 12.73 and 21.90, velocity 8.56
-// and pressure 1841; the L1 errors of the cell averages are 1.3% (density), 0.28% (velocity) and
-// 0.38% (pressure), and the largest cell average of the density is 22.83 (4% above the plateau, at
-// the contact). Mass, momentum and energy change by the boundary fluxes to 1e-11.
+// and pressure 1841; the L1 errors of the cell averages against the exact solution are 1.3%
+// (density), 0.28% (velocity) and 0.38% (pressure), and the largest cell average of the density is
+// 22.83 (4% above the plateau, at the contact). Mass, momentum and energy change by the boundary
+// fluxes to 1e-11.
 
 #include <math.h>
 #include <stdio.h>

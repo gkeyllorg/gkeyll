@@ -7,30 +7,31 @@
 // implicit source step of the staggered operator split; the electrons deposit their current in that
 // step as a known current. The ghost current cancels the net current of the electrons and of the
 // ion fluid, so that Ampere's law reduces to the periodic Poisson problem (see JE33). LBO
-// self-collisions act on the electrons at nu_ee = 1e-4 omega_pe, the frequency of the PKPM tests of
-// this problem (vlasov/creg/rt_pkpm_hybrid_buneman_1x.c and rt_pkpm_hybrid_buneman_explicit_1x.c).
+// self-collisions act on the electrons at the frequency the app computes from the local moments
+// (Spitzer: nu_ee = nu_frac alpha_E n_e / (2 vtsq_e)^(3/2)), with nu_frac = 1.8046e-8 as in the
+// PKPM tests of this problem (vlasov/creg/rt_pkpm_hybrid_buneman_1x.c and
+// rt_pkpm_hybrid_buneman_explicit_1x.c): the formula gives nu_ee = 5.93e-5 omega_pe at t = 0.
 // Collisions between a kinetic species and a fluid species are not supported, so there is no
 // electron-ion friction here, while the PKPM electrons also exchange momentum and energy with the
-// ion fluid (nu_ei = nu_ee), which heats them by 16% up to t = 40. In one velocity dimension the
-// self-collisions conserve the drift and the temperature of the electrons: the figures below are
-// close to those without collisions and are not the values the PKPM tests should reproduce.
+// ion fluid (by the formula nu_ei = 1.006e-4 omega_pe at t = 0), which heats them by 14.6% up to t
+// = 40. In one velocity dimension the self-collisions conserve the drift and the temperature of the
+// electrons: the figures below are not the values the PKPM tests should reproduce.
 //
 // Collisionless linear theory: 1 + chi_e + chi_i = 0 with chi_e = (1 + zeta Z(zeta)) / (k vte /
 // omega_pe)^2, zeta = (omega - k v_d) / (sqrt(2) k vte), of the drifting Maxwellian and chi_i =
 // -omega_pi^2 / (omega^2 - gamma k^2 vti^2) of the adiabatic fluid gives the growth rate 0.19764
 // omega_pe and omega_r = 0.14251 omega_pe at k = 2 pi (0.19758 and 0.14254 with kinetic ions).
 //
-// Figures of merit (tensor p1, hybrid basis of the electrons, 16 x 64 cells, 4114 steps, omega_pe
+// Figures of merit (tensor p1, hybrid basis of the electrons, 16 x 64 cells, 4113 steps, omega_pe
 // dt = 0.021, the CFL limit of the light wave): the field energy epsilon_0 / 2 int E^2 dx grows at
 // 0.1975 omega_pe over t = 20-50 (-0.1%; 0.1972 over t = 25-55), and at 0.1946 over t = 20-65, the
-// window of the kinetic test (0.1900 in the tensor p1 twin of that test on the same grid, which has
-// the electron-ion friction; 0.1945 without collisions). It peaks at 3.1e-3 at t = 72.1 and is
-// 6.8e-4 at t = 80 (that twin: 3.1e-3 at t = 73.0 and 5.1e-4). Without collisions the three rates
-// are the same to four digits and the peak is 0.4% higher, at t = 72.2. The total energy (field and
-// electrons from the histories, ion fluid from the frames) changes by 3e-10 up to t = 40 and by
-// 4.9e-6 up to t = 80, the electron number by 3e-13, and the mean of E_x stays below 1e-13 of its
-// maximum. The total momentum changes by 7e-5 up to t = 60 and by +14.3% through saturation (+0.6%
-// in the kinetic twin).
+// window of the kinetic test (0.1913 in vlasov/luareg/rt_vlasov_buneman_1x1v_tensor_p1.lua, the
+// tensor p1 twin of that test on the same grid, which has the electron-ion friction). It peaks at
+// 3.1e-3 at t = 72.2 and is 6.8e-4 at t = 80 (that twin: 3.1e-3 at t = 72.8 and 4.9e-4). The total
+// energy (field and electrons from the histories, ion fluid from the frames) changes by 3e-10 up to
+// t = 40 and by 4.9e-6 up to t = 80, the electron number by 3e-13, and the mean of E_x stays below
+// 1e-13 of its maximum. The total momentum changes by 7e-5 up to t = 60 and by +14.3% through
+// saturation (+0.6% in the kinetic twin).
 
 #include <math.h>
 #include <stdio.h>
@@ -73,12 +74,11 @@ struct hybrid_buneman_ctx {
   double gas_gamma; // Adiabatic index of the ion fluid.
 
   double alpha; // Applied perturbation amplitude.
+  double nu_frac; // Scaling of the computed (Spitzer) collision frequencies.
 
   // Derived physical quantities (using normalized code units).
   double Te; // Electron temperature.
   double Ti; // Ion temperature.
-  double omega_pe; // Electron plasma frequency.
-  double nu_ee; // Electron-electron collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -119,13 +119,11 @@ create_ctx(void)
   double gas_gamma = 5.0 / 3.0; // Adiabatic index of the ion fluid.
 
   double alpha = 1.0e-5; // Applied perturbation amplitude.
+  double nu_frac = 1.8046e-8; // Scaling of the computed (Spitzer) collision frequencies.
 
   // Derived physical quantities (using normalized code units).
   double Te = (vte * vte) * mass_elc; // Electron temperature.
   double Ti = (vti * vti) * mass_ion; // Ion temperature.
-  double omega_pe =
-    sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
-  double nu_ee = 1.0e-4 * omega_pe; // Electron-electron collision frequency.
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
@@ -161,10 +159,9 @@ create_ctx(void)
     .vti = vti,
     .gas_gamma = gas_gamma,
     .alpha = alpha,
+    .nu_frac = nu_frac,
     .Te = Te,
     .Ti = Ti,
-    .omega_pe = omega_pe,
-    .nu_ee = nu_ee,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -214,15 +211,6 @@ evalElcVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 
   // Set electron drift velocity.
   fout[0] = app->Vx_drift_elc;
-}
-
-void
-evalNuEE(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct hybrid_buneman_ctx *app = ctx;
-
-  // Set electron-electron collision frequency.
-  fout[0] = app->nu_ee;
 }
 
 void
@@ -427,8 +415,7 @@ main(int argc, char **argv)
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNuEE,
-        .self_nu_ctx = &ctx,
+        .nu_frac = ctx.nu_frac,
       },
 
     .num_diag_moments = 3,

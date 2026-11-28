@@ -6,7 +6,7 @@
 -- (serendipity p2, 32 x 12 x 12 cells, 5766 steps): over t = 5 the density profile changes by at
 -- most 1.7e-3 (relative), the temperature by 1.4e-3 and the mean p_phi by 2.1e-3; mass and energy
 -- conserved to round-off. With implicit BGK collisions at nu = 10 the same state stays stationary
--- to 2e-4 over t = 2.
+-- to 2e-4 over t = 2 (rt_can_pb_rot_surf_sphere_equilibrium_flows_1x2v).
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

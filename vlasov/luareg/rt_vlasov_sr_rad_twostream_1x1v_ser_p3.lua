@@ -13,7 +13,7 @@
 -- density per species); k = 0.5 grows at 0.085, k = 1.5 at 0.091 and k = 2 only at 0.0046 (the
 -- cutoff is k = 2.02), and k >= 2.5 is stable. Figures of merit (serendipity p3, 32 x 64 cells):
 -- the field energy W_E grows as exp(2 gamma t) with gamma = 0.125 (least-squares fit of ln W_E over
--- t = 28-47) and saturates at t = 79.2 (maximum of W_E, 0.329); at t = 85 the integrated electron
+-- t = 28-47) and saturates at t = 79.1 (maximum of W_E, 0.329); at t = 85 the integrated electron
 -- particle flux (M1) and energy (integral of gamma f) are 0.987 and 1.20 of their initial values
 -- (instability heating); number conserved to 1e-13.
 

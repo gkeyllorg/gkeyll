@@ -5,7 +5,7 @@
 // the left, a Mach 189 shock to the right and the contact stays at x = 0.8; the reference is the
 // exact Riemann solution.
 //
-// Figures of merit (serendipity p1, 100 cells, 238 steps): L1 errors of the cell averages of 1.5%
+// Figures of merit (serendipity p1, 100 cells, 239 steps): L1 errors of the cell averages of 1.5%
 // (density, of the mean density), 0.28% (velocity, of the largest |u| + c_s) and 0.86% (pressure,
 // of the mean pressure); contact at x = 0.8006 (exact 0.8) with its density jump inside two cells,
 // shock at x = 0.8730 (exact 0.8731); density 0.6161 left of the contact (exact 0.6157) and 4.0026

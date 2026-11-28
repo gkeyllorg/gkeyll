@@ -2,11 +2,9 @@
 -- Poisson-bracket Vlasov solver on an annulus (polar coordinates r, theta with metric diag(1, r^2),
 -- jump at r = 1 on 0.5 < r < 1.5) (1x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are at rest
 -- on either side of the jump; with collision frequency 2000.0 the solution is the Euler one with
--- gamma = 2. The reference is a quasi-1D finite-volume Euler solution with the metric determinant
--- as area factor (reflecting walls), and the exact planar Riemann solution bounds the early-time
--- profile. Figures of merit (serendipity p1, 64 x 12 x 16 cells): L1 density error 0.0167 against
--- the quasi-1D reference (0.0194 against the planar exact solution), shock at r = 1.1836
--- (reference 1.1934), contact at 1.0742 (reference 1.0756); mass and energy conserved to round-off.
+-- gamma = 2. The exact planar Riemann solution bounds the early-time profile. Figures of merit
+-- (serendipity p1, 64 x 12 x 16 cells): L1 density error 0.0194 against the planar exact solution,
+-- shock at r = 1.1836, contact at 1.0742; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -12,8 +12,7 @@
 // accretion rate r^2 n U^r from the rest-frame LTE moments is -16.006 at t = 0
 // (exact -16, constant in r to 3.0e-3) and -16.07 at t = 5 M (constant to 2.9e-2); over the run the
 // density, temperature and drift profiles change by at most 4.8e-2, 3.5e-2 and 2.4e-2 inside r = 12
-// M; the cell-averaged density agrees with the serendipity p2 1x3v driver at the same grid and time
-// to 2.5e-2 (relative L1 2.9e-3); mass changes by -9.0e-3 through the horizon boundary.
+// M; mass changes by -9.0e-3 through the horizon boundary.
 
 #include <math.h>
 #include <stdio.h>

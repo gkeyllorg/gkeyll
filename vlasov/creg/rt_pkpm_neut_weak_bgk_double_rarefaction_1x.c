@@ -7,7 +7,7 @@
 // (the thermal speed sqrt(p/rho) of the hottest gas is 0.6325). The collisions are advanced
 // explicitly.
 // Figures of merit (100 x 16 cells) at t = 0.15, with nu dt = 0.00015 on average: the L1
-// differences of the cell averages from the Euler solution (adiabatic index 5/3) are 9.2%
+// differences of the cell averages from the exact Euler solution (adiabatic index 5/3) are 9.2%
 // (density), 6.3% (velocity) and 22% (pressure), and the density between 0.0009967 and 0.9807.
 
 #include <math.h>

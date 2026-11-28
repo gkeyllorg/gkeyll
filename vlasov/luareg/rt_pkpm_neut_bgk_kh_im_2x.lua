@@ -6,17 +6,12 @@
 -- wavelength. A static uniform magnetic field along x, the direction of the shear flow, sets the
 -- field direction b; the charge is zero, so the field only names the direction of the kinetic
 -- velocity, and the shear across b is carried by the first harmonic.
--- The collision frequency puts the mean free path at 1/300 of a cell, so the flow follows the
--- Euler equations of a gas with adiabatic index 5/3 with a small viscosity p/nu. The BGK
--- relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 5).
+-- The collision frequency puts the mean free path at 1/300 of a cell, the Euler limit of a gas with
+-- adiabatic index 5/3 with a small viscosity p/nu. The BGK relaxation takes one backward-Euler step
+-- in each SSP-RK3 stage (nu dt = 5).
 -- Figures of merit (16 x 16 x 8 cells):
--- - The first harmonic gives the Navier-Stokes shear stress: a = int w M0_perp,y dw (the stress
---   across b over the pressure), summed over the rows of one shear layer, is 3.178e-3 at t = 0.5
---   and at t = 1 against the 3.158e-3 of a BGK gas, -(1/nu) d u_x/dy summed over the same rows.
 -- - The integral of rho u_y^2 grows at the rate 1.20 between t = 1 and 2 (half the logarithmic
---   slope), against 1.47 for the Euler solution of the moments app (128 x 128 cells) with the same
---   initial condition; it is 1.3e-4, 1.6e-3 and 1.2e-2 at t = 1, 2 and 3 (Euler 1.5e-4, 2.9e-3 and
---   3.2e-2).
+--   slope); it is 1.3e-4, 1.6e-3 and 1.2e-2 at t = 1, 2 and 3.
 -- - Mass and energy are conserved to 2e-13, the momentum along y stays zero to 1e-16, and the
 --   density stays between 1.00 and 2.07.
 

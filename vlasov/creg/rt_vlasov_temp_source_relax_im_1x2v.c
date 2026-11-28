@@ -8,9 +8,8 @@
 // Two homogeneous neutral species start as bi-Maxwellians drifting along x with T_xx = 1.4 and T_yy
 // = 0.6 (T = 1). The source of the first has T_Q = 10 (heating) and that of the second T_Q = 0.1
 // (cooling). Source rate 100 and collision frequency nu_c = 100 for both species, with z = nu_Q dt
-// between 2.45 and 2.55 (the explicit update takes z = 0.42 at these rates). The collisions are
-// self-collisions only: the two species are independent cases sharing a run, and the kinetic
-// implicit BGK takes no cross collisions.
+// between 2.45 and 2.55. The collisions are self-collisions only: the two species are independent
+// cases sharing a run, and the kinetic implicit BGK takes no cross collisions.
 // The two operators take one backward-Euler step together in each SSP-RK3 stage, over the time
 // weight of the stage, f' = (f + dt nu_c f_M(T') + dt nu_Q f_M(T_Q))/(1 + dt (nu_c + nu_Q)), where
 // T' = (T + dt nu_Q T_Q)/(1 + dt nu_Q) is the temperature the source gives the species over the

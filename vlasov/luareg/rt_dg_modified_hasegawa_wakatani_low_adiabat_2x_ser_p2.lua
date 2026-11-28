@@ -8,9 +8,8 @@
 -- Gamma_n = -kappa int n d_y phi and Gamma_alpha = alpha int (phi - n)^2. Figures of merit
 -- (serendipity p2, 32 x 32 cells, alpha = 0.1): in the time series the fluctuation kinetic energy
 -- int |grad phi|^2 starts at 3.13, grows as exp(0.187 t) over t = 10-30 (least-squares fit of its
--- logarithm) and saturates, averaging 1.1e4 over t = 100-200 (a turbulent statistic: CPU, GPU and
--- MPI runs differ by a few percent; at this low adiabaticity the zonal share at t = 200 is not
--- reproducible across platforms).
+-- logarithm) and saturates, averaging 1.4e4 over t = 100-200 (a turbulent statistic; at this low
+-- adiabaticity the zonal share at t = 200 is not reproducible across platforms).
 local Vlasov = G0.Vlasov
 local HasegawaWakatani = G0.Vlasov.Eq.HasegawaWakatani
 

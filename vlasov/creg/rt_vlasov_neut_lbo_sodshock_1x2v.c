@@ -5,8 +5,8 @@
 // mean free paths.
 // Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204,
 // velocity 0.760.
-// The kinetic shock position agrees within 1%, the plateaus within 5%; the density L1 error is
-// 0.013.
+// The kinetic shock position agrees within 1%, the plateaus within 5%; the density L1 error against
+// the exact solution is 0.013.
 
 #include <math.h>
 #include <stdio.h>

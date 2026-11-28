@@ -2,12 +2,10 @@
 // Poisson-bracket Vlasov solver on the unit sphere (coordinates theta, phi with metric
 // diag(1, sin^2 theta), jump at theta = pi/2 on pi/4 < theta < 5 pi/8) (1x2v). The states (n, T) =
 // (1, 1) and (0.125, 0.8) are at rest on either side of the jump; with collision frequency 2000.0
-// the solution is the Euler one with gamma = 2. The reference is a quasi-1D finite-volume Euler
-// solution with the metric determinant as area factor (reflecting walls), and the exact planar
-// Riemann solution bounds the early-time profile. Figures of merit
-// (serendipity p2, 64 x 12 x 12 cells, 197 steps): L1 density error 0.0068 against the quasi-1D
-// reference (0.0076 against the planar exact solution), shock at theta = 1.7702 (reference 1.7672),
-// contact at 1.6475 (reference 1.6470); mass and energy conserved to round-off.
+// the solution is the Euler one with gamma = 2. The exact planar Riemann solution bounds the
+// early-time profile. Figures of merit
+// (serendipity p2, 64 x 12 x 12 cells, 197 steps): L1 density error 0.0076 against the planar exact
+// solution, shock at theta = 1.7702, contact at 1.6475; mass and energy conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>

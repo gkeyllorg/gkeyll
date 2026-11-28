@@ -13,8 +13,8 @@
 // The uniform fluid follows the exact single-particle solution u_y = A (cos(omega t) - cos(Omega_c
 // t)), u_z = A (sin(Omega_c t) - (omega / Omega_c) sin(omega t)) with A = Omega_c (q / m) E_0 /
 // (Omega_c^2 - omega^2): at t = 100, u_y = 0.136863 and u_z = 0.500238. Figures of merit (2 cells,
-// serendipity p1, cfl_frac = 0.1, 1613 steps, Omega_c dt = 0.062 on average): u_y = 0.138377 and
-// u_z = 0.499214, errors 1.5e-3 and -1.0e-3. The internal energy rises by 1.2e-3 of its initial
+// serendipity p1, cfl_frac = 0.1, 1617 steps, Omega_c dt = 0.062 on average): u_y = 0.138361 and
+// u_z = 0.499227, errors 1.5e-3 and -1.0e-3. The internal energy rises by 1.2e-3 of its initial
 // value (the implicit variant, rt_dg_5m_em_advect_1x, keeps it to round-off), and the state stays
 // uniform.
 

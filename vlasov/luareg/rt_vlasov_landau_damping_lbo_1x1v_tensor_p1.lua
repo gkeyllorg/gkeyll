@@ -6,8 +6,8 @@
 -- 0.1533 omega_pe.
 -- Figures of merit (tensor p1 (hybrid), 32 x 32 cells): the field-energy peaks over t = 0.5-12
 -- decay at gamma = 0.1233 and recur at omega = 1.403; the field energy at t = 20 is 0.002 of its
--- initial value. The collisions slow the damping from the collisionless 0.155 measured on this
--- grid.
+-- initial value. The collisions slow the damping from the collisionless 0.155 of
+-- rt_vlasov_landau_damping_1x1v_tensor_p1 on this grid.
 
 local Vlasov = G0.Vlasov
 

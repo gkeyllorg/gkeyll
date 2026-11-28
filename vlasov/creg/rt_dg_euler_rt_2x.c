@@ -5,15 +5,14 @@
 // hydrostatic pressure p = 0.2 (1 - y) above the interface, continuous across it, and the total
 // energy (p + 0.01) / (gamma - 1).
 //
-// Figures of merit (serendipity p1, 50 x 200 cells, 6883 steps; in brackets the moments solutions
-// on 50 x 200 and 100 x 400 cells): mass is conserved to 4e-13. The kinetic energy grows as exp(2
-// gamma t) with gamma = 0.920 while it rises from 1e-6 to 1e-5 (0.949, 0.977) and is 6.65e-4 at t =
-// 8.5 (4.15e-4, 3.65e-4), when the heavy fluid (rho > 1.5) reaches down to y = 0.0575 and the light
-// fluid up to y = 0.7975 (0.1625 and 0.7125, 0.1413 and 0.7037). The total energy rises by 1.69e-4
-// while the potential energy g int rho y dV falls by 1.69e-4. The departure from the mirror
-// symmetry about x = Lx / 2 is 2e-8 at the end; it measures round-off, which the run amplifies by
-// about 1e8 (the Lua twin, whose initial state differs in the last bits, ends 5e-8 from this run
-// and 3e-8 from the symmetry).
+// Figures of merit (serendipity p1, 50 x 200 cells, 6883 steps; in brackets the moments solution on
+// 50 x 200 cells): mass is conserved to 4e-13. The kinetic energy grows as exp(2 gamma t) with
+// gamma = 0.920 while it rises from 1e-6 to 1e-5 (0.949) and is 6.65e-4 at t = 8.5 (4.15e-4), when
+// the heavy fluid (rho > 1.5) reaches down to y = 0.0575 and the light fluid up to y = 0.7975
+// (0.1625 and 0.7125). The total energy rises by 1.69e-4 while the potential energy g int rho y dV
+// falls by 1.69e-4. The departure from the mirror symmetry about x = Lx / 2 is 2e-8 at the end; it
+// measures round-off, which the run amplifies by about 1e8 (the Lua twin, whose initial state
+// differs in the last bits, ends 5e-8 from this run and 3e-8 from the symmetry).
 
 #include <math.h>
 #include <stdio.h>

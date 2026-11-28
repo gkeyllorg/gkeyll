@@ -3,17 +3,17 @@
 -- hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html), rotated so that the oscillating electric field
 -- E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x; omega = 0.5
 -- Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the non-resonant case. The fields are
--- external and the species does not feed back on them; the 3V setup mirrors the PKPM test of the
--- same name. Momenta are in units of mc and the temperature is 0.25 mc^2. The drive accelerates the
--- bulk to relativistic speed, so the relativistic cyclotron frequency Omega_c / gamma detunes it:
--- the bulk speed |<v>| = |M1| / M0 from the integrated moments peaks at 0.940 at t = 9.2 (1 /
--- sqrt(1 - |<v>|^2) = 2.93), and the mean Lorentz factor (integrated energy over M0) rises from
--- 1.47 to 5.00 at t = 9.4. The momentum box (+-8 mc in p_y and p_z) contains the distribution: at t
--- = 10 the outermost p_y and p_z cells hold 3e-6 of the mass and the negative cell averages sum to
--- 0.2% of it. <v> follows the relativistic single-particle characteristics (a quadrature over the
--- initial Maxwell-Juttner) to 0.0008 c over the run: at t = 10, <v_y> = -0.537 and <v_z> = 0.767
--- against -0.537 and 0.767. The LTE temperature (frame 1) rises from 0.25 to 0.448 since the
--- time-dependent drive is not a Lorentz boost.
+-- external and the species does not feed back on them. Momenta are in units of mc and the
+-- temperature is 0.25 mc^2. The drive accelerates the bulk to relativistic speed, so the
+-- relativistic cyclotron frequency Omega_c / gamma detunes it: the bulk speed |<v>| = |M1| / M0
+-- from the integrated moments peaks at 0.940 at t = 9.2 (1 / sqrt(1 - |<v>|^2) = 2.93), and the
+-- mean Lorentz factor (integrated energy over M0) rises from 1.47 to 5.00 at t = 9.4. The momentum
+-- box (+-8 mc in p_y and p_z) contains the distribution: at t = 10 the outermost p_y and p_z cells
+-- hold 3e-6 of the mass and the negative cell averages sum to 0.2% of it. <v> follows the
+-- relativistic single-particle characteristics (a quadrature over the initial Maxwell-Juttner) to
+-- 0.0008 c over the run: at t = 10, <v_y> = -0.537 and <v_z> = 0.767 against -0.537 and 0.767. The
+-- LTE temperature (frame 1) rises from 0.25 to 0.448 since the time-dependent drive is not a
+-- Lorentz boost.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

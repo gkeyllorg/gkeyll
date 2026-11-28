@@ -25,11 +25,9 @@
 -- omega_pe + |Omega_ce| of the electron fluid, and the field that sets the direction has |Omega_ce|
 -- = omega_pe, so the step is half that of the kinetic test): between t = 1 and 3 wave periods the
 -- ion density wave decays at 0.01329 omega_pi (-0.3%) with omega = 0.09453 omega_pi (-0.2%). The
--- collisions change the rate by -0.1% and omega by -0.1%. The kinetic test, with its one velocity
--- dimension, gives 0.01311 and 0.09461 (0.01332 and 0.09465 without collisions): there the
--- collisions change the rate by -1.5%, so its figures are not the values to reproduce here. The
--- total energy changes by -8e-13 of itself (1e-4 of twice the initial kinetic energy of the ion
--- flow).
+-- kinetic test, with its one velocity dimension, gives 0.01311 and 0.09461, so its figures are not
+-- the values to reproduce here. The total energy changes by -8e-13 of itself (1e-4 of twice the
+-- initial kinetic energy of the ion flow).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

@@ -9,7 +9,7 @@
 // on the grid. Reference: a Lagrangian k = 0 solution of the same equations (uniform plasma: every
 // particle's momentum shifts by q times the integral of E dt, so f is the initial state plus the
 // injected pairs, each shifted by that amount, and dE/dt = -J). Figures of merit (16 x 96 cells,
-// 7214 steps): with the field magnitude |E| = sqrt(W_E / Lx) from the field energy, screening at t
+// 7217 steps): with the field magnitude |E| = sqrt(W_E / Lx) from the field energy, screening at t
 // = 8.42 (reference 8.42, cold-beam estimate (sqrt(n0^2 + S E0) - n0)/S = 8.2), peak field 20.24,
 // 12.35 and 9.44 at t = 12.2, 19.5 and 24.8 (reference 20.24, 12.35 and 9.44), envelope decay rate
 // 0.0613 (least-squares fit of ln|E| over the first three peaks) against 0.0614 for the reference

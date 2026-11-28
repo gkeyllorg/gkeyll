@@ -7,7 +7,7 @@
 // Moderate collisions, nu = 1.0e6: the BGK relaxation takes one backward-Euler step in each SSP-
 // RK3 stage, so the transport alone sets the time step (nu dt of order 1).
 // Figures of merit (100 x 16 cells) at t = 0.012, with nu dt = 1.4 on average: the L1 differences
-// of the cell averages from the Euler solution (adiabatic index 5/3) are 2.7% (density), 3.1%
+// of the cell averages from the exact Euler solution (adiabatic index 5/3) are 2.7% (density), 3.1%
 // (velocity) and 0.91% (pressure), and the density between 0.5283 and 4.178.
 
 #include <math.h>

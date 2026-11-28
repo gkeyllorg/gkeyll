@@ -21,10 +21,8 @@
 -- electron fluid) the theory gives omega = 0.09466 omega_pi and a damping rate of 0.01314 omega_pi.
 -- Figures of merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, omega_pe dt = 0.995):
 -- between t = 1 and 3 wave periods the ion density wave decays at 0.01311 omega_pi (-0.2% against
--- the theory with collisions) with omega = 0.09461 omega_pi (-0.1%). Without collisions the run
--- gives 0.01332 and 0.09465: the collisions change the rate by -1.5% (theory -1.4%) and omega by
--- -0.04% (theory -0.04%). The total energy changes by -7e-13 (7e-5 of twice the initial kinetic
--- energy of the ion flow).
+-- the theory with collisions) with omega = 0.09461 omega_pi (-0.1%). The total energy changes by
+-- -7e-13 (7e-5 of twice the initial kinetic energy of the ion flow).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

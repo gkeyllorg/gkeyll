@@ -6,7 +6,7 @@
 -- Euler equations (star density 2.2012 and velocity 0.8096, shock speed 1.4836). The numerical flux
 -- is the Roe solver of the isothermal wave equation object (rp_type).
 --
--- Figures of merit at t = 0.1 (serendipity p3, 512 cells, 719 steps): L1 errors of the cell
+-- Figures of merit at t = 0.1 (serendipity p3, 512 cells, 721 steps): L1 errors of the cell
 -- averages of 0.0013 in density and 0.0016 in momentum (0.00134 and 0.00156, against 0.00079 and
 -- 0.00078 at p1); shock at x = 0.8985 (exact 0.8984); star-state density 2.2012 and velocity
 -- 0.8096, both exact to four digits; the cell averages of the density stay within [1, 3].

@@ -2,12 +2,10 @@
 -- Poisson-bracket Vlasov solver on a cylinder (coordinates r, theta, z with metric diag(1, r^2, 1),
 -- radial jump at r = 1 on 0.5 < r < 1.5) (1x3v). The states (n, T) = (1, 1) and (0.125, 0.8) are at
 -- rest on either side of the jump; with collision frequency 1000.0 the solution is the Euler one
--- with gamma = 5/3. The reference is a quasi-1D finite-volume Euler solution with the metric
--- determinant as area factor (reflecting walls), and the exact planar Riemann solution bounds the
--- early-time profile. Figures of merit (serendipity p2, 24 x 6 x 8 x 6 cells, 192 steps): L1
--- density error 0.0146 against the quasi-1D reference (0.0160 against the planar exact solution),
--- shock at r = 1.1875 (reference 1.1821), contact at 1.0764 (reference 1.0839); mass conserved to
--- round-off and energy to 4e-13.
+-- with gamma = 5/3. The exact planar Riemann solution bounds the early-time profile. Figures of
+-- merit (serendipity p2, 24 x 6 x 8 x 6 cells, 192 steps): L1 density error 0.0160 against the
+-- planar exact solution, shock at r = 1.1875, contact at 1.0764; mass conserved to round-off and
+-- energy to 4e-13.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

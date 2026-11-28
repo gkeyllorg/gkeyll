@@ -6,13 +6,10 @@
 // Propagation Method for Three-Dimensional Hyperbolic Conservation Laws", Journal of Computational
 // Physics 165 (1): 126-166, as set up in entry JE23 of A. Hakim's simulation journal.
 //
-// Figures of merit (serendipity p1, 37 x 37 x 25 cells, 492 steps): against the moments solutions
-// on the same cells (ending at t = 0.7023) and on 74 x 74 x 50 cells, block-averaged, the L1
-// differences of the cell averages are 1.2e-2 and 7.9e-3 of the mean in density and 1.1e-2 and
-// 8.6e-3 in pressure. The density spans [0.358, 1.574] and the largest pressure is 1.901 (moments
-// on the same cells: [0.390, 1.520] and 1.811). The cell averages are symmetric under the exchange
-// of x and y to 7.3e-15. The copy boundaries at x = 0 and y = 0 pass through the centre of the
-// sphere and do not conserve mass: it grows by 6.1% (moments: 6.3%).
+// Figures of merit (serendipity p1, 37 x 37 x 25 cells, 492 steps): the density spans [0.358,
+// 1.574] and the largest pressure is 1.901. The cell averages are symmetric under the exchange of x
+// and y to 7.3e-15. The copy boundaries at x = 0 and y = 0 pass through the centre of the sphere
+// and do not conserve mass: it grows by 6.1%.
 
 #include <math.h>
 #include <stdio.h>

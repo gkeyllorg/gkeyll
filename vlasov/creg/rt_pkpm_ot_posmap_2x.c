@@ -9,9 +9,9 @@
 // the first current sheets.
 // Figures of merit (16 x 16 x 8 cells), from the cell averages of the current J = sum_s (q_s/m_s)
 // (rho u)_s in units of n0 e c, with lengths in d_e, the uniform mesh of rt_pkpm_ot_2x in
-// parentheses: int |J|^2 dA is 0.929 (0.945) initially, 1.764 (1.883) at t = 20/Omega_ci and 1.873
+// parentheses: int |J|^2 dA is 0.929 (0.945) initially, 1.764 (1.882) at t = 20/Omega_ci and 1.873
 // (2.058) at 25/Omega_ci. The largest |J_z| rises from 0.0180 (0.0170) to a first maximum of 0.0385
-// (0.0372) at 21/Omega_ci, in the sheets at x = L/2, y = 0, and is 0.0360 (0.0348) at 25/Omega_ci.
+// (0.0373) at 21/Omega_ci, in the sheets at x = L/2, y = 0, and is 0.0359 (0.0348) at 25/Omega_ci.
 // The sheets form at several places, so the clustering lowers int |J|^2.
 
 #include <math.h>

@@ -8,8 +8,8 @@
 -- explicit (use_explicit_sources); the light-wave CFL condition keeps omega_pe dt at 0.05, so the
 -- rate of the source does not set the time-step.
 --
--- The electrons become supersonic in the current sheet. The fluids use the HLLC flux of the Riemann
--- solver (rp_type) with the vertex positivity limiter, and the field its slope limiter (limit_em).
+-- The fluids use the HLLC flux of the Riemann solver (rp_type) with the vertex positivity limiter,
+-- and the field its slope limiter (limit_em).
 --
 -- Figures of merit at t = 10 (256 cells, serendipity p1, 8534 steps): relative L1 differences of
 -- the cell averages from the moments finite-volume solution on 1024 cells, 0.64% (ion density),

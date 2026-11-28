@@ -7,10 +7,8 @@
 // 1836.2, c = 1, and the ion skin depth equal to the domain length. The fluid-field coupling is the
 // staggered operator split with the implicit fluid-Maxwell source step.
 //
-// The electrons become supersonic in the current sheet: they reach Mach 2.8 at t = 0.075, with
-// their internal energy down to 19% of their total energy (cell averages). The fluids use the HLLC
-// flux of the Riemann solver (rp_type) with the vertex positivity limiter, and the field its slope
-// limiter (limit_em).
+// The fluids use the HLLC flux of the Riemann solver (rp_type) with the vertex positivity limiter,
+// and the field its slope limiter (limit_em).
 //
 // Figures of merit at t = 10 (256 cells, serendipity p1, 8534 steps): relative L1 differences of
 // the cell averages from the moments finite-volume solution on 1024 cells, 0.61% (ion density),

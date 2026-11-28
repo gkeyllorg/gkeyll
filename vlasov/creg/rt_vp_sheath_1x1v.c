@@ -1,12 +1,10 @@
-// Sheath formation with the Vlasov-Poisson system of equations, run to t = 1000/omega_pe, when
-// the wall flux is within 1% of its steady value.
+// Sheath formation with the Vlasov-Poisson system of equations, run to t = 1000/omega_pe.
 // Half domain: symmetry boundary at x = 0, absorbing conducting wall at x = Lx. A boundary-flux
 // source replaces the particles lost to the wall, and BGK collisions relaxing to a fixed
 // temperature act upstream (x < L_nu) to hold the pre-sheath plasma at its source temperature; the
 // region next to the wall is collisionless. The position map clusters the cells at the wall.
 // Figures of merit at t = 1000: midplane-to-wall potential drop e*dphi/Te = 1.925, ion wall flux
-// / (n_mid c_s) = 0.509, ion speed at the wall / c_s = 1.629, with c_s = sqrt((Te + Ti)/mi) (at
-// t = 1500: 1.93, 0.51, 1.64).
+// / (n_mid c_s) = 0.509, ion speed at the wall / c_s = 1.629, with c_s = sqrt((Te + Ti)/mi).
 
 #include <math.h>
 #include <stdio.h>

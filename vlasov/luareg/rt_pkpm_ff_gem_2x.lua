@@ -12,7 +12,6 @@
 -- dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 0.972 at t =
 -- 22/Omega_ci. The rate is 0.017 to 0.036 B0 vA from 4 to 16/Omega_ci, rises from 16/Omega_ci on
 -- (onset), peaks at 0.089 B0 vA between 19 and 20/Omega_ci and is 0.076 between 21 and 22/Omega_ci.
--- The onset time depends on the mesh at this resolution.
 
 local Vlasov = G0.Vlasov
 

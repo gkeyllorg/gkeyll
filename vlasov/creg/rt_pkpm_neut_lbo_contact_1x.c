@@ -5,8 +5,8 @@
 // Moderate collisions advanced explicitly, nu = 60.0: the mean free path of the hottest gas is 1.7
 // cells. rt_pkpm_neut_bgk_contact_1x has the same collision frequency and grid.
 // Figures of merit (100 x 16 cells) at t = 2, with nu dt = 0.0084 on average: the L1 differences of
-// the cell averages from the Euler solution (adiabatic index 5/3) are 3.6% (density) and below
-// 0.01% (pressure), the velocity stays below 0.005, and the density between 1 and 1.4.
+// the cell averages from the exact Euler solution (adiabatic index 5/3) are 3.6% (density) and
+// below 0.01% (pressure), the velocity stays below 0.005, and the density between 1 and 1.4.
 
 #include <math.h>
 #include <stdio.h>

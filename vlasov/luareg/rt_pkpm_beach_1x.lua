@@ -16,17 +16,16 @@
 -- First_Fourier_Harmonic_Notes/background_density_gradient.tex): the app derives the body force
 -- along b that holds the parallel pressure gradient, v_te^2 d ln n/dx away from the boundary
 -- cells, and subtracts what the discretization leaves. Without the hold the pressure gradient
--- pushes the electrons until their space charge stops them, and E_x rings about the ambipolar
--- field -(T_e/e) d ln n/dx at the local plasma frequency, up to 56 V/m.
+-- pushes the electrons until their space charge stops them.
 --
 -- Figures of merit at t = 5e-9 (200 x 8 cells, serendipity p1, 1000 steps), from the cell averages:
 -- the maximum of |E_perp| = sqrt(E_y^2 + E_z^2) is 2.79e5 V/m at x = 0.6275, 1.74 times the
 -- amplitude mu_0 c J_0 / 800 the antenna radiates to each side in free space; the maxima of |E_y|
 -- and |E_z| are 1.33 and 1.17 times that amplitude. |E_perp| stays below 0.7% of its maximum for x
--- < 0.466, beyond both cutoffs; for x < 0.3 |E_x| stays below 0.02 V/m (22 V/m without the hold)
--- and the density changes by less than 1e-8; in the wave E_x reaches 3.5e3 V/m. The norm of the
--- first-harmonic blocks of the distribution is at most 0.31 of that of F (at x = 0.9225), and 0.21
--- in the cell at the absorbing edge.
+-- < 0.466, beyond both cutoffs; for x < 0.3 |E_x| stays below 0.02 V/m and the density changes by
+-- less than 1e-8; in the wave E_x reaches 3.5e3 V/m. The norm of the first-harmonic blocks of the
+-- distribution is at most 0.31 of that of F (at x = 0.9225), and 0.21 in the cell at the absorbing
+-- edge.
 
 local Vlasov = G0.Vlasov
 

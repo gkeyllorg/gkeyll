@@ -14,7 +14,7 @@
 -- at up to 2 gamma = 0.463.
 -- Figures of merit (serendipity p2, 128 x 64 cells; the Lua noise realization differs from the C
 -- one): the electrostatic energy grows at 0.445 over t = 20-40 and peaks at 5.43e3 at t = 48.8; the
--- gravitational energy peaks at 3.43e4 at t = 274; electron and positron numbers conserved to 5e-13
+-- gravitational energy peaks at 3.43e4 at t = 273; electron and positron numbers conserved to 5e-13
 -- and total energy (kinetic plus epsilon0/2 of the electrostatic energy file, int |grad phi|^2 +
 -- mu_sq phi^2, minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) to 9e-6.
 

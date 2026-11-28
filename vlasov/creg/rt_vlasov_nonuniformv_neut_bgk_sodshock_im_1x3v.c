@@ -9,7 +9,8 @@
 // Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 // velocity 0.841.
 // The shock and contact positions agree to within a cell; the post-shock plateau is three cells
-// wide and its middle cell has the exact density to 0.1%; the density L1 error is 0.005.
+// wide and its middle cell has the exact density to 0.1%; the density L1 error against the exact
+// solution is 0.005.
 
 #include <math.h>
 #include <stdio.h>

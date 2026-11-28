@@ -3,11 +3,8 @@
 -- r = 1 on 0.5 < r < 1.5, on cubic velocity maps (2x3v). The states (n, T) = (1, 1) and
 -- (0.125, 0.8) are at rest on either side of the jump; with collision frequency 1000 the solution
 -- is the Euler one with gamma = 5/3. This variant runs the serendipity p = 1 basis and must
--- reproduce the 1x3v test. The reference is a quasi-1D finite-volume Euler solution with the metric
--- determinant as area factor (reflecting walls), and the exact planar Riemann solution is quoted
--- for contrast. Figures of merit (serendipity p1, 16 x 1 x 6 x 6 x 6 cells on cubic velocity maps):
--- density L1 error 0.0454 against the quasi-1D reference; mass conserved to round-off and energy to
--- 4e-13.
+-- reproduce the 1x3v test. Figures of merit (serendipity p1, 16 x 1 x 6 x 6 x 6 cells on cubic
+-- velocity maps): mass conserved to round-off and energy to 4e-13.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

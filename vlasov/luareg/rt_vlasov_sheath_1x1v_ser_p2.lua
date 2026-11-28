@@ -1,5 +1,4 @@
--- Sheath formation with the Vlasov-Maxwell system of equations, run to t = 1000/omega_pe, when
--- the wall flux is 0.6% below its steady value.
+-- Sheath formation with the Vlasov-Maxwell system of equations, run to t = 1000/omega_pe.
 -- Half domain: symmetry boundary at x = 0, absorbing conducting wall at x = Lx. A boundary-flux
 -- source replaces the particles lost to the wall, and BGK collisions relaxing to a fixed
 -- temperature act upstream (|x| < L_nu) to hold the pre-sheath plasma at its source temperature;

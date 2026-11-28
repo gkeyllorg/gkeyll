@@ -19,10 +19,7 @@
 -- Figures of merit (tensor p1 with the hybrid phase basis, 32 x 48 cells, omega_pe dt = 0.995, 2001
 -- steps): between t = 1 and 3 wave periods the ion density wave decays at 0.01303 omega_pi (-0.9%
 -- against the theory with collisions) with omega = 0.09274 omega_pi (-2.0%); the total energy
--- changes by 2.0e-2 of twice the initial kinetic energy of the ion flow. Without collisions the run
--- gives 0.01324 and 0.09276: the collisions change the rate by -1.6% (theory -1.4%) and omega by
--- -0.02% (theory -0.04%). The frequency error is that of the explicit electron coupling: at a fixed
--- omega_pe dt of 0.5, 0.25 and 0.125 it is -0.73%, -0.23% and -0.10%.
+-- changes by 2.0e-2 of twice the initial kinetic energy of the ion flow.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

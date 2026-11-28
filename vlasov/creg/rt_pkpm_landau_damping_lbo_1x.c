@@ -11,7 +11,8 @@
 // Figures of merit (32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at gamma = 0.1440
 // and recur at omega = 1.388; the field energy at t = 20 is 0.00057 of its initial value (Vlasov
 // 1x3v, serendipity p2: 0.1453, 1.388, 0.00059). The PKPM collisions, like the 3V Vlasov ones, also
-// relax the perpendicular temperature, which the 1x1v operator cannot (0.123 there).
+// relax the perpendicular temperature, which the 1x1v operator cannot (0.123 in
+// rt_vlasov_landau_damping_lbo_1x1v).
 
 #include <math.h>
 #include <stdio.h>

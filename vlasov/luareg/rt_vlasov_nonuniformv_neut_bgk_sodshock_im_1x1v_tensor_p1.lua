@@ -9,8 +9,9 @@
 -- Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171,
 -- velocity 0.609.
 -- The shock and contact positions agree to within a cell and the plateaus to 0.1%; the density L1
--- error is 0.004.
--- The density differs from the explicit run at the same collision frequency by 0.04% at most.
+-- error against the exact solution is 0.004.
+-- The density differs from the explicit test at the same collision frequency,
+-- rt_vlasov_nonuniformv_neut_bgk_sodshock_1x1v_tensor_p1, by 0.04% at most.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

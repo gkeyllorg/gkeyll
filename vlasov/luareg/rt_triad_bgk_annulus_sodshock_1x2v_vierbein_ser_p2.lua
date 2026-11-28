@@ -3,11 +3,8 @@
 -- vectors, jump at r = 1 on 0.5 < r < 1.5) (1x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are
 -- at rest on either side of the jump; with collision frequency 2000 the solution is the Euler one
 -- with gamma = 2. This variant gives the geometry through the vierbein and must reproduce
--- rt_triad_bgk_annulus_sodshock_1x2v_ser_p2.lua. The reference is a quasi-1D finite-volume Euler
--- solution with the metric determinant as area factor (reflecting walls), and the exact planar
--- Riemann solution is quoted for contrast. Figures of merit (serendipity p2, vierbein geometry
--- input): identical to the tangent-basis input to round-off (density L1 error 0.0066 against the
--- quasi-1D reference).
+-- rt_triad_bgk_annulus_sodshock_1x2v_ser_p2.lua. Figures of merit (serendipity p2, vierbein
+-- geometry input): identical to the tangent-basis input to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -25,8 +25,7 @@
 // steps, omega_pe dt = 0.65, |Omega_ce| dt = 0.33): between t = 1 and 2 wave periods the k d_i = 1
 // mode of B_y + i B_z decays at 0.05115 Omega_ci (+1.5%) with omega = 0.51688 Omega_ci (+0.4%); the
 // history of the transverse magnetic energy over the same interval gives 0.05122 Omega_ci (+1.7%).
-// The collisions change the rate by +0.2% and omega by +0.1%. The total energy changes by -5e-13 of
-// itself (7e-5 of the initial magnetic energy of the wave).
+// The total energy changes by -5e-13 of itself (7e-5 of the initial magnetic energy of the wave).
 
 #include <math.h>
 #include <stdio.h>

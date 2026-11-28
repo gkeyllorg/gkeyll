@@ -13,7 +13,7 @@
 -- nu_ie) dt = 1.1e-3) and the temperature difference at 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) =
 -- 0.0396 (measured 0.0395). The pressure anisotropy decays at 2 (nu_ee + nu_ei) = 4 for the
 -- electrons and at 2 (nu_ii + nu_ie) = 0.22 for the ions (measured 4.0000 and 0.2200). Vlasov 1x3v
--- measures 1.01, 0.0396, 4.02 and 0.220.
+-- measures 1.01 and 0.0396 for the two differences and 0.220 for the ion anisotropy.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

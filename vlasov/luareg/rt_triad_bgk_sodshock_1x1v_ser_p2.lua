@@ -1,12 +1,10 @@
 -- Sod shock tube of a neutral gas with implicit BGK collisions through the triad Vlasov solver on a
 -- Cartesian line with the identity triad (the solver must reduce to plain Vlasov) (1x1v). The
 -- states (n, T) = (1, 1) and (0.125, 0.8) are at rest on either side of the jump; with collision
--- frequency 5000 the solution is the Euler one with gamma = 3. The reference is a quasi-1D
--- finite-volume Euler solution with the metric determinant as area factor (reflecting walls), and
--- the exact planar Riemann solution is quoted for contrast. Figures of merit (serendipity p2, 128 x
--- 32 cells, 510 steps): density L1 error 0.0040 against the quasi-1D reference (0.0052 against the
--- planar exact solution); shock at 0.7279 (reference 0.7276), contact at 0.5586 (reference 0.5611);
--- mass and energy conserved to round-off.
+-- frequency 5000 the solution is the Euler one with gamma = 3. The exact planar Riemann solution is
+-- quoted for comparison. Figures of merit (serendipity p2, 128 x 32 cells, 510 steps): density L1
+-- error 0.0052 against the planar exact solution; shock at 0.7279, contact at 0.5586; mass and
+-- energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.
